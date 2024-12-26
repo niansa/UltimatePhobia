@@ -23,6 +23,10 @@ public:
     void log(std::string_view msg) {
         tracerLog.append(msg);
     }
+
+    GameHook& getHook(std::string_view signature) {
+        return *hooks[signature];
+    }
 };
 
 extern ModInfo tracerInfo;

@@ -4,7 +4,8 @@
 #include <vector>
 
 
-struct GameMethod {
+namespace GameData {
+struct Method {
     void *address;
     std::string_view name, signature, typeSignature;
 
@@ -13,12 +14,13 @@ struct GameMethod {
     }
 
     template<typename fncT>
-    fncT *getFunction() {
+    fncT *getFunction() const {
         return reinterpret_cast<fncT*>(address);
     }
 };
 
 
-GameMethod getGameMethod(std::string_view identifier);
-GameMethod getGameMethod(void *addr);
-std::vector<GameMethod> searchGameMethods(std::string_view identifier);
+Method getMethod(std::string_view identifier);
+Method getMethod(void *addr);
+std::vector<Method> searchMethods(std::string_view identifier);
+}

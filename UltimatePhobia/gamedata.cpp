@@ -6,6 +6,7 @@
 
 
 
+namespace GameData {
 namespace {
 inline void *calculateAddress(void *addr) {
     return reinterpret_cast<uint8_t *>(g.base) + reinterpret_cast<intptr_t>(addr);
@@ -13,18 +14,18 @@ inline void *calculateAddress(void *addr) {
 }
 
 
-GameMethod getGameMethod(std::string_view identifier) {
-    for (const GameMethod& method : methods) {
+Method getMethod(std::string_view identifier) {
+    for (const Method& method : methods) {
         if (method.signature == identifier) {
-            GameMethod fres(method);
+            Method fres(method);
             fres.address = calculateAddress(fres.address);
             return fres;
         }
     }
 
-    for (const GameMethod& method : methods) {
+    for (const Method& method : methods) {
         if (method.name == identifier) {
-            GameMethod fres(method);
+            Method fres(method);
             fres.address = calculateAddress(fres.address);
             return fres;
         }
@@ -33,8 +34,8 @@ GameMethod getGameMethod(std::string_view identifier) {
     return {nullptr};
 }
 
-GameMethod getGameMethod(void *addr) {
-    for (GameMethod method : methods) {
+Method getMethod(void *addr) {
+    for (Method method : methods) {
         method.address = calculateAddress(method.address);
         if (method.address == addr) {
             return method;
@@ -44,10 +45,10 @@ GameMethod getGameMethod(void *addr) {
     return {nullptr};
 }
 
-std::vector<GameMethod> searchGameMethods(std::string_view identifier) {
-    std::vector<GameMethod> fres;
+std::vector<Method> searchMethods(std::string_view identifier) {
+    std::vector<Method> fres;
 
-    const auto isDup = [&fres] (const GameMethod& method) {
+    const auto isDup = [&fres] (const Method& method) {
         for (const auto& other_method : fres)
             if (method.signature == other_method.signature)
                 return true;
@@ -56,32 +57,33 @@ std::vector<GameMethod> searchGameMethods(std::string_view identifier) {
 
     // Try exact search first
     {
-        const auto result = getGameMethod(identifier);
+        const auto result = getMethod(identifier);
         if (result.isValid())
             fres.emplace_back(std::move(result));
     }
 
     // Then try name search
-    for (const GameMethod& method : methods) {
+    for (const Method& method : methods) {
         if (isDup(method))
             continue;
         if (method.name.find(identifier) != std::string_view::npos) {
-            GameMethod result(method);
+            Method result(method);
             result.address = calculateAddress(result.address);
             fres.emplace_back(std::move(result));
         }
     }
 
     // Finally try signature search
-    for (const GameMethod& method : methods) {
+    for (const Method& method : methods) {
         if (isDup(method))
             continue;
         if (method.signature.find(identifier) != std::string_view::npos) {
-            GameMethod result(method);
+            Method result(method);
             result.address = calculateAddress(result.address);
             fres.emplace_back(std::move(result));
         }
     }
 
     return fres;
+}
 }

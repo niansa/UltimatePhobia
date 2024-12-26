@@ -12,7 +12,7 @@ output.write("""
 #include <vector>
 
 
-static std::vector<GameMethod> methods = {
+static std::vector<GameData::Method> methods = {
 """)
 
 script = json.load(open(argv[1], "r"))

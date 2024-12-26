@@ -7,6 +7,7 @@
 
 #include "mods/global_instance_manager.hpp"
 #include "mods/tracer.hpp"
+#include "mods/photon_settings.hpp"
 #include "mods/hacks.hpp"
 
 #include <optional>
@@ -23,7 +24,7 @@ struct ApplicationHooks {
     static void appUpdateFnc(Player_o* __this, const MethodInfo* method) {
         GameHookRelease GHR(*appUpdateHook);
         appUpdateHook->getFunction<decltype(ApplicationHooks::appUpdateFnc)>()(__this, method);
-        if (__this->fields.photonView->fields._AmOwner_k__BackingField)
+        //if (__this->fields.photonView->fields._AmOwner_k__BackingField)
             currentApplication->update();
     }
 };
@@ -32,10 +33,10 @@ struct ApplicationHooks {
 Application::Application() {
     currentApplication = this;
 
-    mods = {&tracerInfo, &hacksInfo};
+    mods = {&tracerInfo, &photonSettingsInfo, &hacksInfo};
 
     g.logger->info("Starting to listen for local player updates...");
-    ApplicationHooks::appUpdateHook.emplace(getGameMethod("Player$$Update").address, ApplicationHooks::appUpdateFnc);
+    ApplicationHooks::appUpdateHook.emplace(GameData::getMethod("Player$$Update").address, ApplicationHooks::appUpdateFnc);
 
     g.logger->info("Loading essential mods...");
     globalInstanceManagerInfo.load();

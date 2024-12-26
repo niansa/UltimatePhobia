@@ -22,8 +22,8 @@ static void ghostAIStartFnc(GhostAI_o* __this, const MethodInfo* method) {
 
 
 GlobalInstanceManager::GlobalInstanceManager() {
-    playerStartHook.emplace(getGameMethod("Player$$Start").address, playerStartFnc);
-    ghostAIStartHook.emplace(getGameMethod("GhostAI$$Start").address, ghostAIStartFnc);
+    playerStartHook.emplace(GameData::getMethod("Player$$Start").address, playerStartFnc);
+    ghostAIStartHook.emplace(GameData::getMethod("GhostAI$$Start").address, ghostAIStartFnc);
 }
 
 

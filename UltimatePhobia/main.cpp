@@ -2,6 +2,7 @@
 #include "getbaseaddr.hpp"
 #include "imgui_man.hpp"
 #include "application.hpp"
+#include "il2cpp.hpp"
 
 #include <filesystem>
 #include <windows.h>
@@ -17,6 +18,7 @@ static void onLoad() {
     getBaseAddr([] () {
         g.logger->info("Found GameAssembly base address at {}", g.base);
         ImGuiMan::init();
+        il2cpp::init();
         new Application;
     });
 }

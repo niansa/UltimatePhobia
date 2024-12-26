@@ -7,8 +7,11 @@
 
 
 extern "C"
-void tracerModHook() {
-    const auto method = getGameMethod(GameHook::getTrampolineCaller());
+void tracerModHook(void *a, void *b, void *c, void *d, void *e, void *f, void *g, void *h) {
+    const auto method = GameData::getMethod(GameHook::getTrampolineCaller());
+    auto& hook = tracerInfo.get<Tracer>()->getHook(method.signature);
+    GameHookRelease GHR(hook);
+    reinterpret_cast<decltype(tracerModHook)*>(GameHook::getTrampolineCaller())(a, b, c, d, e, f, g, h);
     tracerInfo.get<Tracer>()->log(fmt::format("{}(...)\n", method.isValid()?method.name:fmt::format("<{}>", GameHook::getTrampolineCaller())));
 }
 GAMEHOOK_TRAMPOLINE(tracerModHook)
@@ -25,7 +28,7 @@ void Tracer::uiUpdate() {
     if (searchString.size() > 3) {
         // Show all results
         BeginChild("Search results", ImVec2(0, GetFontSize() * 20.0f), true);
-        for (const GameMethod& method : searchGameMethods(searchString)) {
+        for (const GameData::Method& method : GameData::searchMethods(searchString)) {
             HookButton(method.signature);
         }
         EndChild();
@@ -61,7 +64,7 @@ void Tracer::HookButton(std::string_view signature, bool isDefinitelyHooked) {
         hooked = hooks.find(signature) != hooks.end();
 
     if (ImGui::Button((fmt::format("{} {}", hooked ? '-' : '+', signature)).c_str())) {
-        const auto method = getGameMethod(signature);
+        const auto method = GameData::getMethod(signature);
         if (!hooked)
             hooks.emplace(signature, std::make_unique<GameHook>(method.address, hookTrampoline_tracerModHook, true));
         else

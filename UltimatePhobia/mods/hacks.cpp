@@ -22,7 +22,7 @@ static void ghostAIChangeStateFnc(GhostAI_o* __this, int32_t newState, PhotonObj
 
 void Hacks::setGhostAIChangeStateHook() {
     if (!ghostAIChangeStateHook.has_value())
-        ghostAIChangeStateHook.emplace(getGameMethod("GhostAI$$ChangeState").address, ghostAIChangeStateFnc);
+        ghostAIChangeStateHook.emplace(GameData::getMethod("GhostAI$$ChangeState").address, ghostAIChangeStateFnc);
 }
 
 void Hacks::uiUpdate() {
@@ -32,7 +32,7 @@ void Hacks::uiUpdate() {
 #define TOGGLE(description, hook, boolean, method, hookFnc) \
     if (Checkbox(description, &boolean)) { \
         if (boolean) \
-            hook.emplace(getGameMethod(method).address, hookFnc); \
+            hook.emplace(GameData::getMethod(method).address, hookFnc); \
         else \
             hook.reset(); \
     }
@@ -56,7 +56,7 @@ void Hacks::uiUpdate() {
     Separator();
     if (Button("Trigger interaction")) {
         auto ghost = globalInstanceManagerInfo.get<GlobalInstanceManager>()->ghost;
-        getGameMethod("GhostActivity$$Interact").getFunction<void (GhostActivity_o*, const MethodInfo*)>()(ghost->fields.ghostActivity, nullptr);
+        GameData::getMethod("GhostActivity$$Interact").getFunction<void (GhostActivity_o*, const MethodInfo*)>()(ghost->fields.ghostActivity, nullptr);
     }
 
     End();

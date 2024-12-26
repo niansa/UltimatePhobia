@@ -29,6 +29,9 @@ add_library(UltimatePhobia SHARED main.cpp
     mods/global_instance_manager.hpp mods/global_instance_manager.cpp
     mods/hacks.hpp mods/hacks.cpp
     mods/tracer.hpp mods/tracer.cpp
+    mods/photon_settings.hpp mods/photon_settings.cpp
+    il2cpp.hpp il2cpp.cpp
+    game_types.hpp game_types.cpp
 )
 target_link_libraries(UltimatePhobia PRIVATE Detours spdlog imgui)
 target_include_directories(UltimatePhobia PRIVATE . ../il2cpp_dump)
