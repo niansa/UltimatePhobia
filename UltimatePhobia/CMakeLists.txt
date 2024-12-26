@@ -23,7 +23,13 @@ add_library(UltimatePhobia SHARED main.cpp
     application.hpp application.cpp
     gamedata.hpp gamedata.cpp
     game_hook.hpp game_hook.cpp
-    imgui_man.hpp imgui_man.cpp)
+    imgui_man.hpp imgui_man.cpp
+    game_enums.hpp
+    mods/base.hpp
+    mods/global_instance_manager.hpp mods/global_instance_manager.cpp
+    mods/hacks.hpp mods/hacks.cpp
+    mods/tracer.hpp mods/tracer.cpp
+)
 target_link_libraries(UltimatePhobia PRIVATE Detours spdlog imgui)
-target_include_directories(UltimatePhobia PRIVATE ../il2cpp_dump)
+target_include_directories(UltimatePhobia PRIVATE . ../il2cpp_dump)
 target_precompile_headers(UltimatePhobia PRIVATE ../il2cpp_dump/il2cpp.h)

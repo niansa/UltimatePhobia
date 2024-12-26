@@ -7,3 +7,6 @@
 [submodule "deps/imgui"]
 	path = deps/imgui
 	url = https://github.com/ocornut/imgui.git
+[submodule "deps/reflect-cpp"]
+	path = deps/reflect-cpp
+	url = https://github.com/getml/reflect-cpp.git

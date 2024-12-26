@@ -5,12 +5,16 @@
 #include "game_hook.hpp"
 #include "imgui_man.hpp"
 
+#include "mods/global_instance_manager.hpp"
+#include "mods/tracer.hpp"
+#include "mods/hacks.hpp"
+
 #include <optional>
 #include <imgui.h>
 
 
 
-Application *currentApplication = nullptr;
+static Application *currentApplication = nullptr;
 
 
 struct ApplicationHooks {
@@ -19,7 +23,7 @@ struct ApplicationHooks {
     static void appUpdateFnc(Player_o* __this, const MethodInfo* method) {
         GameHookRelease GHR(*appUpdateHook);
         appUpdateHook->getFunction<decltype(ApplicationHooks::appUpdateFnc)>()(__this, method);
-        if (__this->fields.photonView->fields._IsMine_k__BackingField)
+        if (__this->fields.photonView->fields._AmOwner_k__BackingField)
             currentApplication->update();
     }
 };
@@ -28,20 +32,43 @@ struct ApplicationHooks {
 Application::Application() {
     currentApplication = this;
 
-    g.logger->info("Initializing UltimatePhobia application...");
+    mods = {&tracerInfo, &hacksInfo};
 
-    // Test...
+    g.logger->info("Starting to listen for local player updates...");
     ApplicationHooks::appUpdateHook.emplace(getGameMethod("Player$$Update").address, ApplicationHooks::appUpdateFnc);
+
+    g.logger->info("Loading essential mods...");
+    globalInstanceManagerInfo.load();
 }
 
-void Application::update() {
+void Application::update() {    
     if (!ImGuiMan::pre_update())
         return;
 
-    ImGui::Begin("Mod manager");
-    static unsigned counter = 0;
-    ImGui::Text("%u", counter++);
-    ImGui::End();
+    {
+        using namespace ImGui;
+        Begin("Mod manager");
+
+        static unsigned counter = 0;
+        Text("Frame %u", counter++);
+        NewLine();
+
+        for (const auto mod : mods) {
+            bool isLoaded = mod->instance != nullptr;
+            if (Checkbox(mod->name, &isLoaded)) {
+                if (isLoaded)
+                    mod->load();
+                else
+                    mod->unload();
+            }
+        }
+
+        End();
+    }
+
+    for (auto& mod : mods)
+        if (mod->instance)
+            mod->instance->uiUpdate();
 
     ImGuiMan::post_update();
 }

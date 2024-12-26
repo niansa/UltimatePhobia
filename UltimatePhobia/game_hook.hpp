@@ -4,28 +4,39 @@
 #include <cstdint>
 
 
+extern void *GameHookCallerRip;
+
 class GameHook {
     friend class GameHookRelease;
 
     void *fnc;
     void *hook;
+    bool useTrampoline;
 
     static constexpr unsigned original_len = 14;
     std::array<uint8_t, original_len> original;
     bool released;
 
     bool release();
-    void restore();
+    bool restore();
 
 public:
-    GameHook(void *fnc, void *hook);
+    static void noop();
+
+    GameHook(void *fnc, void *hook, bool useTrampoline = false);
     ~GameHook() {release();}
     GameHook(const GameHook&) = delete;
     GameHook(GameHook&&) = delete;
 
+    static void *getTrampolineCaller();
+
     template<typename fncT>
     fncT *getFunction() {
         return reinterpret_cast<fncT*>(fnc);
+    }
+
+    bool isActive() const {
+        return !released;
     }
 };
 
@@ -43,3 +54,12 @@ public:
         return active;
     }
 };
+
+
+#define GAMEHOOK_TRAMPOLINE(hook) \
+    __attribute__((naked)) \
+    static void hookTrampoline_##hook () { \
+        __asm pop r10 \
+        __asm mov GameHookCallerRip, r10 \
+        __asm jmp hook \
+    }

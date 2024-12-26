@@ -1,0 +1,77 @@
+#include "tracer.hpp"
+#include "gamedata.hpp"
+#include "global_state.hpp"
+
+#include <imgui.h>
+
+
+
+extern "C"
+void tracerModHook() {
+    const auto method = getGameMethod(GameHook::getTrampolineCaller());
+    tracerInfo.get<Tracer>()->log(fmt::format("{}(...)\n", method.isValid()?method.name:fmt::format("<{}>", GameHook::getTrampolineCaller())));
+}
+GAMEHOOK_TRAMPOLINE(tracerModHook)
+
+void Tracer::uiUpdate() {
+    using namespace ImGui;
+    Begin("Function Tracer");
+    // Contents
+    TextUnformatted("Function search");
+    InputText("Name", searchStringBuffer, IM_ARRAYSIZE(searchStringBuffer));
+    // Get search string as C++ string
+    std::string_view searchString{searchStringBuffer, strlen(searchStringBuffer)};
+    // Show results list if search string is long enough
+    if (searchString.size() > 3) {
+        // Show all results
+        BeginChild("Search results", ImVec2(0, GetFontSize() * 20.0f), true);
+        for (const GameMethod& method : searchGameMethods(searchString)) {
+            HookButton(method.signature);
+        }
+        EndChild();
+    }
+    // Show list of enabled hooks
+    TextUnformatted("Enabled hooks");
+    BeginChild("Enabled hooks", ImVec2(0, GetFontSize() * 20.0f), true);
+    for (auto& [signature, hook] : hooks) {
+        HookButton(signature, true);
+    }
+    EndChild();
+    // Show tracer log
+    TextUnformatted("Tracer log");
+    BeginChild("Tracer log", ImVec2(0, GetFontSize() * 20.0f), true);
+    TextUnformatted(tracerLog.c_str());
+    if (logAutoScroll && ImGui::GetScrollY() >= ImGui::GetScrollMaxY()) {
+        SetScrollHereY(1.0f);
+    }
+    EndChild();
+    // Tracer log controls
+    if (Button("Clear")) {
+        tracerLog.clear();
+    }
+    SameLine();
+    Checkbox("Autoscroll", &logAutoScroll);
+    // Window end
+    End();
+}
+
+void Tracer::HookButton(std::string_view signature, bool isDefinitelyHooked) {
+    bool hooked = isDefinitelyHooked;
+    if (!hooked)
+        hooked = hooks.find(signature) != hooks.end();
+
+    if (ImGui::Button((fmt::format("{} {}", hooked ? '-' : '+', signature)).c_str())) {
+        const auto method = getGameMethod(signature);
+        if (!hooked)
+            hooks.emplace(signature, std::make_unique<GameHook>(method.address, hookTrampoline_tracerModHook, true));
+        else
+            hooks.erase(hooks.find(signature));
+        log(fmt::format(" {} {} <{}>\n", hooked?'-':'+', method.name, method.address));
+    }
+}
+
+
+ModInfo tracerInfo {
+    "Tracer",
+    [] () {return std::make_unique<Tracer>();}
+};
