@@ -1,4 +1,5 @@
 #include <iostream>
+#include <string_view>
 #include <filesystem>
 #include <windows.h>
 #include <detours.h>
@@ -32,16 +33,19 @@ bool startup(const char *lpApplicationName) {
 }
 
 int main(int argc, char **argv) {
-    // Check args
-    if (argc == 1) {
-        std::cerr << "Bad usage" << std::endl;
-        std::cout << "Usage: " << argv[0] << " <game executable>" << std::endl;
-        return -2;
+    const char *arg1;
+
+    // Process args
+    if (argc <= 1) {
+        std::filesystem::current_path("Game");
+        arg1 = "Phasmophobia.exe";
+    } else {
+        arg1 = argv[1];
     }
 
     // Start game
     std::cout << "Launching game..." << std::endl;
-    if (!startup(argv[1])) {
+    if (!startup(arg1)) {
         std::cerr << "Error: Failed to launch game" << std::endl;
         return -3;
     }
