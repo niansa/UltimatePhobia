@@ -8,7 +8,8 @@
 #include "mods/global_instance_manager.hpp"
 #include "mods/tracer.hpp"
 #include "mods/photon_settings.hpp"
-#include "mods/hacks.hpp"
+#include "mods/save_file_manager.hpp"
+#include "mods/cheats.hpp"
 
 #include <optional>
 #include <imgui.h>
@@ -19,30 +20,47 @@ static Application *currentApplication = nullptr;
 
 
 struct ApplicationHooks {
-    inline static std::optional<GameHook> appUpdateHook;
+    inline static std::optional<GameHook> appUpdateHook,
+                                          splashScreenCtorHook;
 
-    static void appUpdateFnc(Player_o* __this, const MethodInfo* method) {
+    static void appUpdateFnc(Player_o *__this, const MethodInfo *method) {
         GameHookRelease GHR(*appUpdateHook);
         appUpdateHook->getFunction<decltype(ApplicationHooks::appUpdateFnc)>()(__this, method);
         //if (__this->fields.photonView->fields._AmOwner_k__BackingField)
             currentApplication->update();
+    }
+
+    static void splashScreenCtorFnc(SplashScreen_o *__this, const MethodInfo *method) {
+        splashScreenCtorHook.reset();
+        currentApplication->init();
+        appUpdateHook->getFunction<decltype(ApplicationHooks::splashScreenCtorFnc)>()(__this, method);
     }
 };
 
 
 Application::Application() {
     currentApplication = this;
+    mods = {&tracerInfo, &photonSettingsInfo, &saveFileManagerInfo, &cheatsInfo};
 
-    mods = {&tracerInfo, &photonSettingsInfo, &hacksInfo};
+    g.logger->info("Waiting for splash screen...");
+    ApplicationHooks::appUpdateHook.emplace(GameData::getMethod("SplashScreen$$.ctor").address, ApplicationHooks::splashScreenCtorFnc);
+}
 
+void Application::init() {
     g.logger->info("Starting to listen for local player updates...");
     ApplicationHooks::appUpdateHook.emplace(GameData::getMethod("Player$$Update").address, ApplicationHooks::appUpdateFnc);
+
+    g.logger->info("Calling onAppStart functions...");
+    for (auto& mod : mods) {
+        if (mod->onAppStart)
+            mod->onAppStart();
+    }
 
     g.logger->info("Loading essential mods...");
     globalInstanceManagerInfo.load();
 }
 
-void Application::update() {    
+void Application::update() {
     if (!ImGuiMan::pre_update())
         return;
 
@@ -72,4 +90,17 @@ void Application::update() {
             mod->instance->uiUpdate();
 
     ImGuiMan::post_update();
+}
+
+void Application::exit(int code) {
+    g.logger->info("Exiting application...");
+    GameData::getMethod("void UnityEngine_Application__Quit (int32_t exitCode, const MethodInfo* method);")
+    .getFunction<void (int, const MethodInfo*)>()
+        (0, nullptr);
+    ImGuiMan::deinit();
+    ApplicationHooks::appUpdateHook.reset();
+}
+
+bool Application::isActive() {
+    return ApplicationHooks::appUpdateHook.has_value() && ApplicationHooks::appUpdateHook.value().isActive();
 }

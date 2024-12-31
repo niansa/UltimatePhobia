@@ -20,7 +20,7 @@ struct Method {
 };
 
 
-Method getMethod(std::string_view identifier);
-Method getMethod(void *addr);
+Method getMethod(std::string_view identifier, bool noError = false);
+Method getMethod(void *addr, bool noError = false);
 std::vector<Method> searchMethods(std::string_view identifier);
 }

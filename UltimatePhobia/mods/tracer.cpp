@@ -7,14 +7,16 @@
 
 
 extern "C"
-void tracerModHook(void *a, void *b, void *c, void *d, void *e, void *f, void *g, void *h) {
+void *tracerModHook(void *a, void *b, void *c, void *d, void *e, void *f, void *g, void *h) {
     const auto method = GameData::getMethod(GameHook::getTrampolineCaller());
     auto& hook = tracerInfo.get<Tracer>()->getHook(method.signature);
     GameHookRelease GHR(hook);
-    reinterpret_cast<decltype(tracerModHook)*>(GameHook::getTrampolineCaller())(a, b, c, d, e, f, g, h);
-    tracerInfo.get<Tracer>()->log(fmt::format("{}(...)\n", method.isValid()?method.name:fmt::format("<{}>", GameHook::getTrampolineCaller())));
+    auto fres = reinterpret_cast<decltype(tracerModHook)*>(GameHook::getTrampolineCaller())(a, b, c, d, e, f, g, h);
+    tracerInfo.get<Tracer>()->log(fmt::format("{}<{}>(...)\n", method.name, GameHook::getTrampolineCaller()));
+    return fres;
 }
 GAMEHOOK_TRAMPOLINE(tracerModHook)
+
 
 void Tracer::uiUpdate() {
     using namespace ImGui;

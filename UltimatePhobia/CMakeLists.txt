@@ -4,6 +4,7 @@ project(UltimatePhobia LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -flto=full")
 
 add_subdirectory(../deps/detours Detours)
 add_subdirectory(../deps/spdlog spdlog)
@@ -27,11 +28,12 @@ add_library(UltimatePhobia SHARED main.cpp
     game_enums.hpp
     mods/base.hpp
     mods/global_instance_manager.hpp mods/global_instance_manager.cpp
-    mods/hacks.hpp mods/hacks.cpp
+    mods/cheats.hpp mods/cheats.cpp
     mods/tracer.hpp mods/tracer.cpp
     mods/photon_settings.hpp mods/photon_settings.cpp
     il2cpp.hpp il2cpp.cpp
     game_types.hpp game_types.cpp
+    mods/save_file_manager.hpp mods/save_file_manager.cpp
 )
 target_link_libraries(UltimatePhobia PRIVATE Detours spdlog imgui)
 target_include_directories(UltimatePhobia PRIVATE . ../il2cpp_dump)

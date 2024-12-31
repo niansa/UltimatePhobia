@@ -14,7 +14,7 @@ inline void *calculateAddress(void *addr) {
 }
 
 
-Method getMethod(std::string_view identifier) {
+Method getMethod(std::string_view identifier, bool noError) {
     for (const Method& method : methods) {
         if (method.signature == identifier) {
             Method fres(method);
@@ -31,10 +31,12 @@ Method getMethod(std::string_view identifier) {
         }
     }
 
+    if (!noError)
+        g.logger->error("Failed to find method by identifier: {}", identifier);
     return {nullptr};
 }
 
-Method getMethod(void *addr) {
+Method getMethod(void *addr, bool noError) {
     for (Method method : methods) {
         method.address = calculateAddress(method.address);
         if (method.address == addr) {
@@ -42,6 +44,8 @@ Method getMethod(void *addr) {
         }
     }
 
+    if (!noError)
+        g.logger->error("Failed to find method by address: {}", addr);
     return {nullptr};
 }
 
@@ -57,7 +61,7 @@ std::vector<Method> searchMethods(std::string_view identifier) {
 
     // Try exact search first
     {
-        const auto result = getMethod(identifier);
+        const auto result = getMethod(identifier, true);
         if (result.isValid())
             fres.emplace_back(std::move(result));
     }

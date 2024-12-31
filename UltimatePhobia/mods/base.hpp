@@ -17,6 +17,7 @@ public:
 struct ModInfo {
     const char *name;
     const std::function<std::unique_ptr<Mod> ()> create;
+    const std::function<void ()> onAppStart = nullptr;
     std::unique_ptr<Mod> instance = nullptr;
 
     bool isLoaded() const {
