@@ -98,6 +98,7 @@ void SaveFileManager::saveRawBytes(System_Byte_array *bytes, std::string_view fi
 }
 
 void SaveFileManager::loadIfNeeded() {
+    g.logger->info("Checking if save file is decrypted...");
     const std::filesystem::path dataPath = GameTypes::toCppString(
         GameData::getMethod("UnityEngine.Application$$get_persistentDataPath")
             .getFunction<System_String_o *(const MethodInfo *)>()
@@ -105,8 +106,11 @@ void SaveFileManager::loadIfNeeded() {
     const auto saveFilePath = dataPath/"SaveFile.es3";
     const bool isJson = std::ifstream(saveFilePath, std::ios::binary).get() == '{';
     if (isJson) {
+        g.logger->info("Save file is decrypted, handling this condition...");
         saveFileManagerInfo.load();
         saveFileManagerInfo.get<SaveFileManager>()->disableSaveEncryption = true;
+    } else {
+        g.logger->info("Save file is encrypted. Nothing to be done here.");
     }
 }
 

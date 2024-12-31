@@ -82,6 +82,9 @@ void Application::update() {
             }
         }
 
+        if (Button("Exit game"))
+            exit(0);
+
         End();
     }
 
