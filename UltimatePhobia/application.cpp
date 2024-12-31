@@ -24,16 +24,17 @@ struct ApplicationHooks {
                                           splashScreenCtorHook;
 
     static void appUpdateFnc(Player_o *__this, const MethodInfo *method) {
-        GameHookRelease GHR(*appUpdateHook);
-        appUpdateHook->getFunction<decltype(ApplicationHooks::appUpdateFnc)>()(__this, method);
         //if (__this->fields.photonView->fields._AmOwner_k__BackingField)
             currentApplication->update();
+        GameHookRelease GHR(*appUpdateHook);
+        appUpdateHook->getFunction<decltype(ApplicationHooks::appUpdateFnc)>()(__this, method);
     }
 
     static void splashScreenCtorFnc(SplashScreen_o *__this, const MethodInfo *method) {
+        auto orig = splashScreenCtorHook->getFunction<decltype(ApplicationHooks::splashScreenCtorFnc)>();
         splashScreenCtorHook.reset();
         currentApplication->init();
-        appUpdateHook->getFunction<decltype(ApplicationHooks::splashScreenCtorFnc)>()(__this, method);
+        orig(__this, method);
     }
 };
 
@@ -43,7 +44,7 @@ Application::Application() {
     mods = {&tracerInfo, &photonSettingsInfo, &saveFileManagerInfo, &cheatsInfo};
 
     g.logger->info("Waiting for splash screen...");
-    ApplicationHooks::appUpdateHook.emplace(GameData::getMethod("SplashScreen$$.ctor").address, ApplicationHooks::splashScreenCtorFnc);
+    ApplicationHooks::splashScreenCtorHook.emplace(GameData::getMethod("SplashScreen$$.ctor").address, ApplicationHooks::splashScreenCtorFnc);
 }
 
 void Application::init() {
@@ -89,9 +90,10 @@ void Application::update() {
     }
 
     for (auto& mod : mods)
-        if (mod->instance)
-            mod->instance->uiUpdate();
+       if (mod->instance)
+           mod->instance->uiUpdate();
 
+    g.logger->flush();
     ImGuiMan::post_update();
 }
 
