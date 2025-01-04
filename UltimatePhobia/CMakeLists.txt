@@ -39,8 +39,9 @@ add_library(UltimatePhobia SHARED main.cpp
     unityengine.hpp unityengine.cpp
     mods/goldberg_emu_manager.hpp mods/goldberg_emu_manager.cpp
     disable_antimod.hpp disable_antimod.cpp
+    crash_handler.hpp crash_handler.cpp
 )
-target_link_libraries(UltimatePhobia PRIVATE Detours spdlog imgui)
+target_link_libraries(UltimatePhobia PRIVATE dbghelp Detours spdlog imgui)
 target_include_directories(UltimatePhobia PRIVATE . ../il2cpp_dump)
 target_precompile_headers(UltimatePhobia PRIVATE ../il2cpp_dump/il2cpp.h)
 target_compile_definitions(UltimatePhobia PUBLIC _CRT_SECURE_NO_WARNINGS)

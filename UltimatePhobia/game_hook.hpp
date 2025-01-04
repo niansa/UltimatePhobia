@@ -11,7 +11,7 @@ class GameHook {
 
     void *fnc;
     void *hook;
-    bool useTrampoline;
+    bool use2NdTrampoline;
 
     static constexpr unsigned original_len = 14;
     std::array<uint8_t, original_len> original;
@@ -29,6 +29,7 @@ public:
     GameHook(GameHook&&) = delete;
 
     static void *getTrampolineCaller();
+    static void *getHookAt(void *fnc);
 
     void *getAddr() const {
         return fnc;

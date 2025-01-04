@@ -3,13 +3,17 @@
 #include "gamedata.hpp"
 #include "game_types.hpp"
 #include "game_hook.hpp"
+#include "misc_utils.hpp"
+#include "detours_helpers.hpp"
 
 #include <algorithm>
 #include <string_view>
+#include <windows.h>
 
 
-GameHook *fileExistsHook,
-         *directoryExistsHook;
+GameHook *file$$ExistsHook,
+         *directory$$ExistsHook,
+         *path$$GetFileNameHook;
 
 
 static void fixPath(std::string& path) {
@@ -23,7 +27,7 @@ static bool maybeForbiddenFile(std::string path) {
     std::transform(path.begin(), path.end(), path.begin(),::tolower);
 
     // Check blacklist
-    for (std::string_view term : {".dll", "melon", "bepin", "doorstep", "dotnet", "mono", "coreclr"}) {
+    for (std::string_view term : {".dll", "melon", "bepin", "doorstop", "dotnet", "mono", "coreclr", "bootstrap"}) {
         if (path.find(term) != path.npos)
             return true;
     }
@@ -32,7 +36,7 @@ static bool maybeForbiddenFile(std::string path) {
 }
 
 
-static bool fileOrDirectoryExistsFnc(System_String_o *path, const MethodInfo *method) {
+static void *tryCheckFnc(System_String_o *path, const MethodInfo *method) {
     auto cpp_path = GameTypes::toCppString(path);
     fixPath(cpp_path);
     g.logger->debug("Game is trying to check if {} exists!", cpp_path);
@@ -41,37 +45,54 @@ static bool fileOrDirectoryExistsFnc(System_String_o *path, const MethodInfo *me
     // Prevent mod detection
     if (maybeForbiddenFile(cpp_path)) {
         g.logger->info("Denying existence of {}.", cpp_path);
-        return false;
+        return nullptr;
     }
 
     // Run actual check (shortcut over std::filesystem)
     GameHook *hook;
-    if (GameHook::getTrampolineCaller() == fileExistsHook->getAddr())
-        hook = fileExistsHook;
-    if (GameHook::getTrampolineCaller() == directoryExistsHook->getAddr())
-        hook = directoryExistsHook;
+    void *caller = GameHook::getTrampolineCaller();
+    if (caller == file$$ExistsHook->getAddr())
+        hook = file$$ExistsHook;
+    if (caller == directory$$ExistsHook->getAddr())
+        hook = directory$$ExistsHook;
+    if (caller == path$$GetFileNameHook->getAddr())
+        hook = path$$GetFileNameHook;
     GameHookRelease GHR(*hook);
-    return hook->getFunction<decltype(fileOrDirectoryExistsFnc)>()
+    return hook->getFunction<decltype(tryCheckFnc)>()
         (path, method);
 }
-GAMEHOOK_TRAMPOLINE(fileOrDirectoryExistsFnc)
+GAMEHOOK_TRAMPOLINE(tryCheckFnc)
+
+auto *getModuleHandleOrig = GetModuleHandleA;
+HMODULE getModuleHandleFnc(LPCSTR lpModuleName) {
+    g.logger->debug("Game is trying to check if {} is loaded!", lpModuleName);
+    g.logger->flush();
+
+    // Prevent mod detection
+    if (maybeForbiddenFile(lpModuleName)) {
+        g.logger->info("Denying {} being loaded.", lpModuleName);
+        return nullptr;
+    }
+
+    // Run original function
+    return getModuleHandleOrig(lpModuleName);
+}
 
 
 void disableAntiMod() {
     g.logger->info("Disabling mod detection...");
 
-    auto checkMethod = GameData::getMethod("\u0A72\u0A72\u0A68\u0A70\u0A6E\u0A6D\u0A69\u0A6D\u0A68\u0A6B\u0A6C\u0024\u0024\u0A74\u0A71\u0A6C\u0A69\u0A6F\u0A70\u0A69\u0A71\u0A65\u0A70\u0A71");
-    if (!checkMethod.isValid()) {
-        g.logger->warn("Couldn't find AntiMod check method. Update " __FILE_NAME__ " in function " __FUNCTION__ " to fix this! The function can easily be found by searching for 'System.IO.File.Exists' function calls.");
-        g.logger->info("Falling back to FileExists/DirectoryExists AntiMod disablement method!");
+    auto file$$ExistsMethod = GameData::getMethod("System.IO.File$$Exists");
+    file$$ExistsHook = new GameHook(file$$ExistsMethod.address, reinterpret_cast<void *>(hookTrampoline_tryCheckFnc), true);
 
-        auto fileExistsMethod = GameData::getMethod("System.IO.File$$Exists");
-        fileExistsHook = new GameHook(fileExistsMethod.address, reinterpret_cast<void *>(hookTrampoline_fileOrDirectoryExistsFnc), true);
+    auto directory$$ExistsMethod = GameData::getMethod("System.IO.Directory$$Exists");
+    directory$$ExistsHook = new GameHook(directory$$ExistsMethod.address, reinterpret_cast<void *>(hookTrampoline_tryCheckFnc), true);
 
-        auto directoryExistsMethod = GameData::getMethod("System.IO.Directory$$Exists");
-        directoryExistsHook = new GameHook(directoryExistsMethod.address, reinterpret_cast<void *>(hookTrampoline_fileOrDirectoryExistsFnc), true);
+    auto path$$GetFileNameMethod = GameData::getMethod("System.IO.Path$$GetFileName");
+    path$$GetFileNameHook = new GameHook(path$$GetFileNameMethod.address, reinterpret_cast<void *>(hookTrampoline_tryCheckFnc), true);
 
-        return;
-    }
-    new GameHook(checkMethod.address, reinterpret_cast<void*>(GameHook::noop));
+    DetoursTransaction DT;
+    DetourAttach(&reinterpret_cast<PVOID&>(getModuleHandleOrig), reinterpret_cast<void*>(getModuleHandleFnc));
+
+    return;
 }
