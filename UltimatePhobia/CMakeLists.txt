@@ -6,6 +6,8 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -flto=full")
 
+option(ULTIMATEPHOBIA_CHEATS "Build cheats module" ON)
+
 add_subdirectory(../deps/detours Detours)
 add_subdirectory(../deps/spdlog spdlog)
 
@@ -34,7 +36,14 @@ add_library(UltimatePhobia SHARED main.cpp
     il2cpp.hpp il2cpp.cpp
     game_types.hpp game_types.cpp
     mods/save_file_manager.hpp mods/save_file_manager.cpp
+    unityengine.hpp unityengine.cpp
+    mods/goldberg_emu_manager.hpp mods/goldberg_emu_manager.cpp
+    disable_antimod.hpp disable_antimod.cpp
 )
 target_link_libraries(UltimatePhobia PRIVATE Detours spdlog imgui)
 target_include_directories(UltimatePhobia PRIVATE . ../il2cpp_dump)
 target_precompile_headers(UltimatePhobia PRIVATE ../il2cpp_dump/il2cpp.h)
+target_compile_definitions(UltimatePhobia PUBLIC _CRT_SECURE_NO_WARNINGS)
+if (ULTIMATEPHOBIA_CHEATS)
+    target_compile_definitions(UltimatePhobia PRIVATE MOD_ENABLE_CHEATS)
+endif()

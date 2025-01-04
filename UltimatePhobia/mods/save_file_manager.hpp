@@ -14,7 +14,7 @@ public:
     bool dangerZone = false;
     bool decryptionPending = false;
 
-    GameHook es3StreamCreateStreamHook;
+    GameHook es3Stream$$CreateStreamHook;
 
     SaveFileManager();
 

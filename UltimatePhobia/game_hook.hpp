@@ -30,8 +30,12 @@ public:
 
     static void *getTrampolineCaller();
 
+    void *getAddr() const {
+        return fnc;
+    }
+
     template<typename fncT>
-    fncT *getFunction() {
+    fncT *getFunction() const {
         return reinterpret_cast<fncT*>(fnc);
     }
 

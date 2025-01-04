@@ -9,11 +9,11 @@
 #include <imgui.h>
 
 
-static System_IO_Stream_o *es3StreamCreateStreamFnc(System_IO_Stream_o* stream, ES3Settings_o* settings, int32_t fileMode, const MethodInfo* method) {
+static System_IO_Stream_o *es3Stream$$CreateStreamFnc(System_IO_Stream_o* stream, ES3Settings_o* settings, int32_t fileMode, const MethodInfo* method) {
     if (!Application::isActive())
         return nullptr;
     const auto self = saveFileManagerInfo.get<SaveFileManager>();
-    auto& hook = self->es3StreamCreateStreamHook;
+    auto& hook = self->es3Stream$$CreateStreamHook;
     GameHookRelease GHR(hook);
     if (self->disableSaveEncryption)
         settings->fields.encryptionType = 0;
@@ -34,14 +34,14 @@ static System_IO_Stream_o *es3StreamCreateStreamFnc(System_IO_Stream_o* stream, 
         self->decryptionPending = false;
         return nullptr;
     }
-    return hook.getFunction<decltype(es3StreamCreateStreamFnc)>()(stream, settings, fileMode, method);
+    return hook.getFunction<decltype(es3Stream$$CreateStreamFnc)>()(stream, settings, fileMode, method);
 }
 
 
 SaveFileManager::SaveFileManager()
-    : es3StreamCreateStreamHook(
+    : es3Stream$$CreateStreamHook(
           GameData::getMethod("System_IO_Stream_o* ES3Internal_ES3Stream__CreateStream (System_IO_Stream_o* stream, ES3Settings_o* settings, int32_t fileMode, const MethodInfo* method);").address,
-          reinterpret_cast<void*>(es3StreamCreateStreamFnc)
+          reinterpret_cast<void*>(es3Stream$$CreateStreamFnc)
           ) {}
 
 void SaveFileManager::uiUpdate() {

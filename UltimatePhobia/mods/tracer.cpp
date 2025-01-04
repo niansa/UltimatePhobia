@@ -2,17 +2,25 @@
 #include "gamedata.hpp"
 #include "global_state.hpp"
 
+#include <string>
 #include <imgui.h>
 
 
 
 extern "C"
 void *tracerModHook(void *a, void *b, void *c, void *d, void *e, void *f, void *g, void *h) {
+    static int depth = 0;
+    if (depth < 0)
+        depth = 0;
+
     const auto method = GameData::getMethod(GameHook::getTrampolineCaller());
     auto& hook = tracerInfo.get<Tracer>()->getHook(method.signature);
+    tracerInfo.get<Tracer>()->log(fmt::format("{}{}<{}>(...)\n", std::string(depth, '>'), method.name, GameHook::getTrampolineCaller()));
+
     GameHookRelease GHR(hook);
-    auto fres = reinterpret_cast<decltype(tracerModHook)*>(GameHook::getTrampolineCaller())(a, b, c, d, e, f, g, h);
-    tracerInfo.get<Tracer>()->log(fmt::format("{}<{}>(...)\n", method.name, GameHook::getTrampolineCaller()));
+    ++depth;
+    const auto fres = reinterpret_cast<decltype(tracerModHook)*>(GameHook::getTrampolineCaller())(a, b, c, d, e, f, g, h);
+    --depth;
     return fres;
 }
 GAMEHOOK_TRAMPOLINE(tracerModHook)

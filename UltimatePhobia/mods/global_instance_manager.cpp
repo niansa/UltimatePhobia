@@ -4,26 +4,26 @@
 
 
 
-static void playerStartFnc(Player_o* __this, const MethodInfo* method) {
+static void player$$StartFnc(Player_o* __this, const MethodInfo* method) {
     const auto self = globalInstanceManagerInfo.get<GlobalInstanceManager>();
-    auto& hook = self->playerStartHook.value();
+    auto& hook = self->player$$StartHook.value();
     GameHookRelease GHR(hook);
-    hook.getFunction<decltype(playerStartFnc)>()(__this, method);
+    hook.getFunction<decltype(player$$StartFnc)>()(__this, method);
     self->player = __this;
 }
 
-static void ghostAIStartFnc(GhostAI_o* __this, const MethodInfo* method) {
+static void ghostAI$$StartFnc(GhostAI_o* __this, const MethodInfo* method) {
     const auto self = globalInstanceManagerInfo.get<GlobalInstanceManager>();
-    auto& hook = self->ghostAIStartHook.value();
+    auto& hook = self->ghostAI$$StartHook.value();
     GameHookRelease GHR(hook);
-    hook.getFunction<decltype(ghostAIStartFnc)>()(__this, method);
+    hook.getFunction<decltype(ghostAI$$StartFnc)>()(__this, method);
     self->ghost = __this;
 }
 
 
 GlobalInstanceManager::GlobalInstanceManager() {
-    playerStartHook.emplace(GameData::getMethod("Player$$Start").address, playerStartFnc);
-    ghostAIStartHook.emplace(GameData::getMethod("GhostAI$$Start").address, ghostAIStartFnc);
+    player$$StartHook.emplace(GameData::getMethod("Player$$Start").address, player$$StartFnc);
+    ghostAI$$StartHook.emplace(GameData::getMethod("GhostAI$$Start").address, ghostAI$$StartFnc);
 }
 
 

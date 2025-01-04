@@ -39,7 +39,7 @@ class PhotonSettings final : public Mod {
     } settings;
 
 public:
-    GameHook photonNetworkConnectUsingSettingsHook;
+    GameHook photonNetwork$$ConnectUsingSettingsHook;
 
     PhotonSettings();
 

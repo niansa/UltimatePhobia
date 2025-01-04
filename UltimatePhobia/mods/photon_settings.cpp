@@ -25,19 +25,19 @@
 
 
 
-static bool photonNetworkConnectUsingSettingsFnc(Photon_Realtime_AppSettings_o* appSettings, bool startInOfflineMode, const MethodInfo* method) {
+static bool photonNetwork$$ConnectUsingSettingsFnc(Photon_Realtime_AppSettings_o* appSettings, bool startInOfflineMode, const MethodInfo* method) {
     auto self = photonSettingsInfo.get<PhotonSettings>();
     self->fromIl2CppClass(appSettings->fields);
     self->toIl2CppClass(appSettings->fields);
-    GameHookRelease GHR(self->photonNetworkConnectUsingSettingsHook);
-    return self->photonNetworkConnectUsingSettingsHook.getFunction<decltype(photonNetworkConnectUsingSettingsFnc)>()(appSettings, startInOfflineMode, method);
+    GameHookRelease GHR(self->photonNetwork$$ConnectUsingSettingsHook);
+    return self->photonNetwork$$ConnectUsingSettingsHook.getFunction<decltype(photonNetwork$$ConnectUsingSettingsFnc)>()(appSettings, startInOfflineMode, method);
 }
 
 
 PhotonSettings::PhotonSettings()
-    : photonNetworkConnectUsingSettingsHook(
+    : photonNetwork$$ConnectUsingSettingsHook(
           GameData::getMethod("bool Photon_Pun_PhotonNetwork__ConnectUsingSettings (Photon_Realtime_AppSettings_o* appSettings, bool startInOfflineMode, const MethodInfo* method);").address,
-          reinterpret_cast<void*>(photonNetworkConnectUsingSettingsFnc)
+          reinterpret_cast<void*>(photonNetwork$$ConnectUsingSettingsFnc)
           ) {
     memset(&settings, 0, sizeof(settings));
 }

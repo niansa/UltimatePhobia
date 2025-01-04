@@ -9,6 +9,7 @@
 #include "mods/tracer.hpp"
 #include "mods/photon_settings.hpp"
 #include "mods/save_file_manager.hpp"
+#include "mods/goldberg_emu_manager.hpp"
 #include "mods/cheats.hpp"
 
 #include <optional>
@@ -41,7 +42,11 @@ struct ApplicationHooks {
 
 Application::Application() {
     currentApplication = this;
-    mods = {&tracerInfo, &photonSettingsInfo, &saveFileManagerInfo, &cheatsInfo};
+    mods = {&tracerInfo, &photonSettingsInfo, &saveFileManagerInfo, &goldbergEmuManagerInfo,
+#ifdef MOD_ENABLE_CHEATS
+            &cheatsInfo
+#endif
+    };
 
     g.logger->info("Waiting for splash screen...");
     ApplicationHooks::splashScreenCtorHook.emplace(GameData::getMethod("SplashScreen$$.ctor").address, ApplicationHooks::splashScreenCtorFnc);

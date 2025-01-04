@@ -12,8 +12,8 @@ public:
     Player_o *player;
     GhostAI_o *ghost;
 
-    std::optional<GameHook> playerStartHook,
-                            ghostAIStartHook;
+    std::optional<GameHook> player$$StartHook,
+                            ghostAI$$StartHook;
 
     GlobalInstanceManager();
 };
