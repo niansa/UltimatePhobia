@@ -20,10 +20,10 @@ static void onLoad() {
     getBaseAddr([] () {
         setupCrashHandler();
         g.logger->info("Found GameAssembly base address at {}", g.base);
-        //ImGuiMan::init();
-        //il2cpp::init();
+        ImGuiMan::init();
+        il2cpp::init();
         disableAntiMod();
-        //new Application;
+        new Application;
     });
 }
 
