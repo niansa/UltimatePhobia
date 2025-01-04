@@ -30,8 +30,9 @@ static bool maybeForbiddenFile(std::string path, bool dllSearch = false) {
     for (std::string_view term : {".exe", ".dll", "melon", "bepin", "doorstop", "dotnet", "mono", "coreclr", "bootstrap", "up_log.txt", "up_log.txt", "imgui.ini", "ultimatephobia"}) {
         if (dllSearch && term[0] == '.')
             continue;
-        if (path.find(term) != path.npos)
+        if (path.find(term) != path.npos) {
             return true;
+        }
     }
 
     return false;
@@ -71,7 +72,7 @@ HMODULE getModuleHandleFnc(LPCSTR lpModuleName) {
     g.logger->flush();
 
     // Prevent mod detection
-    if (maybeForbiddenFile(lpModuleName), true) {
+    if (maybeForbiddenFile(lpModuleName, true)) {
         g.logger->info("Denying {} being loaded.", lpModuleName);
         return nullptr;
     }
