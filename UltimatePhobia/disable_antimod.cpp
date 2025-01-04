@@ -22,12 +22,14 @@ static void fixPath(std::string& path) {
             c = '\\';
 }
 
-static bool maybeForbiddenFile(std::string path) {
+static bool maybeForbiddenFile(std::string path, bool dllSearch = false) {
     // Lowercase string
     std::transform(path.begin(), path.end(), path.begin(),::tolower);
 
     // Check blacklist
-    for (std::string_view term : {".dll", "melon", "bepin", "doorstop", "dotnet", "mono", "coreclr", "bootstrap"}) {
+    for (std::string_view term : {".exe", ".dll", "melon", "bepin", "doorstop", "dotnet", "mono", "coreclr", "bootstrap"}) {
+        if (dllSearch && term[0] == '.')
+            continue;
         if (path.find(term) != path.npos)
             return true;
     }
@@ -69,7 +71,7 @@ HMODULE getModuleHandleFnc(LPCSTR lpModuleName) {
     g.logger->flush();
 
     // Prevent mod detection
-    if (maybeForbiddenFile(lpModuleName)) {
+    if (maybeForbiddenFile(lpModuleName), true) {
         g.logger->info("Denying {} being loaded.", lpModuleName);
         return nullptr;
     }
