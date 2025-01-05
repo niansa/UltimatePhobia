@@ -32,6 +32,7 @@ struct ApplicationHooks {
     }
 
     static void splashScreenCtorFnc(SplashScreen_o *__this, const MethodInfo *method) {
+        g.logger->info("Game has started!");
         auto orig = splashScreenCtorHook->getFunction<decltype(ApplicationHooks::splashScreenCtorFnc)>();
         splashScreenCtorHook.reset();
         currentApplication->init();
@@ -48,7 +49,7 @@ Application::Application() {
 #endif
     };
 
-    g.logger->info("Waiting for splash screen...");
+    g.logger->info("Waiting for game start...");
     ApplicationHooks::splashScreenCtorHook.emplace(GameData::getMethod("SplashScreen$$.ctor").address, ApplicationHooks::splashScreenCtorFnc);
 }
 
