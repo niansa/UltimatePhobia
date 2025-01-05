@@ -42,6 +42,7 @@ add_library(UltimatePhobia SHARED main.cpp
     disable_antimod.hpp disable_antimod.cpp
     crash_handler.hpp crash_handler.cpp
     icon.rc
+    disable_splashscreen.hpp disable_splashscreen.cpp
 )
 target_link_libraries(UltimatePhobia PRIVATE dbghelp Detours spdlog imgui)
 target_include_directories(UltimatePhobia PRIVATE . ../il2cpp_dump)

@@ -22,4 +22,11 @@ void Door::OpenDoor(Door_o *__this, float speed, bool obf1) {
         .getFunction<void (Door_o *, float, bool, const MethodInfo *)>()
         (__this, obf1, obf1, nullptr);
 }
+
+
+void GhostActivity::Interact(GhostActivity_o *__this) {
+    GameData::getMethod("GhostActivity$$Interact")
+        .getFunction<void (GhostActivity_o *, const MethodInfo *)>()
+        (__this, nullptr);
+}
 }

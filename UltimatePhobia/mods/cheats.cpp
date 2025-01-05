@@ -50,7 +50,8 @@ static void door$$UpdateFnc(Door_o *__this, const MethodInfo *method) {
     Door::DisableOrEnableDoor(__this, true);
     Door::OpenDoor(__this, 1.0f, true);
     using namespace UnityEngine;
-    GameObject::SetActive(GameObject::Find("DoorHuntCollider"), false);
+    if (__this->fields.huntCollider)
+        GameObject::SetActive(Component::get_gameObject(Component::From(__this->fields.huntCollider)), false);
 
     // Call original method first
     GameHookRelease GHR(hook);
@@ -90,8 +91,7 @@ void Cheats::uiUpdate() {
     }
     Separator();
     if (Button("Trigger interaction")) {
-        auto ghost = globalInstanceManagerInfo.get<GlobalInstanceManager>()->ghost;
-        GameData::getMethod("GhostActivity$$Interact").getFunction<void (GhostActivity_o*, const MethodInfo*)>()(ghost->fields.ghostActivity, nullptr);
+        Phasmophobia::GhostActivity::Interact(globalInstanceManagerInfo.get<GlobalInstanceManager>()->ghost->fields.ghostActivity);
     }
 
     End();

@@ -1,6 +1,7 @@
 #include "global_state.hpp"
 #include "getbaseaddr.hpp"
 #include "disable_antimod.hpp"
+#include "disable_splashscreen.hpp"
 #include "crash_handler.hpp"
 #include "imgui_man.hpp"
 #include "application.hpp"
@@ -23,6 +24,7 @@ static void onLoad() {
         ImGuiMan::init();
         il2cpp::init();
         disableAntiMod();
+        disableSplashscreen();
         new Application;
     });
 }
