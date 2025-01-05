@@ -36,7 +36,8 @@ add_library(UltimatePhobia SHARED main.cpp
     il2cpp.hpp il2cpp.cpp
     game_types.hpp game_types.cpp
     mods/save_file_manager.hpp mods/save_file_manager.cpp
-    unityengine.hpp unityengine.cpp
+    bindings/unityengine.hpp bindings/unityengine.cpp
+    bindings/phasmophobia.hpp bindings/phasmophobia.cpp
     mods/goldberg_emu_manager.hpp mods/goldberg_emu_manager.cpp
     disable_antimod.hpp disable_antimod.cpp
     crash_handler.hpp crash_handler.cpp

@@ -4,7 +4,8 @@
 #include "game_types.hpp"
 #include "game_hook.hpp"
 #include "misc_utils.hpp"
-#include "unityengine.hpp"
+#include "bindings/phasmophobia.hpp"
+#include "bindings/unityengine.hpp"
 
 #include <memory>
 #include <imgui.h>
@@ -43,16 +44,13 @@ static void door$$UpdateFnc(Door_o *__this, const MethodInfo *method) {
     const auto self = cheatsInfo.get<Cheats>();
     auto& hook = self->door$$UpdateHook.value();
 
-    // Call unlock function
-    GameData::getMethod("Door$$UnlockDoor")
-        .getFunction<void (Door_o *, const MethodInfo *)>()
-        (__this, nullptr);
-    GameData::getMethod("Door$$DisableOrEnableDoor")
-        .getFunction<void (Door_o *, bool, const MethodInfo *)>()
-        (__this, true, nullptr);
-    GameData::getMethod("Door$$DisableOrEnableCollider")
-        .getFunction<void (Door_o *, bool, const MethodInfo *)>()
-        (__this, false, nullptr);
+    // Unlock and open door, then permanently disable hunt collider
+    using namespace Phasmophobia;
+    Door::UnlockDoor(__this);
+    Door::DisableOrEnableDoor(__this, true);
+    Door::OpenDoor(__this, 1.0f, true);
+    using namespace UnityEngine;
+    GameObject::SetActive(GameObject::Find("DoorHuntCollider"), false);
 
     // Call original method first
     GameHookRelease GHR(hook);
