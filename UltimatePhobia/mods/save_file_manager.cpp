@@ -9,6 +9,7 @@
 #include <imgui.h>
 
 
+
 static System_IO_Stream_o *es3Stream$$CreateStreamFnc(System_IO_Stream_o* stream, ES3Settings_o* settings, int32_t fileMode, const MethodInfo* method) {
     if (!Application::isActive())
         return nullptr;

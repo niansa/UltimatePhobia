@@ -33,7 +33,6 @@ add_library(UltimatePhobia SHARED main.cpp
     mods/cheats.hpp mods/cheats.cpp
     mods/tracer.hpp mods/tracer.cpp
     mods/photon_settings.hpp mods/photon_settings.cpp
-    il2cpp.hpp il2cpp.cpp
     game_types.hpp game_types.cpp
     mods/save_file_manager.hpp mods/save_file_manager.cpp
     bindings/unityengine.hpp bindings/unityengine.cpp
@@ -43,6 +42,7 @@ add_library(UltimatePhobia SHARED main.cpp
     crash_handler.hpp crash_handler.cpp
     icon.rc
     disable_splashscreen.hpp disable_splashscreen.cpp
+    mods/player_manager.hpp mods/player_manager.cpp
 )
 target_link_libraries(UltimatePhobia PRIVATE dbghelp Detours spdlog imgui)
 target_include_directories(UltimatePhobia PRIVATE . ../il2cpp_dump)

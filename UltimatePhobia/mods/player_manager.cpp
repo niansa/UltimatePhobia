@@ -1,0 +1,101 @@
+#include "player_manager.hpp"
+#include "gamedata.hpp"
+#include "game_types.hpp"
+#include "global_instance_manager.hpp"
+#include "bindings/unityengine.hpp"
+
+#include <algorithm>
+
+
+
+void player$$UpdateFnc(Player_o *__this, const MethodInfo *method) {
+    auto self = playerManagerInfo.get<PlayerManager>();
+
+    // Track player if it isn't being tracked already
+    if (std::find(self->trackedPlayers.begin(), self->trackedPlayers.end(), __this) == self->trackedPlayers.end()) {
+        g.logger->info("Registering player...");
+
+        const auto error = [self, __this] () -> std::string_view {
+            self->trackedPlayers.emplace_back(__this);
+
+            // Get all the info we need
+            Photon_Pun_PhotonView_o *photonView = __this->fields.photonView;
+            if (!photonView)
+                return "Photon view unavailable";
+            Photon_Realtime_Player_o *photonPlayer = photonView->fields._Owner_k__BackingField;
+            if (!photonPlayer)
+                return "Photon player unavailable";
+            System_String_o *nickNameCs = GameData::getMethod("Photon.Realtime.Player$$get_NickName")
+                                              .getFunction<System_String_o *(Photon_Realtime_Player_o *, const MethodInfo *)>()
+                                          (photonPlayer, nullptr);
+            if (!nickNameCs)
+                return "Nick name unavailable";
+            const std::string nickName = GameTypes::toCppString(nickNameCs);
+            g.logger->debug("Registering player '{}'...", nickName);
+
+            // Get Player object
+            using namespace UnityEngine;
+            UnityEngine_GameObject_o *playerObject = GameObject::get_parent(__this->fields.pcPlayerHead);
+
+            // Create NameTag object
+            UnityEngine_GameObject_o *nameObject = GameObject::New("NameTag");
+            UnityEngine_Transform_o *nameTransform = GameObject::get_transform(nameObject);
+            Transform::SetParent(nameTransform, GameObject::get_transform(playerObject), false);
+            //Transform::set_localPosition(nameTransform, {{0.0f, 0.9f, 0.0f}});
+
+            // Add TextMesh
+            auto textMesh = reinterpret_cast<UnityEngine_TextMesh_o *>(UnityEngine::GameObject::AddComponent(nameObject, "UnityEngine.TextMesh", "UnityEngine.TextRenderingModule"));
+            if (!textMesh)
+                return "TextMesh component unavailable";
+            TextMesh::set_text(textMesh, nickName);
+            TextMesh::set_characterSize(textMesh, 0.1);
+            TextMesh::set_alignment(textMesh, TextAlignment::Center);
+            TextMesh::set_anchor(textMesh, TextAnchor::MiddleCenter);
+
+            return {};
+        }();
+
+        if (!error.empty())
+            g.logger->error("Failed to register player: {}", error);
+    }
+
+    // Invoke actual function
+    GameHookRelease GHR(self->player$$UpdateHook);
+    self->player$$UpdateHook.getFunction<decltype(player$$UpdateFnc)>()
+        (__this, method);
+}
+
+void player$$OnDisableFnc(Player_o *__this, const MethodInfo *method) {
+    auto self = playerManagerInfo.get<PlayerManager>();
+
+    // Remove from list of tracked players
+    auto res = std::find(self->trackedPlayers.begin(), self->trackedPlayers.end(), __this);
+    if (res != self->trackedPlayers.end())
+        self->trackedPlayers.erase(res);
+
+    // Invoke actual function
+    GameHookRelease GHR(self->player$$OnDisableHook);
+    self->player$$OnDisableHook.getFunction<decltype(player$$OnDisableFnc)>()
+        (__this, method);
+}
+
+
+PlayerManager::PlayerManager()
+    : player$$UpdateHook(
+          GameData::getMethod("Player$$Update").address,
+          reinterpret_cast<void*>(player$$UpdateFnc)
+          )
+    , player$$OnDisableHook(
+          GameData::getMethod("Player$$OnDisable").address,
+          reinterpret_cast<void*>(player$$OnDisableFnc)
+          ) {}
+
+void PlayerManager::uiUpdate() {
+
+}
+
+
+ModInfo playerManagerInfo {
+    "Player Manager",
+    [] () {return std::make_unique<PlayerManager>();}
+};

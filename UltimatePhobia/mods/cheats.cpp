@@ -70,10 +70,11 @@ void Cheats::uiUpdate() {
     Begin("Cheats");
 
     hookToggle("Infinite stamina", playerStamina$$StartDrainingHook, infiniteStamina, "PlayerStamina$$StartDraining", reinterpret_cast<void *>(GameHook::noop));
-    hookToggle("Pause ghost", ghost$$UpdateHook, pauseGhost, "GhostAI$$Update", reinterpret_cast<void *>(GameHook::noop));
-    hookToggle("Invincibility", player$$StartKillingPlayerHook, invincibility, "Player$$StartKillingPlayer", reinterpret_cast<void *>(GameHook::noop));
     hookToggle("Auto grab key", key$$StartHook, autoGrabKey, "Key$$Start", reinterpret_cast<void *>(key$$StartFnc));
     hookToggle("Keep items after death", inventoryManager$$RemoveItemsFromInventoryHook, keepItemsAfterDeath, "InventoryManager$$RemoveItemsFromInventory", reinterpret_cast<void *>(GameHook::noop));
+    Separator();
+    hookToggle("Invincibility", player$$StartKillingPlayerHook, invincibility, "Player$$StartKillingPlayer", reinterpret_cast<void *>(GameHook::noop));
+    hookToggle("Pause ghost", ghost$$UpdateHook, pauseGhost, "GhostAI$$Update", reinterpret_cast<void *>(GameHook::noop));
     hookToggle("Unlock all doors", door$$UpdateHook, autoUnlockDoors, "Door$$Update", reinterpret_cast<void *>(door$$UpdateFnc));
 
     SeparatorText("Queue ghost states");

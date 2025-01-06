@@ -2,6 +2,7 @@
 #include "gamedata.hpp"
 #include "game_types.hpp"
 
+#include <fstream>
 #include <cstring>
 #include <imgui.h>
 
@@ -57,6 +58,14 @@ void PhotonSettings::uiUpdate() {
     End();
 }
 
+void PhotonSettings::setAppIdRealtime(std::string_view value) {
+    if (value.size() >= sizeof(settings.AppIdRealtime))
+        value = value.substr(0, sizeof(settings.AppIdRealtime)-1);
+    memcpy(settings.AppIdRealtime, value.data(), value.size());
+    settings.AppIdRealtime[value.size()] = '\0';
+    settings.override_AppIdRealtime = true;
+}
+
 void PhotonSettings::fromIl2CppClass(const Photon_Realtime_AppSettings_Fields& o) {
 #   define OVERRIDER(field) if (!settings.override_##field)
 #   define CONVBOOLFIELD(field) OVERRIDER(field) settings.field = o.field
@@ -82,5 +91,13 @@ void PhotonSettings::toIl2CppClass(Photon_Realtime_AppSettings_Fields &o) {
 
 ModInfo photonSettingsInfo {
     "Photon Settings",
-    [] () {return std::make_unique<PhotonSettings>();}
+    [] () {return std::make_unique<PhotonSettings>();},
+    [] () {
+        std::fstream file("..\\photon-realtime-app-id.txt");
+        if (!file)
+            return;
+        std::string id;
+        std::getline(file, id);
+        photonSettingsInfo.get<PhotonSettings>()->setAppIdRealtime(id);
+    }
 };

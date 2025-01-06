@@ -2,10 +2,9 @@
 #include "getbaseaddr.hpp"
 #include "disable_antimod.hpp"
 #include "disable_splashscreen.hpp"
-#include "crash_handler.hpp"
+//#include "crash_handler.hpp"
 #include "imgui_man.hpp"
 #include "application.hpp"
-#include "il2cpp.hpp"
 
 #include <filesystem>
 #include <windows.h>
@@ -19,10 +18,9 @@
 static void onLoad() {
     g.logger->info("Getting GameAssembly base address...");
     getBaseAddr([] () {
-        setupCrashHandler();
+        //setupCrashHandler();
         g.logger->info("Found GameAssembly base address at {}", g.base);
         ImGuiMan::init();
-        il2cpp::init();
         disableAntiMod();
         disableSplashscreen();
         new Application;

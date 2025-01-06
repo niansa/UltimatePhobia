@@ -12,7 +12,7 @@ class Cheats final : public Mod {
     bool infiniteStamina = false,
          pauseGhost = false,
          invincibility = false,
-         autoGrabKey = false,
+         autoGrabKeys = false,
          autoUnlockDoors = false,
          keepItemsAfterDeath = false;
 

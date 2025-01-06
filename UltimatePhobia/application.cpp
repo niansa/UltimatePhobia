@@ -9,6 +9,7 @@
 #include "mods/tracer.hpp"
 #include "mods/photon_settings.hpp"
 #include "mods/save_file_manager.hpp"
+#include "mods/player_manager.hpp"
 #include "mods/goldberg_emu_manager.hpp"
 #include "mods/cheats.hpp"
 
@@ -24,7 +25,7 @@ struct ApplicationHooks {
     inline static std::optional<GameHook> appUpdateHook,
                                           splashScreenCtorHook;
 
-    static void appUpdateFnc(Player_o *__this, const MethodInfo *method) {
+    static void appUpdateFnc(Photon_Pun_PhotonHandler_o* __this, const MethodInfo *method) {
         //if (__this->fields.photonView->fields._AmOwner_k__BackingField)
             currentApplication->update();
         GameHookRelease GHR(*appUpdateHook);
@@ -36,6 +37,7 @@ struct ApplicationHooks {
         auto orig = splashScreenCtorHook->getFunction<decltype(ApplicationHooks::splashScreenCtorFnc)>();
         splashScreenCtorHook.reset();
         currentApplication->init();
+        GameHookRelease GHR(*splashScreenCtorHook);
         orig(__this, method);
     }
 };
@@ -43,7 +45,7 @@ struct ApplicationHooks {
 
 Application::Application() {
     currentApplication = this;
-    mods = {&tracerInfo, &photonSettingsInfo, &saveFileManagerInfo, &goldbergEmuManagerInfo,
+    mods = {&tracerInfo, &photonSettingsInfo, &saveFileManagerInfo, &playerManagerInfo, &goldbergEmuManagerInfo,
 #ifdef MOD_ENABLE_CHEATS
             &cheatsInfo
 #endif
@@ -55,7 +57,7 @@ Application::Application() {
 
 void Application::init() {
     g.logger->info("Starting to listen for local player updates...");
-    ApplicationHooks::appUpdateHook.emplace(GameData::getMethod("Player$$Update").address, ApplicationHooks::appUpdateFnc);
+    ApplicationHooks::appUpdateHook.emplace(GameData::getMethod("PlayerSanity$$Update").address, ApplicationHooks::appUpdateFnc);
 
     g.logger->info("Calling onAppStart functions...");
     for (auto& mod : mods) {
