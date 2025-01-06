@@ -29,4 +29,9 @@ void GhostActivity::Interact(GhostActivity_o *__this) {
         .getFunction<void (GhostActivity_o *, const MethodInfo *)>()
         (__this, nullptr);
 }
+
+
+bool Player::IsLocal(Player_o *__this) {
+    return __this->fields.photonView->fields._AmOwner_k__BackingField;
+}
 }

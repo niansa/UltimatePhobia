@@ -14,4 +14,8 @@ void OpenDoor(Door_o *__this, float speed, bool obf1);
 namespace GhostActivity {
 void Interact(GhostActivity_o *__this);
 }
+
+namespace Player {
+bool IsLocal(Player_o *__this);
+}
 }

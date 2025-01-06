@@ -42,9 +42,11 @@ UnityEngine_GameObject_o *get_parent(UnityEngine_GameObject_o *__this);
 namespace Transform {
 UnityEngine_Transform_o *GetChild(UnityEngine_Transform_o *__this, int32_t index = 0);
 void SetParent(UnityEngine_Transform_o *__this, UnityEngine_Transform_o* parent, bool worldPositionStays = true);
+void LookAt(UnityEngine_Transform_o *__this, UnityEngine_Transform_o* target);
 int32_t get_childCount(UnityEngine_Transform_o *__this);
 UnityEngine_Vector3_o get_position(UnityEngine_Transform_o *__this);
 void set_position(UnityEngine_Transform_o *__this, UnityEngine_Vector3_o value);
+void set_localPosition(UnityEngine_Transform_o *__this, UnityEngine_Vector3_o value);
 UnityEngine_Transform_o *get_parent(UnityEngine_Transform_o *__this);
 }
 

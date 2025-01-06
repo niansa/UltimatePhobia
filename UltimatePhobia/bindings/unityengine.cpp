@@ -90,6 +90,12 @@ void Transform::SetParent(UnityEngine_Transform_o *__this, UnityEngine_Transform
         (__this, parent, worldPositionStays, nullptr);
 }
 
+void Transform::LookAt(UnityEngine_Transform_o *__this, UnityEngine_Transform_o *target) {
+    GameData::getMethod("void UnityEngine_Transform__LookAt (UnityEngine_Transform_o* __this, UnityEngine_Transform_o* target, const MethodInfo* method);")
+        .getFunction<UnityEngine_Transform_o *(UnityEngine_Transform_o *, UnityEngine_Transform_o *, const MethodInfo *)>()
+        (__this, target, nullptr);
+}
+
 int32_t Transform::get_childCount(UnityEngine_Transform_o *__this) {
     return GameData::getMethod("UnityEngine.Transform$$get_childCount")
         .getFunction<int32_t (UnityEngine_Transform_o *, const MethodInfo *)>()
@@ -105,6 +111,12 @@ UnityEngine_Vector3_o Transform::get_position(UnityEngine_Transform_o *__this) {
 void Transform::set_position(UnityEngine_Transform_o *__this, UnityEngine_Vector3_o value) {
     GameData::getMethod("UnityEngine.Transform$$set_position")
         .getFunction<void (UnityEngine_Transform_o *, UnityEngine_Vector3_o, const MethodInfo *)>()
+        (__this, value, nullptr);
+}
+
+void Transform::set_localPosition(UnityEngine_Transform_o *__this, UnityEngine_Vector3_o value) {
+    GameData::getMethod("UnityEngine.Transform$$set_localPosition")
+    .getFunction<void (UnityEngine_Transform_o *, UnityEngine_Vector3_o, const MethodInfo *)>()
         (__this, value, nullptr);
 }
 

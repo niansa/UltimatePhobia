@@ -3,8 +3,7 @@
 #include "game_types.hpp"
 #include "global_instance_manager.hpp"
 #include "bindings/unityengine.hpp"
-
-#include <algorithm>
+#include "bindings/phasmophobia.hpp"
 
 
 
@@ -12,11 +11,15 @@ void player$$UpdateFnc(Player_o *__this, const MethodInfo *method) {
     auto self = playerManagerInfo.get<PlayerManager>();
 
     // Track player if it isn't being tracked already
-    if (std::find(self->trackedPlayers.begin(), self->trackedPlayers.end(), __this) == self->trackedPlayers.end()) {
+    if (self->trackedPlayers.find(__this) == self->trackedPlayers.end()) {
         g.logger->info("Registering player...");
 
         const auto error = [self, __this] () -> std::string_view {
-            self->trackedPlayers.emplace_back(__this);
+            auto entry = self->trackedPlayers.emplace(__this, nullptr);
+
+            // Stop here if local player
+            if (Phasmophobia::Player::IsLocal(__this))
+                return {};
 
             // Get all the info we need
             Photon_Pun_PhotonView_o *photonView = __this->fields.photonView;
@@ -41,7 +44,7 @@ void player$$UpdateFnc(Player_o *__this, const MethodInfo *method) {
             UnityEngine_GameObject_o *nameObject = GameObject::New("NameTag");
             UnityEngine_Transform_o *nameTransform = GameObject::get_transform(nameObject);
             Transform::SetParent(nameTransform, GameObject::get_transform(playerObject), false);
-            //Transform::set_localPosition(nameTransform, {{0.0f, 0.9f, 0.0f}});
+            Transform::set_localPosition(nameTransform, {{0.0f, 0.9f, 0.0f}});
 
             // Add TextMesh
             auto textMesh = reinterpret_cast<UnityEngine_TextMesh_o *>(UnityEngine::GameObject::AddComponent(nameObject, "UnityEngine.TextMesh", "UnityEngine.TextRenderingModule"));
@@ -52,11 +55,23 @@ void player$$UpdateFnc(Player_o *__this, const MethodInfo *method) {
             TextMesh::set_alignment(textMesh, TextAlignment::Center);
             TextMesh::set_anchor(textMesh, TextAnchor::MiddleCenter);
 
+            entry.first->second = nameObject;
             return {};
         }();
 
         if (!error.empty())
             g.logger->error("Failed to register player: {}", error);
+    }
+
+    // Get current name tag of player
+    UnityEngine_GameObject_o *nameObject = self->trackedPlayers[__this];
+
+    // Turn NameTag towards player
+    using namespace UnityEngine;
+    if (nameObject) {
+        Player_o *localPlayer = self->getLocalPlayer();
+        if (localPlayer)
+            Transform::LookAt(GameObject::get_transform(nameObject), GameObject::get_transform(localPlayer->fields.pcPlayerHead));
     }
 
     // Invoke actual function
@@ -69,7 +84,7 @@ void player$$OnDisableFnc(Player_o *__this, const MethodInfo *method) {
     auto self = playerManagerInfo.get<PlayerManager>();
 
     // Remove from list of tracked players
-    auto res = std::find(self->trackedPlayers.begin(), self->trackedPlayers.end(), __this);
+    auto res = self->trackedPlayers.find(__this);
     if (res != self->trackedPlayers.end())
         self->trackedPlayers.erase(res);
 
@@ -92,6 +107,13 @@ PlayerManager::PlayerManager()
 
 void PlayerManager::uiUpdate() {
 
+}
+
+Player_o *PlayerManager::getLocalPlayer() const {
+    for (auto [player, gameObject] : trackedPlayers)
+        if (Phasmophobia::Player::IsLocal(player))
+            return player;
+    return nullptr;
 }
 
 
