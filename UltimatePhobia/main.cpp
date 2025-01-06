@@ -14,6 +14,8 @@
 #include <spdlog/sinks/basic_file_sink.h>
 
 
+int UnityMain(HINSTANCE hInstance, HINSTANCE hPrevInstanc, LPWSTR lpCmdLine, int nShowCmd);
+
 
 static void onLoad() {
     g.logger->info("Getting GameAssembly base address...");
@@ -32,33 +34,57 @@ static void onUnload() {
 }
 
 
-EXTERN_C BOOL WINAPI DllMain(HINSTANCE hinst, DWORD dwReason, LPVOID reserved) {
-    if (DetourIsHelperProcess())
-        return TRUE;
+static std::string lastErrorString() {
+    auto errorMessageID = GetLastError();
+    if (errorMessageID == 0) {
+        return "No error";
+    }
+    LPSTR messageBuffer = nullptr;
+    auto size = FormatMessageA(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS,
+                               NULL, errorMessageID, MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), (LPSTR)&messageBuffer, 0, NULL);
+    std::string message(messageBuffer, size);
+    LocalFree(messageBuffer);
+    return message;
+}
 
+int wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR lpCmdLine, int nShowCmd) {
+    // Get file name
     TCHAR szFileName[MAX_PATH];
     GetModuleFileName(NULL, szFileName, MAX_PATH);
-    if (std::filesystem::path(szFileName).filename() != "Phasmophobia.exe")
-        return TRUE;
 
-    if (dwReason == DLL_PROCESS_ATTACH) {
-        try {
-            std::filesystem::rename("up_log.txt", "up_log.prev.txt");
-        } catch (...) {}
-        g.logger = spdlog::basic_logger_mt("UltimatePhobia", "up_log.txt");
-        g.logger->set_level(spdlog::level::debug);
-        g.logger->flush_on(spdlog::level::info);
-        g.logger->info("PID: {} - Module name: {}", GetCurrentProcessId(), szFileName);
-        g.logger->info("Loading Microsoft Detours...", szFileName);
-        DetourRestoreAfterWith();
+    // Set up logger
+    try {
+        std::filesystem::rename("up_log.txt", "up_log.prev.txt");
+    } catch (...) {}
+    g.logger = spdlog::basic_logger_mt("UltimatePhobia", "up_log.txt");
+    g.logger->set_level(spdlog::level::debug);
+    g.logger->flush_on(spdlog::level::info);
+    g.logger->info("PID: {} - Module name: {}", GetCurrentProcessId(), szFileName);
 
-        g.logger->info("Loading UltimatePhobia...", szFileName);
-        onLoad();
-    } else if (dwReason == DLL_PROCESS_DETACH) {
-        g.logger->info("UltimatePhobia is about to be unloaded.", szFileName);
-        g.logger->warn("End of log.", szFileName);
-        g.logger.reset();
+    // Set up detours
+    g.logger->info("Initializing Microsoft Detours...", szFileName);
+    DetourRestoreAfterWith();
+
+    // Load UltimatePhobia
+    g.logger->info("Loading UltimatePhobia...", szFileName);
+    onLoad();
+
+    // Load engine
+    g.logger->info("Starting Unity Player...");
+    HMODULE unityPlayer = LoadLibraryW(L"UnityPlayer.dll");
+    if (unityPlayer == nullptr) {
+        g.logger->critical("Failed to load Unity Player: {}", lastErrorString());
+        abort();
     }
+    auto unityMain = reinterpret_cast<decltype(UnityMain) *>(GetProcAddress(unityPlayer, "UnityMain"));
+    if (unityMain == nullptr) {
+        g.logger->critical("Failed to get Unity Player entry point: {}", lastErrorString());
+    }
+    unityMain(hInstance, hPrevInstance, lpCmdLine, nShowCmd);
 
-    return TRUE;
+    // Unload everything
+    g.logger->info("UltimatePhobia is about to be unloaded.", szFileName);
+    g.logger->warn("End of log.", szFileName);
+    g.logger.reset();
+    onUnload();
 }

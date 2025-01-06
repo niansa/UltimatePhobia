@@ -4,7 +4,7 @@ project(UltimatePhobia LANGUAGES RC CXX)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -flto=full")
+set(CMAKE_INTERPROCEDURAL_OPTIMIZATION ON)
 
 option(ULTIMATEPHOBIA_CHEATS "Build cheats module" ON)
 
@@ -18,7 +18,7 @@ add_library(imgui STATIC
 target_link_libraries(imgui PUBLIC d3d11)
 target_include_directories(imgui PUBLIC ../deps/imgui/ ../deps/imgui/backends/)
 
-add_library(UltimatePhobia SHARED main.cpp
+add_executable(UltimatePhobia WIN32 main.cpp
     detours_helpers.hpp
     global_state.hpp global_state.cpp
     getbaseaddr.hpp getbaseaddr.cpp
@@ -40,9 +40,9 @@ add_library(UltimatePhobia SHARED main.cpp
     mods/goldberg_emu_manager.hpp mods/goldberg_emu_manager.cpp
     disable_antimod.hpp disable_antimod.cpp
     crash_handler.hpp crash_handler.cpp
-    icon.rc
     disable_splashscreen.hpp disable_splashscreen.cpp
     mods/player_manager.hpp mods/player_manager.cpp
+    icon.rc
 )
 target_link_libraries(UltimatePhobia PRIVATE dbghelp Detours spdlog imgui)
 target_include_directories(UltimatePhobia PRIVATE . ../il2cpp_dump)
