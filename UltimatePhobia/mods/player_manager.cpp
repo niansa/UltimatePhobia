@@ -105,8 +105,10 @@ PlayerManager::PlayerManager()
           reinterpret_cast<void*>(player$$OnDisableFnc)
           ) {}
 
-void PlayerManager::uiUpdate() {
-
+PlayerManager::~PlayerManager() {
+    for (auto [player, gameObject] : trackedPlayers)
+        if (gameObject)
+            UnityEngine::GameObject::Destroy(gameObject);
 }
 
 Player_o *PlayerManager::getLocalPlayer() const {

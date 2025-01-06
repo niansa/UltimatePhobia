@@ -8,7 +8,7 @@
 #include "game_hook.hpp"
 
 
-class SaveFileManager : public Mod {
+class SaveFileManager final : public Mod {
 public:
     bool disableSaveEncryption = false;
     bool dangerZone = false;

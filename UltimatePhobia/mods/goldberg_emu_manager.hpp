@@ -8,7 +8,7 @@
 #include <filesystem>
 
 
-class GoldbergEmuManager : public Mod {
+class GoldbergEmuManager final : public Mod {
     std::filesystem::path settingsPath;
 
     std::string readFile(std::string_view);

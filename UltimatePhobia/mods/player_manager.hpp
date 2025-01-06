@@ -10,7 +10,7 @@ struct Player_o;
 struct UnityEngine_GameObject_o;
 
 
-class PlayerManager : public Mod {
+class PlayerManager final : public Mod {
 public:
     std::map<Player_o *, UnityEngine_GameObject_o *> trackedPlayers;
 
@@ -18,8 +18,7 @@ public:
              player$$OnDisableHook;
 
     PlayerManager();
-
-    void uiUpdate();
+    ~PlayerManager();
 
     Player_o *getLocalPlayer() const;
 };
