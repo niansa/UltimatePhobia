@@ -14,6 +14,7 @@ static HMODULE detourLoadLibraryW(LPWSTR lpLibFileName) {
     const std::string lpLibFileNameA = utf8Encode(lpLibFileName);
     const HMODULE fres = trueLoadLibraryW(lpLibFileName);
 
+    g.logger->debug("Loading module {}...", lpLibFileNameA);
     if (lpLibFileNameA == "GameAssembly.dll") {
         g.base = fres;
         if (finalCallback)

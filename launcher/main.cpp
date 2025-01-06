@@ -1,51 +1,47 @@
 #include <iostream>
-#include <filesystem>
 #include <windows.h>
-#include <detours.h>
+
+int UnityMain(HINSTANCE hInstance, HINSTANCE hPrevInstanc, LPWSTR lpCmdLine, int nShowCmd);
 
 
-std::filesystem::path getexepath() {
-    wchar_t path[MAX_PATH] = {0};
-    GetModuleFileNameW(NULL, path, MAX_PATH);
-    return path;
-}
-
-bool startup(const char *lpApplicationName) {
-    STARTUPINFO si;
-    PROCESS_INFORMATION pi;
-    char argv[] = "";
-
-    // Set the size of the structures
-    ZeroMemory(&si, sizeof(si));
-    si.cb = sizeof(si);
-    ZeroMemory(&pi, sizeof(pi));
-
-    // Start the program up
-    if (DetourCreateProcessWithDllExA(lpApplicationName, argv, nullptr, nullptr, FALSE, 0, nullptr, nullptr, &si, &pi, (getexepath().parent_path()/"UltimatePhobia.dll").string().c_str(), CreateProcessA) == 0)
-        return false;
-
-    // Close process and thread handles.
-    CloseHandle(pi.hProcess);
-    CloseHandle(pi.hThread);
-
-    return true;
-}
-
-int main(int argc, char **argv) {
-    const char *arg1;
-
-    // Process args
-    if (argc <= 1) {
-        std::filesystem::current_path("Game");
-        arg1 = "Phasmophobia.exe";
-    } else {
-        arg1 = argv[1];
+static std::string lastErrorString() {
+    auto errorMessageID = GetLastError();
+    if (errorMessageID == 0) {
+        return "No error";
     }
+    LPSTR messageBuffer = nullptr;
+    auto size = FormatMessageA(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS,
+                               NULL, errorMessageID, MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), (LPSTR)&messageBuffer, 0, NULL);
+    std::string message(messageBuffer, size);
+    LocalFree(messageBuffer);
+    return message;
+}
+
+
+int wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR lpCmdLine, int nShowCmd) {
+    // Load engine
+    std::cout << "Loading Unity Player..." << std::flush;
+    HMODULE unityPlayer = LoadLibraryW(L"UnityPlayer.dll");
+    if (unityPlayer == nullptr) {
+        std::cout << " Error: " << lastErrorString() << std::endl;
+        abort();
+    }
+    auto unityMain = reinterpret_cast<decltype(UnityMain) *>(GetProcAddress(unityPlayer, "UnityMain"));
+    if (unityMain == nullptr) {
+        std::cout << " Error: " << lastErrorString() << std::endl;
+        abort();
+    }
+    std::cout << " OK" << std::endl;
+
+    // Load UltimatePhobia
+    std::cout << "Loading UltimatePhobia..." << std::flush;
+    if (LoadLibraryW(L"..\\UltimatePhobia.dll") == nullptr) {
+        std::cout << " Error: " << lastErrorString() << std::endl;
+        abort();
+    }
+    std::cout << " OK" << std::endl;
 
     // Start game
-    std::cout << "Launching game..." << std::endl;
-    if (!startup(arg1)) {
-        std::cerr << "Error: Failed to launch game" << std::endl;
-        return -3;
-    }
+    std::cout << "Starting game...\n\n" << std::endl;
+    unityMain(hInstance, hPrevInstance, lpCmdLine, nShowCmd);
 }

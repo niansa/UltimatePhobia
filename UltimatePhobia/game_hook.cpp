@@ -23,6 +23,8 @@ static std::array<uint8_t, 14> generate1StTrampolinue(bool has2NdTrampoline) {
 
 GameHook::GameHook(void *fnc, void *hook, bool useTrampoline)
     : fnc(fnc), hook(hook), use2NdTrampoline(useTrampoline) {
+    g.logger->debug("Setting up hook at {} to {} {}second stage trampoline...", fnc, hook, useTrampoline?"with ":"without ");
+
     // Back up instructions from original function
     memcpy(original.data(), fnc, original_len);
 
