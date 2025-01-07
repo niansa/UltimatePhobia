@@ -86,14 +86,20 @@ UnityEngine_Transform_o *Transform::GetChild(UnityEngine_Transform_o *__this, in
 
 void Transform::SetParent(UnityEngine_Transform_o *__this, UnityEngine_Transform_o *parent, bool worldPositionStays) {
     GameData::getMethod("void UnityEngine_Transform__SetParent (UnityEngine_Transform_o* __this, UnityEngine_Transform_o* parent, bool worldPositionStays, const MethodInfo* method);")
-        .getFunction<UnityEngine_Transform_o *(UnityEngine_Transform_o *, UnityEngine_Transform_o *, bool, const MethodInfo *)>()
+        .getFunction<void (UnityEngine_Transform_o *, UnityEngine_Transform_o *, bool, const MethodInfo *)>()
         (__this, parent, worldPositionStays, nullptr);
 }
 
 void Transform::LookAt(UnityEngine_Transform_o *__this, UnityEngine_Transform_o *target) {
     GameData::getMethod("void UnityEngine_Transform__LookAt (UnityEngine_Transform_o* __this, UnityEngine_Transform_o* target, const MethodInfo* method);")
-        .getFunction<UnityEngine_Transform_o *(UnityEngine_Transform_o *, UnityEngine_Transform_o *, const MethodInfo *)>()
+        .getFunction<void (UnityEngine_Transform_o *, UnityEngine_Transform_o *, const MethodInfo *)>()
         (__this, target, nullptr);
+}
+
+void Transform::Rotate(UnityEngine_Transform_o *__this, UnityEngine_Vector3_o eulers) {
+    GameData::getMethod("void UnityEngine_Transform__Rotate (UnityEngine_Transform_o* __this, UnityEngine_Vector3_o eulers, const MethodInfo* method);")
+        .getFunction<void (UnityEngine_Transform_o *, UnityEngine_Vector3_o, const MethodInfo *)>()
+        (__this, eulers, nullptr);
 }
 
 int32_t Transform::get_childCount(UnityEngine_Transform_o *__this) {

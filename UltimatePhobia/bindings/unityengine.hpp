@@ -43,6 +43,7 @@ namespace Transform {
 UnityEngine_Transform_o *GetChild(UnityEngine_Transform_o *__this, int32_t index = 0);
 void SetParent(UnityEngine_Transform_o *__this, UnityEngine_Transform_o* parent, bool worldPositionStays = true);
 void LookAt(UnityEngine_Transform_o *__this, UnityEngine_Transform_o* target);
+void Rotate(UnityEngine_Transform_o *__this, UnityEngine_Vector3_o eulers);
 int32_t get_childCount(UnityEngine_Transform_o *__this);
 UnityEngine_Vector3_o get_position(UnityEngine_Transform_o *__this);
 void set_position(UnityEngine_Transform_o *__this, UnityEngine_Vector3_o value);

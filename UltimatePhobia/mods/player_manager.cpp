@@ -70,8 +70,11 @@ void player$$UpdateFnc(Player_o *__this, const MethodInfo *method) {
     using namespace UnityEngine;
     if (nameObject) {
         Player_o *localPlayer = self->getLocalPlayer();
-        if (localPlayer)
-            Transform::LookAt(GameObject::get_transform(nameObject), GameObject::get_transform(localPlayer->fields.pcPlayerHead));
+        if (localPlayer) {
+            UnityEngine_Transform_o *nameTransform = GameObject::get_transform(nameObject);
+            Transform::LookAt(nameTransform, GameObject::get_transform(localPlayer->fields.pcPlayerHead));
+            Transform::Rotate(nameTransform, {{0, 180, 0}});
+        }
     }
 
     // Invoke actual function
