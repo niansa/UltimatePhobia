@@ -44,7 +44,7 @@ void player$$UpdateFnc(Player_o *__this, const MethodInfo *method) {
             UnityEngine_GameObject_o *nameObject = GameObject::New("NameTag");
             UnityEngine_Transform_o *nameTransform = GameObject::get_transform(nameObject);
             Transform::SetParent(nameTransform, GameObject::get_transform(playerObject), false);
-            Transform::set_localPosition(nameTransform, {{0.0f, 0.9f, 0.0f}});
+            Transform::set_localPosition(nameTransform, {{0.0f, 1.0f, 0.0f}});
 
             // Add TextMesh
             auto textMesh = reinterpret_cast<UnityEngine_TextMesh_o *>(UnityEngine::GameObject::AddComponent(nameObject, "UnityEngine.TextMesh", "UnityEngine.TextRenderingModule"));
