@@ -18,7 +18,7 @@ add_library(imgui STATIC
 target_link_libraries(imgui PUBLIC d3d11)
 target_include_directories(imgui PUBLIC ../deps/imgui/ ../deps/imgui/backends/)
 
-add_executable(UltimatePhobia WIN32 main.cpp
+add_executable(UltimatePhobia WIN32 main.cpp icon.rc
     detours_helpers.hpp
     global_state.hpp global_state.cpp
     getbaseaddr.hpp getbaseaddr.cpp
@@ -42,7 +42,7 @@ add_executable(UltimatePhobia WIN32 main.cpp
     crash_handler.hpp crash_handler.cpp
     disable_splashscreen.hpp disable_splashscreen.cpp
     mods/player_manager.hpp mods/player_manager.cpp
-    icon.rc
+    mods/fixes.hpp mods/fixes.cpp
 )
 target_link_libraries(UltimatePhobia PRIVATE dbghelp Detours spdlog imgui)
 target_include_directories(UltimatePhobia PRIVATE . ../il2cpp_dump)
