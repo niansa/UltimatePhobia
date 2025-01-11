@@ -7,6 +7,8 @@ struct UnityEngine_GameObject_o;
 struct UnityEngine_Transform_o;
 struct UnityEngine_Component_o;
 struct UnityEngine_Camera_o;
+struct UnityEngine_SceneManagement_Scene_o;
+struct UnityEngine_Vector3_o;
 
 
 namespace UnityEngine {
@@ -47,6 +49,7 @@ void Rotate(UnityEngine_Transform_o *__this, UnityEngine_Vector3_o eulers);
 int32_t get_childCount(UnityEngine_Transform_o *__this);
 UnityEngine_Vector3_o get_position(UnityEngine_Transform_o *__this);
 void set_position(UnityEngine_Transform_o *__this, UnityEngine_Vector3_o value);
+UnityEngine_Vector3_o get_localPosition(UnityEngine_Transform_o *__this);
 void set_localPosition(UnityEngine_Transform_o *__this, UnityEngine_Vector3_o value);
 UnityEngine_Transform_o *get_parent(UnityEngine_Transform_o *__this);
 }
@@ -71,7 +74,30 @@ void set_alignment(UnityEngine_TextMesh_o *__this, TextAlignment value);
 void set_anchor(UnityEngine_TextMesh_o *__this, TextAnchor value);
 }
 
-namespace SceneManagement::SceneManager {
+namespace SceneManagement {
+namespace SceneManager {
 void LoadScene(std::string_view sceneName);
+}
+
+namespace Scene {
+bool IsValid(UnityEngine_SceneManagement_Scene_o __this);
+System_String_o *get_name(UnityEngine_SceneManagement_Scene_o __this);
+}
+}
+
+namespace Vector3 {
+constexpr UnityEngine_Vector3_o Zero = {{0.0f, 0.0f, 0.0f}};
+inline static UnityEngine_Vector3_o From(UnityEngine_Vector2_o vec) {
+    return {vec.fields.x, 0.0f, vec.fields.y};
+}
+float Distance(UnityEngine_Vector3_o a, UnityEngine_Vector3_o b);
+}
+
+namespace Vector2 {
+constexpr UnityEngine_Vector2_o Zero = {{0.0f, 0.0f}};
+inline static UnityEngine_Vector2_o From(UnityEngine_Vector3_o vec) {
+    return {vec.fields.x, vec.fields.z};
+}
+float Distance(UnityEngine_Vector2_o a, UnityEngine_Vector2_o b);
 }
 }

@@ -120,6 +120,12 @@ void Transform::set_position(UnityEngine_Transform_o *__this, UnityEngine_Vector
         (__this, value, nullptr);
 }
 
+UnityEngine_Vector3_o Transform::get_localPosition(UnityEngine_Transform_o *__this) {
+    return GameData::getMethod("UnityEngine.Transform$$get_localPosition")
+    .getFunction<UnityEngine_Vector3_o (UnityEngine_Transform_o *, const MethodInfo *)>()
+        (__this, nullptr);
+}
+
 void Transform::set_localPosition(UnityEngine_Transform_o *__this, UnityEngine_Vector3_o value) {
     GameData::getMethod("UnityEngine.Transform$$set_localPosition")
     .getFunction<void (UnityEngine_Transform_o *, UnityEngine_Vector3_o, const MethodInfo *)>()
@@ -182,5 +188,34 @@ void SceneManagement::SceneManager::LoadScene(std::string_view sceneName) {
     GameData::getMethod("void UnityEngine_SceneManagement_SceneManager__LoadScene (System_String_o* sceneName, const MethodInfo* method);")
         .getFunction<void (System_String_o *, const MethodInfo *)>()
         (GameTypes::createCsString(sceneName), nullptr);
+}
+
+
+bool SceneManagement::Scene::IsValid(UnityEngine_SceneManagement_Scene_o __this) {
+    if (__this.fields.m_Handle < 0)
+        return false;
+
+    return GameData::getMethod("UnityEngine.SceneManagement.Scene$$IsValid")
+        .getFunction<bool (UnityEngine_SceneManagement_Scene_o, const MethodInfo *)>()
+        (__this, nullptr);
+}
+
+System_String_o *SceneManagement::Scene::get_name(UnityEngine_SceneManagement_Scene_o __this) {
+    return GameData::getMethod("UnityEngine.SceneManagement.Scene$$get_name")
+        .getFunction<System_String_o *(UnityEngine_SceneManagement_Scene_o, const MethodInfo *)>()
+        (__this, nullptr);
+}
+
+
+float Vector3::Distance(UnityEngine_Vector3_o a, UnityEngine_Vector3_o b) {
+    return GameData::getMethod("UnityEngine.Vector3$$Distance")
+        .getFunction<float (UnityEngine_Vector3_o a, UnityEngine_Vector3_o b, const MethodInfo *)>()
+        (a, b, nullptr);
+}
+
+float Vector2::Distance(UnityEngine_Vector2_o a, UnityEngine_Vector2_o b) {
+    return GameData::getMethod("UnityEngine.Vector2$$Distance")
+        .getFunction<float (UnityEngine_Vector2_o a, UnityEngine_Vector2_o b, const MethodInfo *)>()
+        (a, b, nullptr);
 }
 }

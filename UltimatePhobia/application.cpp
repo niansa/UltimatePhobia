@@ -11,6 +11,7 @@
 #include "mods/save_file_manager.hpp"
 #include "mods/player_manager.hpp"
 #include "mods/goldberg_emu_manager.hpp"
+#include "mods/fixes.hpp"
 #include "mods/cheats.hpp"
 
 #include <optional>
@@ -45,7 +46,7 @@ struct ApplicationHooks {
 
 Application::Application() {
     currentApplication = this;
-    mods = {&tracerInfo, &photonSettingsInfo, &saveFileManagerInfo, &playerManagerInfo, &goldbergEmuManagerInfo,
+    mods = {&tracerInfo, &photonSettingsInfo, &saveFileManagerInfo, &fixesInfo, &playerManagerInfo, &goldbergEmuManagerInfo,
 #ifdef MOD_ENABLE_CHEATS
             &cheatsInfo
 #endif
@@ -67,6 +68,7 @@ void Application::init() {
 
     g.logger->info("Loading essential mods...");
     globalInstanceManagerInfo.load();
+    fixesInfo.load();
 }
 
 void Application::update() {
