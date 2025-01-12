@@ -171,6 +171,12 @@ void TextMesh::set_characterSize(UnityEngine_TextMesh_o *__this, float value) {
         (__this, value, nullptr);
 }
 
+void TextMesh::set_fontSize(UnityEngine_TextMesh_o *__this, int32_t value) {
+    GameData::getMethod("UnityEngine.TextMesh$$set_fontSize")
+    .getFunction<void (UnityEngine_TextMesh_o *, int32_t, const MethodInfo *)>()
+        (__this, value, nullptr);
+}
+
 void TextMesh::set_alignment(UnityEngine_TextMesh_o *__this, TextAlignment value) {
     GameData::getMethod("UnityEngine.TextMesh$$set_alignment")
         .getFunction<void (UnityEngine_TextMesh_o *, int32_t, const MethodInfo *)>()

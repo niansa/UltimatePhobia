@@ -16,16 +16,7 @@ class Fixes final : public Mod {
     void markSceneFixed();
     void sceneFix();
 
-    void updateVelocity();
-
 public:
-    GameHook characterController$$get_velocityHook;
-
-    float distanceWalked = 0.0f;
-    float velocity = 0.0f;
-
-    UnityEngine_Vector3_Fields lastPlayerWorldPos = {0.0f, 0.0f, 0.0f};
-
     Fixes();
 
     void uiUpdate() override;

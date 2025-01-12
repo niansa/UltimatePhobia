@@ -29,5 +29,6 @@ GlobalInstanceManager::GlobalInstanceManager() {
 
 ModInfo globalInstanceManagerInfo {
     "Global Instance Manager",
+    true,
     [] () {return std::make_unique<GlobalInstanceManager>();}
 };

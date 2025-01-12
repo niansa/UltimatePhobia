@@ -51,7 +51,8 @@ void player$$UpdateFnc(Player_o *__this, const MethodInfo *method) {
             if (!textMesh)
                 return "TextMesh component unavailable";
             TextMesh::set_text(textMesh, nickName);
-            TextMesh::set_characterSize(textMesh, 0.1);
+            TextMesh::set_characterSize(textMesh, 0.003);
+            TextMesh::set_fontSize(textMesh, 1000);
             TextMesh::set_alignment(textMesh, TextAlignment::Center);
             TextMesh::set_anchor(textMesh, TextAnchor::MiddleCenter);
 
@@ -124,5 +125,6 @@ Player_o *PlayerManager::getLocalPlayer() const {
 
 ModInfo playerManagerInfo {
     "Player Manager",
+    false,
     [] () {return std::make_unique<PlayerManager>();}
 };

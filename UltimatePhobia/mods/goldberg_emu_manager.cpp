@@ -55,6 +55,7 @@ void GoldbergEmuManager::uiUpdate() {
 
 ModInfo goldbergEmuManagerInfo {
     "Goldberg Emu Manager",
+    false,
     [] () {return std::make_unique<GoldbergEmuManager>();},
     [] () {
         if (std::filesystem::exists(GoldbergEmuManager::getSettingsPath()))

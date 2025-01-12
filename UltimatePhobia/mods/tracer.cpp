@@ -86,5 +86,6 @@ void Tracer::HookButton(std::string_view signature, bool isDefinitelyHooked) {
 
 ModInfo tracerInfo {
     "Tracer",
+    false,
     [] () {return std::make_unique<Tracer>();}
 };

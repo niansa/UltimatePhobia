@@ -84,6 +84,8 @@ void Application::update() {
         NewLine();
 
         for (const auto mod : mods) {
+            if (mod->autoMode)
+                continue;
             bool isLoaded = mod->instance != nullptr;
             if (Checkbox(mod->name, &isLoaded)) {
                 if (isLoaded)

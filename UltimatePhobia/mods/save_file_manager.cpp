@@ -118,6 +118,7 @@ void SaveFileManager::loadIfNeeded() {
 
 ModInfo saveFileManagerInfo {
     "Save File Manager",
+    false,
     [] () {return std::make_unique<SaveFileManager>();},
     [] () {SaveFileManager::loadIfNeeded();}
 };

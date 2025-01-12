@@ -70,6 +70,7 @@ UnityEngine_Camera_o *get_main();
 namespace TextMesh {
 void set_text(UnityEngine_TextMesh_o *__this, std::string_view value);
 void set_characterSize(UnityEngine_TextMesh_o *__this, float value);
+void set_fontSize(UnityEngine_TextMesh_o *__this, int32_t value);
 void set_alignment(UnityEngine_TextMesh_o *__this, TextAlignment value);
 void set_anchor(UnityEngine_TextMesh_o *__this, TextAnchor value);
 }

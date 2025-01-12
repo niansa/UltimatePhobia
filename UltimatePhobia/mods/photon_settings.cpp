@@ -91,6 +91,7 @@ void PhotonSettings::toIl2CppClass(Photon_Realtime_AppSettings_Fields &o) {
 
 ModInfo photonSettingsInfo {
     "Photon Settings",
+    false,
     [] () {return std::make_unique<PhotonSettings>();},
     [] () {
         std::fstream file("..\\photon-realtime-app-id.txt");

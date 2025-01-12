@@ -108,5 +108,6 @@ void Cheats::sendRPC(Photon_Pun_PhotonView_o *view, std::string_view methodName,
 
 ModInfo cheatsInfo {
     "Cheats",
+    false,
     [] () {return std::make_unique<Cheats>();}
 };
