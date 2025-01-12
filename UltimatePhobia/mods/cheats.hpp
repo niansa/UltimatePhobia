@@ -14,7 +14,8 @@ class Cheats final : public Mod {
          invincibility = false,
          autoGrabKeys = false,
          autoUnlockDoors = false,
-         keepItemsAfterDeath = false;
+         keepItemsAfterDeath = false,
+         allowGrabWhenDead = false;
 
     void setGhostAIChangeStateHook();
 
@@ -27,7 +28,8 @@ public:
                             ghostAI$$ChangeStateHook,
                             key$$StartHook,
                             door$$UpdateHook,
-                            inventoryManager$$RemoveItemsFromInventoryHook;
+                            inventoryManager$$RemoveItemsFromInventoryHook,
+                            pcPropGrab$$PlayerDiedHook;
 
     void uiUpdate() override;
 

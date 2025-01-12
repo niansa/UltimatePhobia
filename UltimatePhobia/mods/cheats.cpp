@@ -76,6 +76,7 @@ void Cheats::uiUpdate() {
     hookToggle("Invincibility", player$$StartKillingPlayerHook, invincibility, "Player$$StartKillingPlayer", reinterpret_cast<void *>(GameHook::noop));
     hookToggle("Pause ghost", ghost$$UpdateHook, pauseGhost, "GhostAI$$Update", reinterpret_cast<void *>(GameHook::noop));
     hookToggle("Unlock all doors", door$$UpdateHook, autoUnlockDoors, "Door$$Update", reinterpret_cast<void *>(door$$UpdateFnc));
+    hookToggle("Allow grab when dead", pcPropGrab$$PlayerDiedHook, allowGrabWhenDead, "PCPropGrab$$PlayerDied", reinterpret_cast<void *>(GameHook::noop));
 
     SeparatorText("Queue ghost states");
     if (Button("Short event")) {
