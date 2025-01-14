@@ -62,6 +62,8 @@ for data in methods:
     args_types = []
     for arg in arguments.split(','):
         arg_type, arg_name = arg.rsplit(' ', 1)
+        if len(arg_name) == 0:
+            arg_name = "_"
         while arg_name in args_names:
             arg_name += "_"
         args_names.append(arg_name)
@@ -69,7 +71,7 @@ for data in methods:
 
     # Filter reserved keywords
     for idx in range(len(args_names)):
-        if args_names[idx] in ["or", "and", "not", "__callback", "small"]:
+        if args_names[idx] in ["this", "or", "and", "not", "__callback", "small"]:
             args_names[idx] += "_"
 
     # Get lists as strings
