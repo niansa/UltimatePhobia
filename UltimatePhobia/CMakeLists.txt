@@ -7,7 +7,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_INTERPROCEDURAL_OPTIMIZATION ON)
 
 option(ULTIMATEPHOBIA_CHEATS "Build cheats module" ON)
-option(ULTIMATEPHOBIA_TRACER "Build tracer module" ON)
+option(ULTIMATEPHOBIA_TRACER "Build tracer module" OFF)
 
 add_subdirectory(../deps/detours Detours)
 add_subdirectory(../deps/spdlog spdlog)
