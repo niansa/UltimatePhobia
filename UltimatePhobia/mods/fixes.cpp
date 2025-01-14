@@ -18,7 +18,7 @@ static inline void fixDestroy(std::string_view name) {
 }
 
 static inline void fixPlayerController(Player_o *player) {
-    Il2Cpp::Methods::UnityEngine_CharacterController__set_detectCollisions(player->fields.characterController, player);
+    Il2Cpp::Methods::UnityEngine_CharacterController__set_detectCollisions(player->fields.characterController, false);
 }
 
 
