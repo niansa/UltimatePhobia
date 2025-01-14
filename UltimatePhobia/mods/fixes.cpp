@@ -1,5 +1,6 @@
 #include "fixes.hpp"
 #include "game_types.hpp"
+#include "global_instance_manager.hpp"
 #include "generated/il2cpp.hpp"
 #include "bindings/unityengine.hpp"
 
@@ -14,6 +15,10 @@ static inline void fixDestroy(std::string_view name) {
     if (!object)
         return;
     GameObject::Destroy(object);
+}
+
+static inline void fixPlayerController(Player_o *player) {
+    Il2Cpp::Methods::UnityEngine_CharacterController__set_detectCollisions(player->fields.characterController, player);
 }
 
 
@@ -44,6 +49,7 @@ void Fixes::sceneFix() {
     // Do fixups
     g.logger->info("Fixing scene...");
     fixDestroy("/_House/_Second Floor/_Girls Bedroom/_Lighting/floor lamp (1)");
+    fixPlayerController(globalInstanceManagerInfo.get<GlobalInstanceManager>()->player);
 }
 
 void Fixes::uiUpdate() {
