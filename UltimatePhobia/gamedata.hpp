@@ -1,3 +1,4 @@
+#ifdef ENABLE_OLD_GAMEDATA
 #pragma once
 
 #include <string_view>
@@ -24,3 +25,4 @@ Method getMethod(std::string_view identifier, bool noError = false);
 Method getMethod(void *addr, bool noError = false);
 std::vector<Method> searchMethods(std::string_view identifier);
 }
+#endif

@@ -1,9 +1,9 @@
 #include "disable_antimod.hpp"
 #include "global_state.hpp"
-#include "gamedata.hpp"
 #include "game_types.hpp"
 #include "game_hook.hpp"
 #include "detours_helpers.hpp"
+#include "generated/il2cpp.hpp"
 
 #include <algorithm>
 #include <string_view>
@@ -84,14 +84,12 @@ HMODULE getModuleHandleFnc(LPCSTR lpModuleName) {
 void disableAntiMod() {
     g.logger->info("Disabling mod detection...");
 
-    auto file$$ExistsMethod = GameData::getMethod("System.IO.File$$Exists");
-    file$$ExistsHook = new GameHook(file$$ExistsMethod.address, reinterpret_cast<void *>(hookTrampoline_tryCheckFnc), true);
+    using namespace Il2Cpp::Methods;
+    file$$ExistsHook = new GameHook(System_IO_File__Exists_getPtr(), reinterpret_cast<void *>(hookTrampoline_tryCheckFnc), true);
 
-    auto directory$$ExistsMethod = GameData::getMethod("System.IO.Directory$$Exists");
-    directory$$ExistsHook = new GameHook(directory$$ExistsMethod.address, reinterpret_cast<void *>(hookTrampoline_tryCheckFnc), true);
+    directory$$ExistsHook = new GameHook(System_IO_Directory__Exists_getPtr(), reinterpret_cast<void *>(hookTrampoline_tryCheckFnc), true);
 
-    auto path$$GetFileNameMethod = GameData::getMethod("System.IO.Path$$GetFileName");
-    path$$GetFileNameHook = new GameHook(path$$GetFileNameMethod.address, reinterpret_cast<void *>(hookTrampoline_tryCheckFnc), true);
+    path$$GetFileNameHook = new GameHook(System_IO_Path__GetFileName_getPtr(), reinterpret_cast<void *>(hookTrampoline_tryCheckFnc), true);
 
     DetoursTransaction DT;
     DetourAttach(&reinterpret_cast<PVOID&>(getModuleHandleOrig), reinterpret_cast<void*>(getModuleHandleFnc));

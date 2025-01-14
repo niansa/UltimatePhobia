@@ -3,7 +3,8 @@
 #include <memory>
 #include <spdlog/logger.h>
 
+
 struct GlobalState {
-    void *base;
+    uintptr_t base;
     std::shared_ptr<spdlog::logger> logger;
 } extern g;

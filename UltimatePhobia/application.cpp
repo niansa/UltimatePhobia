@@ -1,9 +1,9 @@
 #include "application.hpp"
 #include "global_state.hpp"
-#include "gamedata.hpp"
 #include "il2cpp.h"
 #include "game_hook.hpp"
 #include "imgui_man.hpp"
+#include "generated/il2cpp.hpp"
 
 #include "mods/global_instance_manager.hpp"
 #include "mods/tracer.hpp"
@@ -46,19 +46,22 @@ struct ApplicationHooks {
 
 Application::Application() {
     currentApplication = this;
-    mods = {&tracerInfo, &photonSettingsInfo, &saveFileManagerInfo, &fixesInfo, &playerManagerInfo, &goldbergEmuManagerInfo,
+    mods = {&photonSettingsInfo, &saveFileManagerInfo, &fixesInfo, &playerManagerInfo, &goldbergEmuManagerInfo,
+#ifdef MOD_ENABLE_TRACER
+            &tracerInfo,
+#endif
 #ifdef MOD_ENABLE_CHEATS
-            &cheatsInfo
+            &cheatsInfo,
 #endif
     };
 
     g.logger->info("Waiting for game start...");
-    ApplicationHooks::splashScreenCtorHook.emplace(GameData::getMethod("SplashScreen$$.ctor").address, ApplicationHooks::splashScreenCtorFnc);
+    ApplicationHooks::splashScreenCtorHook.emplace(Il2Cpp::Methods::SplashScreen___ctor_getPtr(), ApplicationHooks::splashScreenCtorFnc);
 }
 
 void Application::init() {
     g.logger->info("Starting to listen for local player updates...");
-    ApplicationHooks::appUpdateHook.emplace(GameData::getMethod("PlayerSanity$$Update").address, ApplicationHooks::appUpdateFnc);
+    ApplicationHooks::appUpdateHook.emplace(Il2Cpp::Methods::PlayerSanity__Update_getPtr(), ApplicationHooks::appUpdateFnc);
 
     g.logger->info("Calling onAppStart functions...");
     for (auto& mod : mods) {
@@ -111,9 +114,7 @@ void Application::update() {
 
 void Application::exit(int code) {
     g.logger->info("Exiting application...");
-    GameData::getMethod("void UnityEngine_Application__Quit (int32_t exitCode, const MethodInfo* method);")
-    .getFunction<void (int, const MethodInfo*)>()
-        (0, nullptr);
+    Il2Cpp::Methods::UnityEngine_Application__Quit();
     ImGuiMan::deinit();
     ApplicationHooks::appUpdateHook.reset();
 }

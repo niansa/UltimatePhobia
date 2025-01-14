@@ -19,10 +19,10 @@ std::string utf8Encode(std::wstring_view wstr) {
     return strTo;
 }
 
-void hookToggle(const char *description, std::optional<GameHook>& hook, bool& boolean, const char *method, void *hookFnc) {
+void hookToggle(const char *description, std::optional<GameHook>& hook, bool& boolean, void *method, void *hookFnc) {
     if (ImGui::Checkbox(description, &boolean)) {
         if (boolean)
-            hook.emplace(GameData::getMethod(method).address, hookFnc);
+            hook.emplace(method, hookFnc);
         else
             hook.reset();
     }

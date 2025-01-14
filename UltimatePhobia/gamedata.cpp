@@ -1,3 +1,4 @@
+#ifdef ENABLE_OLD_GAMEDATA
 #include "gamedata.hpp"
 #include "generated/game_data.inc"
 #include "global_state.hpp"
@@ -91,3 +92,4 @@ std::vector<Method> searchMethods(std::string_view identifier) {
     return fres;
 }
 }
+#endif

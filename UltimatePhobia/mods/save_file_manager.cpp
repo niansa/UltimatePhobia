@@ -1,8 +1,8 @@
 #include "save_file_manager.hpp"
-#include "gamedata.hpp"
 #include "game_types.hpp"
 #include "global_state.hpp"
 #include "application.hpp"
+#include "generated/il2cpp.hpp"
 
 #include <filesystem>
 #include <fstream>
@@ -20,9 +20,7 @@ static System_IO_Stream_o *es3Stream$$CreateStreamFnc(System_IO_Stream_o* stream
         settings->fields.encryptionType = 0;
     if (self->decryptionPending) {
         g.logger->info("Decrypting save file: Closing existing stream...");
-        GameData::getMethod("System.IO.Stream$$Close")
-            .getFunction<void (System_IO_Stream_o *, const MethodInfo *)>()
-            (stream, nullptr);
+        Il2Cpp::Methods::System_IO_Stream__Close(stream);
         g.logger->info("Decrypting save file: Loading raw save file...");
         const auto bytes = SaveFileManager::loadRawBytes("SaveFile.es3", settings);
         g.logger->info("Decrypting save file: Disabling encryption...");
@@ -41,7 +39,7 @@ static System_IO_Stream_o *es3Stream$$CreateStreamFnc(System_IO_Stream_o* stream
 
 SaveFileManager::SaveFileManager()
     : es3Stream$$CreateStreamHook(
-          GameData::getMethod("System_IO_Stream_o* ES3Internal_ES3Stream__CreateStream (System_IO_Stream_o* stream, ES3Settings_o* settings, int32_t fileMode, const MethodInfo* method);").address,
+          Il2Cpp::Methods::ES3Internal_ES3Stream__CreateStream_getPtr<System_IO_Stream_o *, ES3Settings_o *, int32_t>(),
           reinterpret_cast<void*>(es3Stream$$CreateStreamFnc)
           ) {}
 
@@ -81,29 +79,20 @@ void SaveFileManager::uiUpdate() {
 }
 
 void SaveFileManager::renameFile(std::string_view oldFilePath, std::string_view newFilePath) {
-    GameData::getMethod("void ES3__RenameFile (System_String_o* oldFilePath, System_String_o* newFilePath, const MethodInfo* method);")
-        .getFunction<void (System_String_o *, System_String_o *, const MethodInfo *)>()
-        (GameTypes::createCsString(oldFilePath), GameTypes::createCsString(newFilePath), nullptr);
+    Il2Cpp::Methods::ES3__RenameFile(GameTypes::createCsString(oldFilePath), GameTypes::createCsString(newFilePath), nullptr);
 }
 
 System_Byte_array *SaveFileManager::loadRawBytes(std::string_view filePath, ES3Settings_o *settings) {
-    return GameData::getMethod("System_Byte_array* ES3__LoadRawBytes (System_String_o* filePath, ES3Settings_o* settings, const MethodInfo* method);")
-        .getFunction<System_Byte_array *(System_String_o *, ES3Settings_o *, const MethodInfo *)>()
-        (GameTypes::createCsString(filePath), settings, nullptr);
+    return Il2Cpp::Methods::ES3__LoadRawBytes(GameTypes::createCsString(filePath), settings, nullptr);
 }
 
 void SaveFileManager::saveRawBytes(System_Byte_array *bytes, std::string_view filePath, ES3Settings_o *settings) {
-    GameData::getMethod("void ES3__SaveRaw (System_Byte_array* bytes, System_String_o* filePath, ES3Settings_o* settings, const MethodInfo* method);")
-        .getFunction<void (System_Byte_array *, System_String_o *, ES3Settings_o *, const MethodInfo *)>()
-        (bytes, GameTypes::createCsString(filePath), settings, nullptr);
+    Il2Cpp::Methods::ES3__SaveRaw(bytes, GameTypes::createCsString(filePath), settings, nullptr);
 }
 
 void SaveFileManager::loadIfNeeded() {
     g.logger->info("Checking if save file is decrypted...");
-    const std::filesystem::path dataPath = GameTypes::toCppString(
-        GameData::getMethod("UnityEngine.Application$$get_persistentDataPath")
-            .getFunction<System_String_o *(const MethodInfo *)>()
-            (nullptr));
+    const std::filesystem::path dataPath = GameTypes::toCppString(Il2Cpp::Methods::UnityEngine_Application__get_persistentDataPath());
     const auto saveFilePath = dataPath/"SaveFile.es3";
     const bool isJson = std::ifstream(saveFilePath, std::ios::binary).get() == '{';
     if (isJson) {

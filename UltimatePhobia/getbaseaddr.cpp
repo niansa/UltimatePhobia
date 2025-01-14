@@ -16,7 +16,7 @@ static HMODULE detourLoadLibraryW(LPWSTR lpLibFileName) {
 
     g.logger->debug("Loading module {}...", lpLibFileNameA);
     if (lpLibFileNameA == "GameAssembly.dll") {
-        g.base = fres;
+        g.base = reinterpret_cast<uintptr_t>(fres);
         if (finalCallback)
             std::exchange(finalCallback, nullptr)();
     }

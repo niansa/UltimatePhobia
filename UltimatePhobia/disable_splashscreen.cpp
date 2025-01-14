@@ -1,7 +1,7 @@
 #include "disable_splashscreen.hpp"
 #include "global_state.hpp"
 #include "game_hook.hpp"
-#include "gamedata.hpp"
+#include "generated/il2cpp.hpp"
 #include "bindings/unityengine.hpp"
 
 
@@ -14,5 +14,5 @@ void splashScreen$$AwakeFnc(SplashScreen_o* __this, const MethodInfo* method) {
 
 void disableSplashscreen() {
     g.logger->info("Disabling splash screen...");
-    new GameHook(GameData::getMethod("SplashScreen$$Awake").address, reinterpret_cast<void *>(splashScreen$$AwakeFnc));
+    new GameHook(Il2Cpp::Methods::SplashScreen__Awake_getPtr(), reinterpret_cast<void *>(splashScreen$$AwakeFnc));
 }

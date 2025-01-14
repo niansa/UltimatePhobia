@@ -1,6 +1,6 @@
 #include "photon_settings.hpp"
-#include "gamedata.hpp"
 #include "game_types.hpp"
+#include "generated/il2cpp.hpp"
 
 #include <fstream>
 #include <cstring>
@@ -37,7 +37,7 @@ static bool photonNetwork$$ConnectUsingSettingsFnc(Photon_Realtime_AppSettings_o
 
 PhotonSettings::PhotonSettings()
     : photonNetwork$$ConnectUsingSettingsHook(
-          GameData::getMethod("bool Photon_Pun_PhotonNetwork__ConnectUsingSettings (Photon_Realtime_AppSettings_o* appSettings, bool startInOfflineMode, const MethodInfo* method);").address,
+          Il2Cpp::Methods::Photon_Pun_PhotonNetwork__ConnectUsingSettings_getPtr<Photon_Realtime_AppSettings_o *, bool>(),
           reinterpret_cast<void*>(photonNetwork$$ConnectUsingSettingsFnc)
           ) {
     memset(&settings, 0, sizeof(settings));

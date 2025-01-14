@@ -1,33 +1,26 @@
 #include "phasmophobia.hpp"
-#include "gamedata.hpp"
-#include "game_types.hpp"
+#include "generated/il2cpp.hpp"
+
+using namespace Il2Cpp::Methods;
 
 
 
 namespace Phasmophobia {
-void Door::UnlockDoor(Door_o *__this){
-    GameData::getMethod("Door$$UnlockDoor")
-        .getFunction<void (Door_o *, const MethodInfo *)>()
-        (__this, nullptr);
+void Door::UnlockDoor(Door_o *__this) {
+    Door__UnlockDoor(__this);
 }
 
 void Door::DisableOrEnableDoor(Door_o *__this, bool enable) {
-    GameData::getMethod("Door$$DisableOrEnableDoor")
-        .getFunction<void (Door_o *, bool, const MethodInfo *)>()
-        (__this, enable, nullptr);
+    Door__DisableOrEnableDoor(__this, enable);
 }
 
 void Door::OpenDoor(Door_o *__this, float speed, bool obf1) {
-    GameData::getMethod("Door$$OpenDoor")
-        .getFunction<void (Door_o *, float, bool, const MethodInfo *)>()
-        (__this, obf1, obf1, nullptr);
+    Door__OpenDoor(__this, speed, obf1);
 }
 
 
 void GhostActivity::Interact(GhostActivity_o *__this) {
-    GameData::getMethod("GhostActivity$$Interact")
-        .getFunction<void (GhostActivity_o *, const MethodInfo *)>()
-        (__this, nullptr);
+    GhostActivity__Interact(__this);
 }
 
 

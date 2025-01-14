@@ -7,6 +7,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_INTERPROCEDURAL_OPTIMIZATION ON)
 
 option(ULTIMATEPHOBIA_CHEATS "Build cheats module" ON)
+option(ULTIMATEPHOBIA_TRACER "Build tracer module" ON)
 
 add_subdirectory(../deps/detours Detours)
 add_subdirectory(../deps/spdlog spdlog)
@@ -43,6 +44,7 @@ add_executable(UltimatePhobia WIN32 main.cpp icon.rc
     disable_splashscreen.hpp disable_splashscreen.cpp
     mods/player_manager.hpp mods/player_manager.cpp
     mods/fixes.hpp mods/fixes.cpp
+    generated/il2cpp.hpp generated/il2cpp.cpp
 )
 target_link_libraries(UltimatePhobia PRIVATE dbghelp Detours spdlog imgui)
 target_include_directories(UltimatePhobia PRIVATE . ../il2cpp_dump)
@@ -50,4 +52,7 @@ target_precompile_headers(UltimatePhobia PRIVATE ../il2cpp_dump/il2cpp.h)
 target_compile_definitions(UltimatePhobia PUBLIC _CRT_SECURE_NO_WARNINGS)
 if (ULTIMATEPHOBIA_CHEATS)
     target_compile_definitions(UltimatePhobia PRIVATE MOD_ENABLE_CHEATS)
+endif()
+if (ULTIMATEPHOBIA_TRACER)
+    target_compile_definitions(UltimatePhobia PRIVATE MOD_ENABLE_TRACER ENABLE_OLD_GAMEDATA)
 endif()

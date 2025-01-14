@@ -1,6 +1,6 @@
 #include "fixes.hpp"
-#include "gamedata.hpp"
 #include "game_types.hpp"
+#include "generated/il2cpp.hpp"
 #include "bindings/unityengine.hpp"
 
 #include <string_view>
@@ -19,15 +19,13 @@ static inline void fixDestroy(std::string_view name) {
 
 static bool photonNetwork$$ConnectToBestCloudServerFnc(const MethodInfo* method) {
     // TODO: Use last region instead
-    return GameData::getMethod("Photon.Pun.PhotonNetwork$$ConnectToRegion")
-        .getFunction<bool (System_String_o *, const MethodInfo *)>()
-        (GameTypes::createCsString("EU"), nullptr);
+    return Il2Cpp::Methods::Photon_Pun_PhotonNetwork__ConnectToRegion(GameTypes::createCsString("EU"));
 }
 
 
 Fixes::Fixes()
     : photonNetwork$$ConnectToBestCloudServerHook(
-          GameData::getMethod("Photon.Pun.PhotonNetwork$$ConnectToBestCloudServer").address,
+          Il2Cpp::Methods::Photon_Pun_PhotonNetwork__ConnectToBestCloudServer_getPtr(),
           reinterpret_cast<void*>(photonNetwork$$ConnectToBestCloudServerFnc)
           ) {}
 

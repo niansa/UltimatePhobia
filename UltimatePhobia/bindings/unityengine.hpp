@@ -79,11 +79,6 @@ namespace SceneManagement {
 namespace SceneManager {
 void LoadScene(std::string_view sceneName);
 }
-
-namespace Scene {
-bool IsValid(UnityEngine_SceneManagement_Scene_o __this);
-System_String_o *get_name(UnityEngine_SceneManagement_Scene_o __this);
-}
 }
 
 namespace Vector3 {

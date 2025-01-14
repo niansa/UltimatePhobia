@@ -1,7 +1,6 @@
 #include "crash_handler.hpp"
 
 #include "global_state.hpp"
-#include "gamedata.hpp"
 #include "game_hook.hpp"
 
 #include <iomanip>
@@ -37,11 +36,7 @@ static void logStackTraceDetail(CONTEXT c) {
         if (addr == nullptr)
             break;
 
-        const auto method = GameData::getMethod(addr);
-        if (method.isValid())
-            trace << '(' << method.name << ") " << method.signature;
-        else
-            trace << "(unknown) 0x" << addr;
+        trace << "(unknown) 0x" << addr;
         if (const void *hook = GameHook::getHookAt(addr))
             trace << " (hook at 0x" << hook << ")";
     }

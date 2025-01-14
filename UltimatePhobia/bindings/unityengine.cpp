@@ -1,15 +1,15 @@
 #include "unityengine.hpp"
-#include "gamedata.hpp"
 #include "game_types.hpp"
 #include "global_state.hpp"
+#include "generated/il2cpp.hpp"
+
+using namespace Il2Cpp::Methods;
 
 
 
 namespace {
 System_Type_o *GetType(std::string_view name) {
-    const auto fres = GameData::getMethod("System_Type_o* System_Type__GetType (System_String_o* typeName, const MethodInfo* method);")
-        .getFunction<System_Type_o *(System_String_o *, const MethodInfo *)>()
-        (GameTypes::createCsString(name), nullptr);
+    const auto fres = System_Type__GetType(GameTypes::createCsString(name));
     if (!fres)
         g.logger->error("Failed to get type '{}'!", name);
     return fres;
@@ -20,9 +20,7 @@ System_Type_o *GetType(std::string_view name, std::string_view assemblyName) {
 }
 
 void *CreateInstance(System_Type_o *type) {
-    return GameData::getMethod("Il2CppObject* System_Activator__CreateInstance (System_Type_o* type, const MethodInfo* method);")
-        .getFunction<void *(System_Type_o *, const MethodInfo *)>()
-        (type, nullptr);
+    return System_Activator__CreateInstance(type);
 }
 }
 
@@ -30,22 +28,16 @@ void *CreateInstance(System_Type_o *type) {
 namespace UnityEngine {
 UnityEngine_GameObject_o *GameObject::New(std::string_view name) {
     auto fres = reinterpret_cast<UnityEngine_GameObject_o *>(CreateInstance(GetType("UnityEngine.GameObject", "UnityEngine.CoreModule")));
-    GameData::getMethod("void UnityEngine_GameObject___ctor (UnityEngine_GameObject_o* __this, System_String_o* name, const MethodInfo* method);")
-        .getFunction<void (UnityEngine_GameObject_o *, System_String_o *, const MethodInfo *)>()
-        (fres, GameTypes::createCsString(name), nullptr);
+    UnityEngine_GameObject___ctor(fres, GameTypes::createCsString(name));
     return fres;
 }
 
 UnityEngine_GameObject_o *GameObject::Find(std::string_view name) {
-    return GameData::getMethod("UnityEngine.GameObject$$Find")
-        .getFunction<UnityEngine_GameObject_o *(System_String_o *, const MethodInfo *)>()
-        (GameTypes::createCsString(name), nullptr);
+    return UnityEngine_GameObject__Find(GameTypes::createCsString(name));
 }
 
 void GameObject::Destroy(UnityEngine_GameObject_o *__this) {
-    GameData::getMethod("void UnityEngine_Object__Destroy (UnityEngine_Object_o* obj, const MethodInfo* method);")
-        .getFunction<void (UnityEngine_GameObject_o *, const MethodInfo *)>()
-        (__this, nullptr);
+    UnityEngine_Object__Destroy(reinterpret_cast<UnityEngine_Object_o *>(__this));
 }
 
 void GameObject::RecursiveDestroy(UnityEngine_GameObject_o *__this) {
@@ -56,21 +48,15 @@ void GameObject::RecursiveDestroy(UnityEngine_GameObject_o *__this) {
 }
 
 void GameObject::SetActive(UnityEngine_GameObject_o *__this, bool value) {
-    GameData::getMethod("UnityEngine.GameObject$$SetActive")
-        .getFunction<void (UnityEngine_GameObject_o *, bool, const MethodInfo *)>()
-        (__this, value, nullptr);
+    UnityEngine_GameObject__SetActive(__this, value);
 }
 
 UnityEngine_Component_o *GameObject::AddComponent(UnityEngine_GameObject_o *__this, std::string_view name, std::string_view assemblyName) {
-    return GameData::getMethod("UnityEngine.GameObject$$AddComponent")
-        .getFunction<UnityEngine_Component_o *(UnityEngine_GameObject_o *, System_Type_o *, const MethodInfo *)>()
-        (__this, GetType(name, assemblyName), nullptr);
+    return UnityEngine_GameObject__AddComponent(__this, GetType(name, assemblyName));
 }
 
 UnityEngine_Transform_o *GameObject::get_transform(UnityEngine_GameObject_o *__this) {
-    return GameData::getMethod("UnityEngine.GameObject$$get_transform")
-        .getFunction<UnityEngine_Transform_o *(UnityEngine_GameObject_o *, const MethodInfo *)>()
-        (__this, nullptr);
+    return UnityEngine_GameObject__get_transform(__this);
 }
 
 UnityEngine_GameObject_o *GameObject::get_parent(UnityEngine_GameObject_o *__this) {
@@ -79,149 +65,91 @@ UnityEngine_GameObject_o *GameObject::get_parent(UnityEngine_GameObject_o *__thi
 
 
 UnityEngine_Transform_o *Transform::GetChild(UnityEngine_Transform_o *__this, int32_t index) {
-    return GameData::getMethod("UnityEngine.Transform$$GetChild")
-        .getFunction<UnityEngine_Transform_o *(UnityEngine_Transform_o *, int32_t, const MethodInfo *)>()
-        (__this, index, nullptr);
+    return UnityEngine_Transform__GetChild(__this, index);
 }
 
 void Transform::SetParent(UnityEngine_Transform_o *__this, UnityEngine_Transform_o *parent, bool worldPositionStays) {
-    GameData::getMethod("void UnityEngine_Transform__SetParent (UnityEngine_Transform_o* __this, UnityEngine_Transform_o* parent, bool worldPositionStays, const MethodInfo* method);")
-        .getFunction<void (UnityEngine_Transform_o *, UnityEngine_Transform_o *, bool, const MethodInfo *)>()
-        (__this, parent, worldPositionStays, nullptr);
+    UnityEngine_Transform__SetParent(__this, parent);
 }
 
 void Transform::LookAt(UnityEngine_Transform_o *__this, UnityEngine_Transform_o *target) {
-    GameData::getMethod("void UnityEngine_Transform__LookAt (UnityEngine_Transform_o* __this, UnityEngine_Transform_o* target, const MethodInfo* method);")
-        .getFunction<void (UnityEngine_Transform_o *, UnityEngine_Transform_o *, const MethodInfo *)>()
-        (__this, target, nullptr);
+    UnityEngine_Transform__LookAt(__this, target);
 }
 
 void Transform::Rotate(UnityEngine_Transform_o *__this, UnityEngine_Vector3_o eulers) {
-    GameData::getMethod("void UnityEngine_Transform__Rotate (UnityEngine_Transform_o* __this, UnityEngine_Vector3_o eulers, const MethodInfo* method);")
-        .getFunction<void (UnityEngine_Transform_o *, UnityEngine_Vector3_o, const MethodInfo *)>()
-        (__this, eulers, nullptr);
+    UnityEngine_Transform__Rotate(__this, eulers);
 }
 
 int32_t Transform::get_childCount(UnityEngine_Transform_o *__this) {
-    return GameData::getMethod("UnityEngine.Transform$$get_childCount")
-        .getFunction<int32_t (UnityEngine_Transform_o *, const MethodInfo *)>()
-        (__this, nullptr);
+    return UnityEngine_Transform__get_childCount(__this);
 }
 
 UnityEngine_Vector3_o Transform::get_position(UnityEngine_Transform_o *__this) {
-    return GameData::getMethod("UnityEngine.Transform$$get_position")
-        .getFunction<UnityEngine_Vector3_o (UnityEngine_Transform_o *, const MethodInfo *)>()
-        (__this, nullptr);
+    return UnityEngine_Transform__get_position(__this);
 }
 
 void Transform::set_position(UnityEngine_Transform_o *__this, UnityEngine_Vector3_o value) {
-    GameData::getMethod("UnityEngine.Transform$$set_position")
-        .getFunction<void (UnityEngine_Transform_o *, UnityEngine_Vector3_o, const MethodInfo *)>()
-        (__this, value, nullptr);
+    UnityEngine_Transform__set_position(__this, value);
 }
 
 UnityEngine_Vector3_o Transform::get_localPosition(UnityEngine_Transform_o *__this) {
-    return GameData::getMethod("UnityEngine.Transform$$get_localPosition")
-    .getFunction<UnityEngine_Vector3_o (UnityEngine_Transform_o *, const MethodInfo *)>()
-        (__this, nullptr);
+    return UnityEngine_Transform__get_localPosition(__this);
 }
 
 void Transform::set_localPosition(UnityEngine_Transform_o *__this, UnityEngine_Vector3_o value) {
-    GameData::getMethod("UnityEngine.Transform$$set_localPosition")
-    .getFunction<void (UnityEngine_Transform_o *, UnityEngine_Vector3_o, const MethodInfo *)>()
-        (__this, value, nullptr);
+    UnityEngine_Transform__set_localPosition(__this, value);
 }
 
 UnityEngine_Transform_o *Transform::get_parent(UnityEngine_Transform_o *__this) {
-    return GameData::getMethod("UnityEngine.Transform$$get_parent")
-        .getFunction<UnityEngine_Transform_o *(UnityEngine_Transform_o *, const MethodInfo *)>()
-        (__this, nullptr);
+    return UnityEngine_Transform__get_parent(__this);
 }
 
 
 UnityEngine_GameObject_o *Component::get_gameObject(UnityEngine_Component_o *__this) {
-    return GameData::getMethod("UnityEngine.Component$$get_gameObject")
-        .getFunction<UnityEngine_GameObject_o *(UnityEngine_Component_o *, const MethodInfo *)>()
-        (__this, nullptr);
+    return UnityEngine_Component__get_gameObject(__this);
 }
 
 
 UnityEngine_Vector3_o Camera::WorldToScreenPoint(UnityEngine_Camera_o *__this, UnityEngine_Vector3_o position) {
-    return GameData::getMethod("UnityEngine_Vector3_o UnityEngine_Camera__WorldToScreenPoint (UnityEngine_Camera_o* __this, UnityEngine_Vector3_o position, const MethodInfo* method);")
-        .getFunction<UnityEngine_Vector3_o (UnityEngine_Camera_o *, UnityEngine_Vector3_o, const MethodInfo *)>()
-        (__this, position, nullptr);
+    return UnityEngine_Camera__WorldToScreenPoint(__this, position);
 }
 
 UnityEngine_Camera_o *Camera::get_main() {
-    return GameData::getMethod("UnityEngine.Camera$$get_main")
-        .getFunction<UnityEngine_Camera_o *(const MethodInfo *)>()
-        (nullptr);
+    return UnityEngine_Camera__get_main();
 }
 
 
 void TextMesh::set_text(UnityEngine_TextMesh_o *__this, std::string_view value) {
-    GameData::getMethod("UnityEngine.TextMesh$$set_text")
-        .getFunction<void (UnityEngine_TextMesh_o *, System_String_o *, const MethodInfo *)>()
-        (__this, GameTypes::createCsString(value), nullptr);
+    UnityEngine_TextMesh__set_text(__this, GameTypes::createCsString(value));
 }
 
 void TextMesh::set_characterSize(UnityEngine_TextMesh_o *__this, float value) {
-    GameData::getMethod("UnityEngine.TextMesh$$set_characterSize")
-        .getFunction<void (UnityEngine_TextMesh_o *, float, const MethodInfo *)>()
-        (__this, value, nullptr);
+    UnityEngine_TextMesh__set_characterSize(__this, value);
 }
 
 void TextMesh::set_fontSize(UnityEngine_TextMesh_o *__this, int32_t value) {
-    GameData::getMethod("UnityEngine.TextMesh$$set_fontSize")
-    .getFunction<void (UnityEngine_TextMesh_o *, int32_t, const MethodInfo *)>()
-        (__this, value, nullptr);
+    UnityEngine_TextMesh__set_fontSize(__this, value);
 }
 
 void TextMesh::set_alignment(UnityEngine_TextMesh_o *__this, TextAlignment value) {
-    GameData::getMethod("UnityEngine.TextMesh$$set_alignment")
-        .getFunction<void (UnityEngine_TextMesh_o *, int32_t, const MethodInfo *)>()
-        (__this, static_cast<int32_t>(value), nullptr);
+    UnityEngine_TextMesh__set_alignment(__this, static_cast<int32_t>(value));
 }
 
 void TextMesh::set_anchor(UnityEngine_TextMesh_o *__this, TextAnchor value) {
-    GameData::getMethod("UnityEngine.TextMesh$$set_anchor")
-        .getFunction<void (UnityEngine_TextMesh_o *, int32_t, const MethodInfo *)>()
-        (__this, static_cast<int32_t>(value), nullptr);
+    UnityEngine_TextMesh__set_anchor(__this, static_cast<int32_t>(value));
 }
 
 
 void SceneManagement::SceneManager::LoadScene(std::string_view sceneName) {
-    GameData::getMethod("void UnityEngine_SceneManagement_SceneManager__LoadScene (System_String_o* sceneName, const MethodInfo* method);")
-        .getFunction<void (System_String_o *, const MethodInfo *)>()
-        (GameTypes::createCsString(sceneName), nullptr);
-}
-
-
-bool SceneManagement::Scene::IsValid(UnityEngine_SceneManagement_Scene_o __this) {
-    if (__this.fields.m_Handle < 0)
-        return false;
-
-    return GameData::getMethod("UnityEngine.SceneManagement.Scene$$IsValid")
-        .getFunction<bool (UnityEngine_SceneManagement_Scene_o, const MethodInfo *)>()
-        (__this, nullptr);
-}
-
-System_String_o *SceneManagement::Scene::get_name(UnityEngine_SceneManagement_Scene_o __this) {
-    return GameData::getMethod("UnityEngine.SceneManagement.Scene$$get_name")
-        .getFunction<System_String_o *(UnityEngine_SceneManagement_Scene_o, const MethodInfo *)>()
-        (__this, nullptr);
+    UnityEngine_SceneManagement_SceneManager__LoadScene(GameTypes::createCsString(sceneName));
 }
 
 
 float Vector3::Distance(UnityEngine_Vector3_o a, UnityEngine_Vector3_o b) {
-    return GameData::getMethod("UnityEngine.Vector3$$Distance")
-        .getFunction<float (UnityEngine_Vector3_o a, UnityEngine_Vector3_o b, const MethodInfo *)>()
-        (a, b, nullptr);
+    return UnityEngine_Vector3__Distance(a, b);
 }
 
 float Vector2::Distance(UnityEngine_Vector2_o a, UnityEngine_Vector2_o b) {
-    return GameData::getMethod("UnityEngine.Vector2$$Distance")
-        .getFunction<float (UnityEngine_Vector2_o a, UnityEngine_Vector2_o b, const MethodInfo *)>()
-        (a, b, nullptr);
+    return UnityEngine_Vector2__Distance(a, b);
 }
 }

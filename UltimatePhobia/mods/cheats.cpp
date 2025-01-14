@@ -1,9 +1,9 @@
 #include "cheats.hpp"
 #include "global_instance_manager.hpp"
-#include "gamedata.hpp"
 #include "game_types.hpp"
 #include "game_hook.hpp"
 #include "misc_utils.hpp"
+#include "generated/il2cpp.hpp"
 #include "bindings/phasmophobia.hpp"
 #include "bindings/unityengine.hpp"
 
@@ -62,21 +62,22 @@ static void door$$UpdateFnc(Door_o *__this, const MethodInfo *method) {
 
 void Cheats::setGhostAIChangeStateHook() {
     if (!ghostAI$$ChangeStateHook.has_value())
-        ghostAI$$ChangeStateHook.emplace(GameData::getMethod("GhostAI$$ChangeState").address, ghostAI$$ChangeStateFnc);
+        ghostAI$$ChangeStateHook.emplace(Il2Cpp::Methods::GhostAI__ChangeState_getPtr(), ghostAI$$ChangeStateFnc);
 }
 
 void Cheats::uiUpdate() {
     using namespace ImGui;
     Begin("Cheats");
 
-    hookToggle("Infinite stamina", playerStamina$$StartDrainingHook, infiniteStamina, "PlayerStamina$$StartDraining", reinterpret_cast<void *>(GameHook::noop));
-    hookToggle("Auto grab keys", key$$StartHook, autoGrabKeys, "Key$$Start", reinterpret_cast<void *>(key$$StartFnc));
-    hookToggle("Keep items after death", inventoryManager$$RemoveItemsFromInventoryHook, keepItemsAfterDeath, "InventoryManager$$RemoveItemsFromInventory", reinterpret_cast<void *>(GameHook::noop));
+    using namespace Il2Cpp::Methods;
+    hookToggle("Infinite stamina", playerStamina$$StartDrainingHook, infiniteStamina, PlayerStamina__StartDraining_getPtr(), reinterpret_cast<void *>(GameHook::noop));
+    hookToggle("Auto grab keys", key$$StartHook, autoGrabKeys, Key__Start_getPtr(), reinterpret_cast<void *>(key$$StartFnc));
+    hookToggle("Keep items after death", inventoryManager$$RemoveItemsFromInventoryHook, keepItemsAfterDeath, InventoryManager__RemoveItemsFromInventory_getPtr(), reinterpret_cast<void *>(GameHook::noop));
     Separator();
-    hookToggle("Invincibility", player$$StartKillingPlayerHook, invincibility, "Player$$StartKillingPlayer", reinterpret_cast<void *>(GameHook::noop));
-    hookToggle("Pause ghost", ghost$$UpdateHook, pauseGhost, "GhostAI$$Update", reinterpret_cast<void *>(GameHook::noop));
-    hookToggle("Unlock all doors", door$$UpdateHook, autoUnlockDoors, "Door$$Update", reinterpret_cast<void *>(door$$UpdateFnc));
-    hookToggle("Allow grab when dead", pcPropGrab$$PlayerDiedHook, allowGrabWhenDead, "PCPropGrab$$PlayerDied", reinterpret_cast<void *>(GameHook::noop));
+    hookToggle("Invincibility", player$$StartKillingPlayerHook, invincibility, Player__StartKillingPlayer_getPtr(), reinterpret_cast<void *>(GameHook::noop));
+    hookToggle("Pause ghost", ghost$$UpdateHook, pauseGhost, GhostAI__Update_getPtr(), reinterpret_cast<void *>(GameHook::noop));
+    hookToggle("Unlock all doors", door$$UpdateHook, autoUnlockDoors, Door__Update_getPtr(), reinterpret_cast<void *>(door$$UpdateFnc));
+    hookToggle("Allow grab when dead", pcPropGrab$$PlayerDiedHook, allowGrabWhenDead, PCPropGrab__PlayerDied_getPtr(), reinterpret_cast<void *>(GameHook::noop));
 
     SeparatorText("Queue ghost states");
     if (Button("Short event")) {
@@ -101,9 +102,7 @@ void Cheats::uiUpdate() {
 
 
 void Cheats::sendRPC(Photon_Pun_PhotonView_o *view, std::string_view methodName, int32_t target) {
-    GameData::getMethod("void Photon_Pun_PhotonNetwork__RPC (Photon_Pun_PhotonView_o* view, System_String_o* methodName, int32_t target, bool encrypt, System_Object_array* parameters, const MethodInfo* method);")
-        .getFunction<void (Photon_Pun_PhotonView_o *view, System_String_o *methodName, int32_t target, bool encrypt, System_Object_array *parameters, const MethodInfo *method)>()
-        (view, GameTypes::createCsString(methodName), target, false, nullptr, nullptr);
+    Il2Cpp::Methods::Photon_Pun_PhotonNetwork__RPC(view, GameTypes::createCsString(methodName), target, false, nullptr);
 }
 
 

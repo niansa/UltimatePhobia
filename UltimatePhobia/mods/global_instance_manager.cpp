@@ -1,6 +1,6 @@
 #include "global_instance_manager.hpp"
-#include "gamedata.hpp"
 #include "game_hook.hpp"
+#include "generated/il2cpp.hpp"
 
 
 
@@ -22,8 +22,8 @@ static void ghostAI$$StartFnc(GhostAI_o* __this, const MethodInfo* method) {
 
 
 GlobalInstanceManager::GlobalInstanceManager() {
-    player$$StartHook.emplace(GameData::getMethod("Player$$Start").address, player$$StartFnc);
-    ghostAI$$StartHook.emplace(GameData::getMethod("GhostAI$$Start").address, ghostAI$$StartFnc);
+    player$$StartHook.emplace(Il2Cpp::Methods::Player__Start_getPtr(), player$$StartFnc);
+    ghostAI$$StartHook.emplace(Il2Cpp::Methods::GhostAI__Start_getPtr(), ghostAI$$StartFnc);
 }
 
 

@@ -13,11 +13,13 @@ void *tracerModHook(void *a, void *b, void *c, void *d, void *e, void *f, void *
     if (depth < 0)
         depth = 0;
 
+#ifdef MOD_ENABLE_TRACER
     const auto method = GameData::getMethod(GameHook::getTrampolineCaller());
     auto& hook = tracerInfo.get<Tracer>()->getHook(method.signature);
     tracerInfo.get<Tracer>()->log(fmt::format("{}{}<{}>(...)\n", std::string(depth, '>'), method.name, GameHook::getTrampolineCaller()));
 
     GameHookRelease GHR(hook);
+#endif
     ++depth;
     const auto fres = reinterpret_cast<decltype(tracerModHook)*>(GameHook::getTrampolineCaller())(a, b, c, d, e, f, g, h);
     --depth;
@@ -27,6 +29,7 @@ GAMEHOOK_TRAMPOLINE(tracerModHook)
 
 
 void Tracer::uiUpdate() {
+#ifdef MOD_ENABLE_TRACER
     using namespace ImGui;
     Begin("Function Tracer");
     // Contents
@@ -66,9 +69,11 @@ void Tracer::uiUpdate() {
     Checkbox("Autoscroll", &logAutoScroll);
     // Window end
     End();
+#endif
 }
 
 void Tracer::HookButton(std::string_view signature, bool isDefinitelyHooked) {
+#ifdef MOD_ENABLE_TRACER
     bool hooked = isDefinitelyHooked;
     if (!hooked)
         hooked = hooks.find(signature) != hooks.end();
@@ -81,6 +86,7 @@ void Tracer::HookButton(std::string_view signature, bool isDefinitelyHooked) {
             hooks.erase(hooks.find(signature));
         log(fmt::format(" {} {} <{}>\n", hooked?'-':'+', method.name, method.address));
     }
+#endif
 }
 
 

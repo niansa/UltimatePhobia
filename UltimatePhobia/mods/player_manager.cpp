@@ -1,7 +1,7 @@
 #include "player_manager.hpp"
-#include "gamedata.hpp"
 #include "game_types.hpp"
 #include "global_instance_manager.hpp"
+#include "generated/il2cpp.hpp"
 #include "bindings/unityengine.hpp"
 #include "bindings/phasmophobia.hpp"
 
@@ -28,9 +28,7 @@ void player$$UpdateFnc(Player_o *__this, const MethodInfo *method) {
             Photon_Realtime_Player_o *photonPlayer = photonView->fields._Owner_k__BackingField;
             if (!photonPlayer)
                 return "Photon player unavailable";
-            System_String_o *nickNameCs = GameData::getMethod("Photon.Realtime.Player$$get_NickName")
-                                              .getFunction<System_String_o *(Photon_Realtime_Player_o *, const MethodInfo *)>()
-                                          (photonPlayer, nullptr);
+            System_String_o *nickNameCs = Il2Cpp::Methods::Photon_Realtime_Player__get_NickName(photonPlayer, nullptr);
             if (!nickNameCs)
                 return "Nick name unavailable";
             const std::string nickName = GameTypes::toCppString(nickNameCs);
@@ -101,11 +99,11 @@ void player$$OnDisableFnc(Player_o *__this, const MethodInfo *method) {
 
 PlayerManager::PlayerManager()
     : player$$UpdateHook(
-          GameData::getMethod("Player$$Update").address,
+          Il2Cpp::Methods::Player__Update_getPtr(),
           reinterpret_cast<void*>(player$$UpdateFnc)
           )
     , player$$OnDisableHook(
-          GameData::getMethod("Player$$OnDisable").address,
+          Il2Cpp::Methods::Player__OnDisable_getPtr(),
           reinterpret_cast<void*>(player$$OnDisableFnc)
           ) {}
 
