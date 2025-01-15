@@ -17,6 +17,13 @@ std::string ToCppString(System_String_o *str) {
     return utf8Encode({reinterpret_cast<wchar_t*>(&str->fields.m_firstChar), static_cast<size_t>(str->fields.m_stringLength)});
 }
 
+std::wstring_view ToCppWideString(System_String_o *str) {
+    if (str == nullptr)
+        return {};
+
+    return {reinterpret_cast<wchar_t*>(&str->fields.m_firstChar), static_cast<size_t>(str->fields.m_stringLength)};
+}
+
 void ToCString(System_String_o *str, char *buf, size_t maxlen) {
     const auto cppstr = ToCppString(str);
     memcpy(buf, cppstr.c_str(), std::max(cppstr.size()+1, maxlen));
