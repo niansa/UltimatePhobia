@@ -38,7 +38,7 @@ methods = []
 method_name_duplicates = {}
 
 def ensure_no_keyword(name):
-    if name in ["this", "xor", "or", "and", "not", "struct", "class", "namespace", "__callback", "small", "MethodInfo"]:
+    if name in ["this", "xor", "or", "and", "not", "struct", "class", "namespace", "export", "extern", "default", "explicit", "nullptr", "delete", "new", "__callback", "bool", "char", "float", "double", "short", "int", "long", "small", "MethodInfo"]:
         return name+"_"
     return name
 
@@ -71,6 +71,7 @@ def leave_namespace(namespace):
     return "}"*len(namespace)+"\n"
 
 script = json.load(open(argv[1], "r"))
+print("Collecting methods...")
 for method in script["ScriptMethod"]:
     # Extract return type, name and arguments
     return_type, sig_name, arguments = method["Signature"].split(' ', 2)
@@ -93,6 +94,7 @@ for method in script["ScriptMethod"]:
     else:
         method_name_duplicates[full_name] = 0
 
+print("Generating functions...")
 dedup = {}
 for data in methods:
     return_type, arguments, address, namespace, name = data
