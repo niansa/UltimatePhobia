@@ -7,7 +7,7 @@
 
 namespace GameTypes {
 System_String_o *createCsString(std::string_view str) {
-    return Il2Cpp::Methods::System_String__CreateString(nullptr, const_cast<signed char *>(reinterpret_cast<const signed char *>(str.data())), 0, str.size());
+    return Il2Cpp::System::String::CreateString(nullptr, const_cast<signed char *>(reinterpret_cast<const signed char *>(str.data())), 0, str.size());
 }
 
 std::string toCppString(System_String_o *str) {

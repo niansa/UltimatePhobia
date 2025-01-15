@@ -56,12 +56,12 @@ Application::Application() {
     };
 
     g.logger->info("Waiting for game start...");
-    ApplicationHooks::splashScreenCtorHook.emplace(Il2Cpp::Methods::SplashScreen___ctor_getPtr(), ApplicationHooks::splashScreenCtorFnc);
+    ApplicationHooks::splashScreenCtorHook.emplace(Il2Cpp::SplashScreen::_ctor_getPtr(), ApplicationHooks::splashScreenCtorFnc);
 }
 
 void Application::init() {
     g.logger->info("Starting to listen for local player updates...");
-    ApplicationHooks::appUpdateHook.emplace(Il2Cpp::Methods::PlayerSanity__Update_getPtr(), ApplicationHooks::appUpdateFnc);
+    ApplicationHooks::appUpdateHook.emplace(Il2Cpp::PlayerSanity::Update_getPtr(), ApplicationHooks::appUpdateFnc);
 
     g.logger->info("Calling onAppStart functions...");
     for (auto& mod : mods) {
@@ -114,7 +114,7 @@ void Application::update() {
 
 void Application::exit(int code) {
     g.logger->info("Exiting application...");
-    Il2Cpp::Methods::UnityEngine_Application__Quit();
+    Il2Cpp::UnityEngine::Application::Quit();
     ImGuiMan::deinit();
     ApplicationHooks::appUpdateHook.reset();
 }

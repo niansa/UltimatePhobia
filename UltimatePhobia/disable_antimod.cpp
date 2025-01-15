@@ -84,12 +84,12 @@ HMODULE getModuleHandleFnc(LPCSTR lpModuleName) {
 void disableAntiMod() {
     g.logger->info("Disabling mod detection...");
 
-    using namespace Il2Cpp::Methods;
-    file$$ExistsHook = new GameHook(System_IO_File__Exists_getPtr(), reinterpret_cast<void *>(hookTrampoline_tryCheckFnc), true);
+    using namespace Il2Cpp;
+    file$$ExistsHook = new GameHook(System::IO::File::Exists_getPtr(), reinterpret_cast<void *>(hookTrampoline_tryCheckFnc), true);
 
-    directory$$ExistsHook = new GameHook(System_IO_Directory__Exists_getPtr(), reinterpret_cast<void *>(hookTrampoline_tryCheckFnc), true);
+    directory$$ExistsHook = new GameHook(System::IO::Directory::Exists_getPtr(), reinterpret_cast<void *>(hookTrampoline_tryCheckFnc), true);
 
-    path$$GetFileNameHook = new GameHook(System_IO_Path__GetFileName_getPtr(), reinterpret_cast<void *>(hookTrampoline_tryCheckFnc), true);
+    path$$GetFileNameHook = new GameHook(System::IO::Path::GetFileName_getPtr(), reinterpret_cast<void *>(hookTrampoline_tryCheckFnc), true);
 
     DetoursTransaction DT;
     DetourAttach(&reinterpret_cast<PVOID&>(getModuleHandleOrig), reinterpret_cast<void*>(getModuleHandleFnc));

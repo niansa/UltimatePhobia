@@ -1,5 +1,6 @@
 from sys import argv
 from sys import exit
+import re
 import json
 
 if len(argv) == 1:
@@ -25,39 +26,77 @@ write_hpp("""#pragma once
 
 
 namespace Il2Cpp {
-namespace Methods {
 """)
 write_cpp("""#include "il2cpp.hpp"
 #include "global_state.hpp"
 
 
 namespace Il2Cpp {
-namespace Methods {
 """)
 
 methods = []
 method_name_duplicates = {}
 
+def ensure_no_keyword(name):
+    if name in ["this", "xor", "or", "and", "not", "struct", "class", "namespace", "__callback", "small", "MethodInfo"]:
+        return name+"_"
+    return name
+
+def clean_name(name):
+    return ensure_no_keyword(re.sub(r"[^a-zA-Z0-9_]", '_', name))
+
+def get_namespace_name(raw_name):
+    namespace, name = raw_name.rsplit("$$", 1)
+    namespace = namespace.split(".")
+    return [clean_name(v) for v in namespace], clean_name(name)
+
+def get_full_name(namespace, name):
+    return ".".join(namespace)+"$$"+name
+
+def is_blacklisted(namespace, name):
+    if name in ["_", "_object_object_", "ZeroMemory"]:
+        return True
+    for v in namespace:
+        if v in ["_", "___________", "____________object__object_"]:
+            return True
+    return False
+
+def enter_namespace(namespace):
+    fres = ""
+    for v in namespace:
+        fres = f"{fres}namespace {v} {{"
+    return fres+"\n"
+
+def leave_namespace(namespace):
+    return "}"*len(namespace)+"\n"
+
 script = json.load(open(argv[1], "r"))
 for method in script["ScriptMethod"]:
     # Extract return type, name and arguments
-    return_type, name, arguments = method['Signature'].split(' ', 2)
-    address = method['Address']
-    arguments = arguments[:-2][1:] + "Info_il2cpp"
-    if name == "________________________":
+    return_type, sig_name, arguments = method["Signature"].split(' ', 2)
+    if sig_name == "________________________":
         continue
-    methods.append((return_type, arguments, address, name))
-    if name in method_name_duplicates:
-        duplicate_count = method_name_duplicates[name] + 1
-        method_name_duplicates[name] = duplicate_count
+    namespace, name = get_namespace_name(method["Name"])
+    if is_blacklisted(namespace, name):
+        continue
+    full_name = get_full_name(namespace, name)
+    address = method["Address"]
+    arguments = arguments[:-2][1:] + "Info_il2cpp"
+    methods.append((return_type, arguments, address, namespace, name))
+    if full_name in method_name_duplicates:
+        duplicate_count = method_name_duplicates[full_name] + 1
+        method_name_duplicates[full_name] = duplicate_count
         if duplicate_count == 1:
+            write_hpp(enter_namespace(namespace))
             write_hpp(f"template<typename... T> void *{name}_getPtr() = delete;\n")
+            write_hpp(leave_namespace(namespace))
     else:
-        method_name_duplicates[name] = 0
+        method_name_duplicates[full_name] = 0
 
 dedup = {}
 for data in methods:
-    return_type, arguments, address, name = data
+    return_type, arguments, address, namespace, name = data
+    full_name = get_full_name(namespace, name)
     args_names = []
     args_types = []
     for arg in arguments.split(','):
@@ -71,8 +110,7 @@ for data in methods:
 
     # Filter reserved keywords
     for idx in range(len(args_names)):
-        if args_names[idx] in ["this", "or", "and", "not", "__callback", "small"]:
-            args_names[idx] += "_"
+        args_names[idx] = ensure_no_keyword(args_names[idx])
 
     # Get lists as strings
     arguments = []
@@ -88,13 +126,15 @@ for data in methods:
         continue
 
     # Ignore duplicate functions
-    identifier = f"{name}<{args_types_nomi}>"
+    identifier = f"{full_name}<{args_types_nomi}>"
     if identifier in dedup:
         continue
     dedup[identifier] = None
 
+    write_both(enter_namespace(namespace))
+
     # Generate pointer getter
-    if method_name_duplicates[name]:
+    if method_name_duplicates[full_name]:
         write_both(f"template<> void *{name}_getPtr<{args_types_nomi}>()")
     else:
         write_both(f"void *{name}_getPtr()")
@@ -104,9 +144,12 @@ for data in methods:
     # Generate function
     write_both(f"{return_type} {name}({arguments}")
     write_hpp(" = nullptr);\n")
-    write_cpp(f") {{return reinterpret_cast<{return_type} (*) ({args_types})>(reinterpret_cast<void *>(({address}ul + ::g.base)))({args_names});}}\n\n")
+    write_cpp(f") {{return reinterpret_cast<{return_type} (*) ({args_types})>(reinterpret_cast<void *>(({address}ul + ::g.base)))({args_names});}}\n")
 
-write_both("}\n}\n")
+    write_both(leave_namespace(namespace))
+    write_cpp("\n")
+
+write_both("}\n")
 output_hpp.close()
 output_cpp.close()
 

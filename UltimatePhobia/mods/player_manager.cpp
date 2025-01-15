@@ -3,7 +3,6 @@
 #include "global_instance_manager.hpp"
 #include "generated/il2cpp.hpp"
 #include "bindings/unityengine.hpp"
-#include "bindings/phasmophobia.hpp"
 
 
 
@@ -18,7 +17,7 @@ void player$$UpdateFnc(Player_o *__this, const MethodInfo *method) {
             auto entry = self->trackedPlayers.emplace(__this, nullptr);
 
             // Stop here if local player
-            if (Phasmophobia::Player::IsLocal(__this))
+            if (__this->fields.photonView->fields._AmOwner_k__BackingField)
                 return {};
 
             // Get all the info we need
@@ -28,14 +27,14 @@ void player$$UpdateFnc(Player_o *__this, const MethodInfo *method) {
             Photon_Realtime_Player_o *photonPlayer = photonView->fields._Owner_k__BackingField;
             if (!photonPlayer)
                 return "Photon player unavailable";
-            System_String_o *nickNameCs = Il2Cpp::Methods::Photon_Realtime_Player__get_NickName(photonPlayer, nullptr);
+            System_String_o *nickNameCs = Il2Cpp::Photon::Realtime::Player::get_NickName(photonPlayer, nullptr);
             if (!nickNameCs)
                 return "Nick name unavailable";
             const std::string nickName = GameTypes::toCppString(nickNameCs);
             g.logger->debug("Registering player '{}'...", nickName);
 
             // Get Player object
-            using namespace UnityEngine;
+            using namespace Il2Cpp::UnityEngine;
             UnityEngine_GameObject_o *playerObject = GameObject::get_parent(__this->fields.pcPlayerHead);
 
             // Create NameTag object
@@ -45,10 +44,10 @@ void player$$UpdateFnc(Player_o *__this, const MethodInfo *method) {
             Transform::set_localPosition(nameTransform, {{0.0f, 1.0f, 0.0f}});
 
             // Add TextMesh
-            auto textMesh = reinterpret_cast<UnityEngine_TextMesh_o *>(UnityEngine::GameObject::AddComponent(nameObject, "UnityEngine.TextMesh", "UnityEngine.TextRenderingModule"));
+            auto textMesh = reinterpret_cast<UnityEngine_TextMesh_o *>(GameObject::AddComponent(nameObject, "UnityEngine.TextMesh", "UnityEngine.TextRenderingModule"));
             if (!textMesh)
                 return "TextMesh component unavailable";
-            TextMesh::set_text(textMesh, nickName);
+            TextMesh::set_text(textMesh, GameTypes::createCsString(nickName));
             TextMesh::set_characterSize(textMesh, 0.003);
             TextMesh::set_fontSize(textMesh, 1000);
             TextMesh::set_alignment(textMesh, TextAlignment::Center);
@@ -66,7 +65,7 @@ void player$$UpdateFnc(Player_o *__this, const MethodInfo *method) {
     UnityEngine_GameObject_o *nameObject = self->trackedPlayers[__this];
 
     // Turn NameTag towards player
-    using namespace UnityEngine;
+    using namespace Il2Cpp::UnityEngine;
     if (nameObject) {
         Player_o *localPlayer = self->getLocalPlayer();
         if (localPlayer) {
@@ -99,23 +98,23 @@ void player$$OnDisableFnc(Player_o *__this, const MethodInfo *method) {
 
 PlayerManager::PlayerManager()
     : player$$UpdateHook(
-          Il2Cpp::Methods::Player__Update_getPtr(),
+          Il2Cpp::Player::Update_getPtr(),
           reinterpret_cast<void*>(player$$UpdateFnc)
           )
     , player$$OnDisableHook(
-          Il2Cpp::Methods::Player__OnDisable_getPtr(),
+          Il2Cpp::Player::OnDisable_getPtr(),
           reinterpret_cast<void*>(player$$OnDisableFnc)
           ) {}
 
 PlayerManager::~PlayerManager() {
     for (auto [player, gameObject] : trackedPlayers)
         if (gameObject)
-            UnityEngine::GameObject::Destroy(gameObject);
+            Il2Cpp::UnityEngine::Object::Destroy(reinterpret_cast<UnityEngine_Object_o *>(gameObject));
 }
 
 Player_o *PlayerManager::getLocalPlayer() const {
     for (auto [player, gameObject] : trackedPlayers)
-        if (Phasmophobia::Player::IsLocal(player))
+        if (player->fields.photonView->fields._AmOwner_k__BackingField)
             return player;
     return nullptr;
 }

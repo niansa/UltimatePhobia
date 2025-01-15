@@ -1,41 +1,42 @@
 #include "fixes.hpp"
 #include "game_types.hpp"
 #include "global_instance_manager.hpp"
+#include "game_types.hpp"
 #include "generated/il2cpp.hpp"
 #include "bindings/unityengine.hpp"
 
 #include <string_view>
 
-using namespace UnityEngine;
+using namespace Il2Cpp::UnityEngine;
 
 
 
 static inline void fixDestroy(std::string_view name) {
-    auto object = GameObject::Find(name);
+    auto object = GameObject::Find(GameTypes::createCsString(name));
     if (!object)
         return;
-    GameObject::Destroy(object);
+    Object::Destroy(reinterpret_cast<UnityEngine_Object_o *>(object));
 }
 
 static inline void fixPlayerController(Player_o *player) {
-    Il2Cpp::Methods::UnityEngine_CharacterController__set_detectCollisions(player->fields.characterController, false);
+    Il2Cpp::UnityEngine::CharacterController::set_detectCollisions(player->fields.characterController, false);
 }
 
 
 static bool photonNetwork$$ConnectToBestCloudServerFnc(const MethodInfo* method) {
     // TODO: Use last region instead
-    return Il2Cpp::Methods::Photon_Pun_PhotonNetwork__ConnectToRegion(GameTypes::createCsString("EU"));
+    return Il2Cpp::Photon::Pun::PhotonNetwork::ConnectToRegion(GameTypes::createCsString("EU"));
 }
 
 
 Fixes::Fixes()
     : photonNetwork$$ConnectToBestCloudServerHook(
-          Il2Cpp::Methods::Photon_Pun_PhotonNetwork__ConnectToBestCloudServer_getPtr(),
+          Il2Cpp::Photon::Pun::PhotonNetwork::ConnectToBestCloudServer_getPtr(),
           reinterpret_cast<void*>(photonNetwork$$ConnectToBestCloudServerFnc)
           ) {}
 
 bool Fixes::isSceneFixed() {
-    return fixMark == GameObject::Find("UP_fixes_fixMark");
+    return fixMark == GameObject::Find(GameTypes::createCsString("UP_fixes_fixMark"));
 }
 
 void Fixes::markSceneFixed() {

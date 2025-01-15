@@ -22,8 +22,8 @@ static void ghostAI$$StartFnc(GhostAI_o* __this, const MethodInfo* method) {
 
 
 GlobalInstanceManager::GlobalInstanceManager() {
-    player$$StartHook.emplace(Il2Cpp::Methods::Player__Start_getPtr(), player$$StartFnc);
-    ghostAI$$StartHook.emplace(Il2Cpp::Methods::GhostAI__Start_getPtr(), ghostAI$$StartFnc);
+    player$$StartHook.emplace(Il2Cpp::Player::Start_getPtr(), player$$StartFnc);
+    ghostAI$$StartHook.emplace(Il2Cpp::GhostAI::Start_getPtr(), ghostAI$$StartFnc);
 }
 
 

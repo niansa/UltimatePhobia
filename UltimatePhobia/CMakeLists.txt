@@ -37,7 +37,6 @@ add_executable(UltimatePhobia WIN32 main.cpp icon.rc
     game_types.hpp game_types.cpp
     mods/save_file_manager.hpp mods/save_file_manager.cpp
     bindings/unityengine.hpp bindings/unityengine.cpp
-    bindings/phasmophobia.hpp bindings/phasmophobia.cpp
     mods/goldberg_emu_manager.hpp mods/goldberg_emu_manager.cpp
     disable_antimod.hpp disable_antimod.cpp
     crash_handler.hpp crash_handler.cpp
@@ -48,7 +47,7 @@ add_executable(UltimatePhobia WIN32 main.cpp icon.rc
 )
 target_link_libraries(UltimatePhobia PRIVATE dbghelp Detours spdlog imgui)
 target_include_directories(UltimatePhobia PRIVATE . ../il2cpp_dump)
-target_precompile_headers(UltimatePhobia PRIVATE ../il2cpp_dump/il2cpp.h)
+target_precompile_headers(UltimatePhobia PRIVATE ../il2cpp_dump/il2cpp.h generated/il2cpp.hpp)
 target_compile_definitions(UltimatePhobia PUBLIC _CRT_SECURE_NO_WARNINGS)
 if (ULTIMATEPHOBIA_CHEATS)
     target_compile_definitions(UltimatePhobia PRIVATE MOD_ENABLE_CHEATS)
