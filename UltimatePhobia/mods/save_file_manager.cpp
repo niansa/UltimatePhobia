@@ -1,5 +1,5 @@
 #include "save_file_manager.hpp"
-#include "game_types.hpp"
+#include "il2cpp_cppinterop.hpp"
 #include "global_state.hpp"
 #include "application.hpp"
 #include "generated/il2cpp.hpp"
@@ -7,6 +7,8 @@
 #include <filesystem>
 #include <fstream>
 #include <imgui.h>
+
+using namespace Il2Cpp::CppInterop;
 
 
 
@@ -22,11 +24,11 @@ static System_IO_Stream_o *es3Stream$$CreateStreamFnc(System_IO_Stream_o* stream
         g.logger->info("Decrypting save file: Closing existing stream...");
         Il2Cpp::System::IO::Stream::Close(stream);
         g.logger->info("Decrypting save file: Loading raw save file...");
-        const auto bytes = SaveFileManager::loadRawBytes("SaveFile.es3", settings);
+        const auto bytes = Il2Cpp::ES3::LoadRawBytes("SaveFile.es3"_cs, settings);
         g.logger->info("Decrypting save file: Disabling encryption...");
         settings->fields.encryptionType = 0;
         g.logger->info("Decrypting save file: Saving loaded save file...");
-        SaveFileManager::saveRawBytes(bytes, "SaveFile.es3", settings);
+        Il2Cpp::ES3::SaveRaw(bytes, "SaveFile.es3"_cs, settings);
         g.logger->info("Decrypting save file: Final exit.");
         Application::exit(0);
         self->disableSaveEncryption = true;
@@ -56,7 +58,7 @@ void SaveFileManager::uiUpdate() {
         Checkbox("Disable encryption", &disableSaveEncryption);
         EndDisabled();
         if (Button("Delete save file"))
-            SaveFileManager::renameFile("SaveFile.es3", "SaveFile-trashed.es3");
+            Il2Cpp::ES3::RenameFile("SaveFile.es3"_cs, "SaveFile-trashed.es3"_cs);
         SameLine();
         if (!decryptionPending) {
             BeginDisabled(disableSaveEncryption);
@@ -78,21 +80,9 @@ void SaveFileManager::uiUpdate() {
     End();
 }
 
-void SaveFileManager::renameFile(std::string_view oldFilePath, std::string_view newFilePath) {
-    Il2Cpp::ES3::RenameFile(GameTypes::createCsString(oldFilePath), GameTypes::createCsString(newFilePath), nullptr);
-}
-
-System_Byte_array *SaveFileManager::loadRawBytes(std::string_view filePath, ES3Settings_o *settings) {
-    return Il2Cpp::ES3::LoadRawBytes(GameTypes::createCsString(filePath), settings, nullptr);
-}
-
-void SaveFileManager::saveRawBytes(System_Byte_array *bytes, std::string_view filePath, ES3Settings_o *settings) {
-    Il2Cpp::ES3::SaveRaw(bytes, GameTypes::createCsString(filePath), settings, nullptr);
-}
-
 void SaveFileManager::loadIfNeeded() {
     g.logger->info("Checking if save file is decrypted...");
-    const std::filesystem::path dataPath = GameTypes::toCppString(Il2Cpp::UnityEngine::Application::get_persistentDataPath());
+    const std::filesystem::path dataPath = ToCppString(Il2Cpp::UnityEngine::Application::get_persistentDataPath());
     const auto saveFilePath = dataPath/"SaveFile.es3";
     const bool isJson = std::ifstream(saveFilePath, std::ios::binary).get() == '{';
     if (isJson) {

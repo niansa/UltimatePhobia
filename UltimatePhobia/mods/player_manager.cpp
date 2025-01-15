@@ -1,8 +1,10 @@
 #include "player_manager.hpp"
-#include "game_types.hpp"
+#include "il2cpp_cppinterop.hpp"
 #include "global_instance_manager.hpp"
 #include "generated/il2cpp.hpp"
 #include "bindings/unityengine.hpp"
+
+using namespace Il2Cpp::CppInterop;
 
 
 
@@ -30,7 +32,7 @@ void player$$UpdateFnc(Player_o *__this, const MethodInfo *method) {
             System_String_o *nickNameCs = Il2Cpp::Photon::Realtime::Player::get_NickName(photonPlayer, nullptr);
             if (!nickNameCs)
                 return "Nick name unavailable";
-            const std::string nickName = GameTypes::toCppString(nickNameCs);
+            const std::string nickName = ToCppString(nickNameCs);
             g.logger->debug("Registering player '{}'...", nickName);
 
             // Get Player object
@@ -47,7 +49,7 @@ void player$$UpdateFnc(Player_o *__this, const MethodInfo *method) {
             auto textMesh = reinterpret_cast<UnityEngine_TextMesh_o *>(GameObject::AddComponent(nameObject, "UnityEngine.TextMesh", "UnityEngine.TextRenderingModule"));
             if (!textMesh)
                 return "TextMesh component unavailable";
-            TextMesh::set_text(textMesh, GameTypes::createCsString(nickName));
+            TextMesh::set_text(textMesh, nickNameCs);
             TextMesh::set_characterSize(textMesh, 0.003);
             TextMesh::set_fontSize(textMesh, 1000);
             TextMesh::set_alignment(textMesh, TextAlignment::Center);

@@ -1,5 +1,5 @@
 #include "unityengine.hpp"
-#include "game_types.hpp"
+#include "il2cpp_cppinterop.hpp"
 #include "global_state.hpp"
 #include "generated/il2cpp.hpp"
 
@@ -9,7 +9,7 @@ using namespace Il2Cpp;
 
 namespace {
 System_Type_o *GetType(std::string_view name) {
-    const auto fres = System::Type::GetType(GameTypes::createCsString(name));
+    const auto fres = System::Type::GetType(CppInterop::ToCsString(name));
     if (!fres)
         g.logger->error("Failed to get type '{}'!", name);
     return fres;
@@ -28,7 +28,7 @@ void *CreateInstance(System_Type_o *type) {
 namespace Il2Cpp::UnityEngine {
 UnityEngine_GameObject_o *GameObject::New(std::string_view name) {
     auto fres = reinterpret_cast<UnityEngine_GameObject_o *>(CreateInstance(GetType("UnityEngine.GameObject", "UnityEngine.CoreModule")));
-    _ctor(fres, GameTypes::createCsString(name));
+    _ctor(fres, CppInterop::ToCsString(name));
     return fres;
 }
 

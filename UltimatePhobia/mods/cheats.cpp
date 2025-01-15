@@ -1,6 +1,6 @@
 #include "cheats.hpp"
 #include "global_instance_manager.hpp"
-#include "game_types.hpp"
+#include "il2cpp_cppinterop.hpp"
 #include "game_hook.hpp"
 #include "misc_utils.hpp"
 #include "generated/il2cpp.hpp"
@@ -101,7 +101,7 @@ void Cheats::uiUpdate() {
 
 
 void Cheats::sendRPC(Photon_Pun_PhotonView_o *view, std::string_view methodName, int32_t target) {
-    Il2Cpp::Photon::Pun::PhotonNetwork::RPC(view, GameTypes::createCsString(methodName), target, false, nullptr);
+    Il2Cpp::Photon::Pun::PhotonNetwork::RPC(view, Il2Cpp::CppInterop::ToCsString(methodName), target, false, nullptr);
 }
 
 

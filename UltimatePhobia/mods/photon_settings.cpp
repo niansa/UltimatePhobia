@@ -1,5 +1,5 @@
 #include "photon_settings.hpp"
-#include "game_types.hpp"
+#include "il2cpp_cppinterop.hpp"
 #include "generated/il2cpp.hpp"
 
 #include <fstream>
@@ -22,6 +22,8 @@
     CONVINTFIELD(AuthMode); \
     CONVBOOLFIELD(EnableLobbyStatistics); \
     CONVINTFIELD(NetworkLogging);
+
+using namespace Il2Cpp::CppInterop;
 
 
 
@@ -70,7 +72,7 @@ void PhotonSettings::fromIl2CppClass(const Photon_Realtime_AppSettings_Fields& o
 #   define OVERRIDER(field) if (!settings.override_##field)
 #   define CONVBOOLFIELD(field) OVERRIDER(field) settings.field = o.field
 #   define CONVINTFIELD(field) OVERRIDER(field) settings.field = o.field
-#   define CONVSTRFIELD(field) OVERRIDER(field) GameTypes::toCString(o.field, settings.field, sizeof(settings.field))
+#   define CONVSTRFIELD(field) OVERRIDER(field) ToCString(o.field, settings.field, sizeof(settings.field))
     CONVLIST
 #   undef OVERRIDER
 #   undef CONVBOOLFIELD
@@ -81,7 +83,7 @@ void PhotonSettings::fromIl2CppClass(const Photon_Realtime_AppSettings_Fields& o
 void PhotonSettings::toIl2CppClass(Photon_Realtime_AppSettings_Fields &o) {
 #   define CONVBOOLFIELD(field) o.field = settings.field
 #   define CONVINTFIELD(field) o.field = settings.field
-#   define CONVSTRFIELD(field) o.field = GameTypes::createCsString(settings.field)
+#   define CONVSTRFIELD(field) o.field = ToCsString(settings.field)
     CONVLIST
 #   undef CONVBOOLFIELD
 #   undef CONVINTFIELD

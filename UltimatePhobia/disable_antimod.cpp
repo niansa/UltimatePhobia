@@ -1,6 +1,6 @@
 #include "disable_antimod.hpp"
 #include "global_state.hpp"
-#include "game_types.hpp"
+#include "il2cpp_cppinterop.hpp"
 #include "game_hook.hpp"
 #include "detours_helpers.hpp"
 #include "generated/il2cpp.hpp"
@@ -39,7 +39,7 @@ static bool maybeForbiddenFile(std::string path, bool dllSearch = false) {
 
 
 static void *tryCheckFnc(System_String_o *path, const MethodInfo *method) {
-    auto cpp_path = GameTypes::toCppString(path);
+    auto cpp_path = Il2Cpp::CppInterop::ToCppString(path);
     fixPath(cpp_path);
     g.logger->debug("Game is trying to check if {} exists!", cpp_path);
     g.logger->flush();

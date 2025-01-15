@@ -1,18 +1,18 @@
 #include "fixes.hpp"
-#include "game_types.hpp"
 #include "global_instance_manager.hpp"
-#include "game_types.hpp"
+#include "il2cpp_cppinterop.hpp"
 #include "generated/il2cpp.hpp"
 #include "bindings/unityengine.hpp"
 
 #include <string_view>
 
+using namespace Il2Cpp::CppInterop;
 using namespace Il2Cpp::UnityEngine;
 
 
 
 static inline void fixDestroy(std::string_view name) {
-    auto object = GameObject::Find(GameTypes::createCsString(name));
+    auto object = GameObject::Find(ToCsString(name));
     if (!object)
         return;
     Object::Destroy(reinterpret_cast<UnityEngine_Object_o *>(object));
@@ -25,7 +25,7 @@ static inline void fixPlayerController(Player_o *player) {
 
 static bool photonNetwork$$ConnectToBestCloudServerFnc(const MethodInfo* method) {
     // TODO: Use last region instead
-    return Il2Cpp::Photon::Pun::PhotonNetwork::ConnectToRegion(GameTypes::createCsString("EU"));
+    return Il2Cpp::Photon::Pun::PhotonNetwork::ConnectToRegion("EU"_cs);
 }
 
 
@@ -36,7 +36,7 @@ Fixes::Fixes()
           ) {}
 
 bool Fixes::isSceneFixed() {
-    return fixMark == GameObject::Find(GameTypes::createCsString("UP_fixes_fixMark"));
+    return fixMark == GameObject::Find("UP_fixes_fixMark"_cs);
 }
 
 void Fixes::markSceneFixed() {

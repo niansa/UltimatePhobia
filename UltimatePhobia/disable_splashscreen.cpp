@@ -1,14 +1,14 @@
 #include "disable_splashscreen.hpp"
 #include "global_state.hpp"
 #include "game_hook.hpp"
-#include "game_types.hpp"
+#include "il2cpp_cppinterop.hpp"
 #include "generated/il2cpp.hpp"
 
 
 
 void splashScreen$$AwakeFnc(SplashScreen_o* __this, const MethodInfo* method) {
     // Load into next scene without waiting
-    Il2Cpp::UnityEngine::SceneManagement::SceneManager::LoadScene(GameTypes::createCsString("Menu_New"));
+    Il2Cpp::UnityEngine::SceneManagement::SceneManager::LoadScene(Il2Cpp::CppInterop::ToCsString("Menu_New"));
 }
 
 

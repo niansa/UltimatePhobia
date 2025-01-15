@@ -20,10 +20,6 @@ public:
 
     void uiUpdate() override;
 
-    static void renameFile(std::string_view oldFilePath, std::string_view newFilePath);
-    static System_Byte_array *loadRawBytes(std::string_view filePath, ES3Settings_o *settings);
-    static void saveRawBytes(System_Byte_array *bytes, std::string_view filePath, ES3Settings_o *settings);
-
     static void loadIfNeeded();
 };
 

@@ -34,7 +34,7 @@ add_executable(UltimatePhobia WIN32 main.cpp icon.rc
     mods/cheats.hpp mods/cheats.cpp
     mods/tracer.hpp mods/tracer.cpp
     mods/photon_settings.hpp mods/photon_settings.cpp
-    game_types.hpp game_types.cpp
+    il2cpp_cppinterop.hpp il2cpp_cppinterop.cpp
     mods/save_file_manager.hpp mods/save_file_manager.cpp
     bindings/unityengine.hpp bindings/unityengine.cpp
     mods/goldberg_emu_manager.hpp mods/goldberg_emu_manager.cpp
