@@ -1,4 +1,4 @@
-#include "wasm_interface.h"
+#include "wasm_interface.hpp"
 #include "global_state.hpp"
 #include "il2cpp_dynamic.hpp"
 #include "il2cpp_cppinterop.hpp"
@@ -34,6 +34,9 @@ void dropObject(ObjectHandle id) {
 }
 int isValidObject(ObjectHandle id) {
     return objects.find(id) != objects.end();
+}
+ObjectHandle getNull() {
+    return 0;
 }
 
 ObjectHandle toCsString(const char *str) {
@@ -86,7 +89,7 @@ ObjectHandle getMethodSignature(int index) {
 namespace {
 std::vector<void *> call_args;
 void *return_value;
-const char *call_error;
+std::string call_error;
 
 void *getValue(int index) {
     if (index < 0)
@@ -135,31 +138,46 @@ ObjectHandle getValueObject(int index) {
     return addObject(getValue(index));
 }
 ObjectHandle getCallError() {
-    return toCsString(call_error);
+    return addObject(Il2Cpp::CppInterop::ToCsString(call_error));
+}
+namespace {
+void logBadCall() {
+    g.logger->warn("WebAssembly interface failed to fall function: {}", call_error);
+}
 }
 int call(int index, int argCount) {
+    // Handle unknown argument count
+    if (argCount == unknownArgCount)
+        argCount = call_args.size();
+
     // Make sure argCount matches argument count
-    if (call_args.size() != argCount) {
-        call_error = "Mismatched added vs. passed arg count";
+    else if (argCount != call_args.size()) {
+        call_error = fmt::format("Mismatched added ({}) vs. passed ({}) arg count", call_args.size(), argCount);
+        logBadCall();
         return false;
     }
 
     // Get method
     const auto method = Dynamic::getMethod(index);
     if (!method.isValid()) {
-        call_error = "Bad method";
+        call_error = fmt::format("Bad method ({})", index);
+        logBadCall();
         return false;
     }
 
     // Check argument count
-    if (argCount != method.signature.size()-1) {
-        call_error = "Mismatched passed vs. actual arg count";
+    const auto actualArgCount = method.typeSignature.size() - 1;
+    if (argCount != actualArgCount) {
+        call_error = fmt::format("Mismatched passed ({}) vs. actual ({}) arg count", argCount, actualArgCount);
+        logBadCall();
         return false;
     }
 
     // Call function
-    const auto args = std::exchange(call_args, {});
+    const auto args = std::move(std::exchange(call_args, {}));
     try {
+        g.logger->debug("Calling into {} at {} with {} args...", method.name, method.address, args.size());
+        g.logger->flush();
         switch (argCount) {
         case 0: return_value = method.getFunction<void *()>()(); break;
         case 1: return_value = method.getFunction<void *(void *)>()(args[0]); break;
@@ -169,16 +187,17 @@ int call(int index, int argCount) {
         case 5: return_value = method.getFunction<void *(void *, void *, void *, void *, void *)>()(args[0], args[1], args[2], args[3], args[4]); break;
         case 6: return_value = method.getFunction<void *(void *, void *, void *, void *, void *, void *)>()(args[0], args[1], args[2], args[3], args[4], args[5]); break;
         default: {
-            call_error = "Too many arguments (max. 6 supported)";
+            call_error = fmt::format("Too many arguments ({}) (max. 6 supported)", argCount);
             return false;
         }
         }
     } catch (const std::exception& e) {
-        static std::string error_buffer = fmt::format("Method has thrown an exception: {}", e.what());
-        call_error = error_buffer.c_str();
+        call_error = fmt::format("Method has thrown an exception: {}", e.what());
+        logBadCall();
         return false;
     } catch (...) {
         call_error = "Method has thrown an unknown exception";
+        logBadCall();
         return false;
     }
 

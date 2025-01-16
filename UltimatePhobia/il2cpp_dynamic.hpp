@@ -1,22 +1,28 @@
 #pragma once
 
+#include "global_state.hpp"
+
 #include <string_view>
 #include <vector>
 
 
 namespace Il2Cpp::Dynamic {
 struct Method {
-    void *address;
+    uintptr_t address;
     std::string_view name, signature, typeSignature;
     int index = -1;
 
     bool isValid() const {
-        return address != nullptr;
+        return address != 0;
+    }
+
+    void *getFullAddress() const {
+        return reinterpret_cast<void *>(g.base + address);
     }
 
     template<typename fncT>
     fncT *getFunction() const {
-        return reinterpret_cast<fncT*>(address);
+        return reinterpret_cast<fncT*>(getFullAddress());
     }
 };
 

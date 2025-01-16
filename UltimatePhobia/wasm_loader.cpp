@@ -2,7 +2,7 @@
 #include "il2cpp_dynamic.hpp"
 #include "il2cpp_cppinterop.hpp"
 #include "global_state.hpp"
-#include "wasm_interface.h"
+#include "wasm_interface.hpp"
 
 #include <string>
 #include <vector>

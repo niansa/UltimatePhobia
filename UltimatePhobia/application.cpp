@@ -82,7 +82,7 @@ void Application::init() {
     }
 
     if (modsDirExists) {
-        g.logger->info("Loading WebAssembly mods...");
+        g.logger->info("Preparing WebAssembly mods...");
         for (const auto& entry : std::filesystem::directory_iterator(modsDir)) {
             if (!entry.is_regular_file())
                 continue;

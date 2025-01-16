@@ -16,10 +16,6 @@ namespace Il2Cpp::Dynamic {
 namespace {
 std::vector<Method> methods;
 std::mutex methods_mutex; // Intentionally used only very loosely
-
-inline void *calculateAddress(void *addr) {
-    return reinterpret_cast<uint8_t *>(g.base) + reinterpret_cast<intptr_t>(addr);
-}
 }
 
 
@@ -50,7 +46,7 @@ void init() {
         for (auto functionJson : scriptJson["ScriptMethod"]) {
             try {
                 Method m;
-                m.address = reinterpret_cast<void *>(functionJson["Address"].get_int64().value());
+                m.address = functionJson["Address"].get_int64().value();
                 m.name = functionJson["Name"];
                 m.signature = functionJson["Signature"];
                 m.typeSignature = functionJson["TypeSignature"];
@@ -73,7 +69,7 @@ void init() {
         // Validate some pointers
         bool valid = true;
         const auto validate = [&valid] (std::string_view name, void *ptr) {
-            if (getMethod(name).address != ptr)
+            if (getMethod(name).getFullAddress() != ptr)
                 valid = false;
         };
         validate("void UnityEngine_Application__Quit (const MethodInfo* method);", Il2Cpp::UnityEngine::Application::Quit_getPtr());
@@ -91,44 +87,35 @@ bool isLoaded() {
 
 Method getMethod(std::string_view identifier, bool noError) {
     for (const Method& method : methods) {
-        if (method.signature == identifier) {
-            Method fres(method);
-            fres.address = calculateAddress(fres.address);
-            return fres;
-        }
+        if (method.signature == identifier)
+            return method;
     }
 
     for (const Method& method : methods) {
-        if (method.name == identifier) {
-            Method fres(method);
-            fres.address = calculateAddress(fres.address);
-            return fres;
-        }
+        if (method.name == identifier)
+            return method;
     }
 
     if (!noError)
         g.logger->error("Failed to find method by identifier: {}", identifier);
-    return {nullptr};
+    return {0};
 }
 
 Method getMethod(void *addr, bool noError) {
-    for (Method method : methods) {
-        method.address = calculateAddress(method.address);
-        if (method.address == addr) {
+    for (Method method : methods)
+        if (method.getFullAddress() == addr)
             return method;
-        }
-    }
 
     if (!noError)
         g.logger->error("Failed to find method by address: {}", addr);
-    return {nullptr};
+    return {0};
 }
 
 Method getMethod(unsigned idx, bool noError) {
     if (idx > methods.size()) {
         if (!noError)
             g.logger->error("Failed to find method by index: {}", idx);
-        return {nullptr};
+        return {0};
     }
 
     return methods[idx];
@@ -155,22 +142,16 @@ std::vector<Method> searchMethods(std::string_view identifier) {
     for (const Method& method : methods) {
         if (isDup(method))
             continue;
-        if (method.name.find(identifier) != std::string_view::npos) {
-            Method result(method);
-            result.address = calculateAddress(result.address);
-            fres.emplace_back(std::move(result));
-        }
+        if (method.name.find(identifier) != std::string_view::npos)
+            fres.emplace_back(method);
     }
 
     // Finally try signature search
     for (const Method& method : methods) {
         if (isDup(method))
             continue;
-        if (method.signature.find(identifier) != std::string_view::npos) {
-            Method result(method);
-            result.address = calculateAddress(result.address);
-            fres.emplace_back(std::move(result));
-        }
+        if (method.signature.find(identifier) != std::string_view::npos)
+            fres.emplace_back(method);
     }
 
     return fres;

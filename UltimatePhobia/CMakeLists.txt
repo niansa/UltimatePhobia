@@ -48,7 +48,7 @@ add_executable(UltimatePhobia WIN32 main.cpp icon.rc
     generated/il2cpp.hpp generated/il2cpp.cpp
     safe_path.hpp safe_path.cpp
     wasm_loader.hpp wasm_loader.cpp
-    wasm_interface.h wasm_interface.cpp
+    wasm_interface.hpp wasm_interface.cpp
 )
 target_link_libraries(UltimatePhobia PRIVATE dbghelp Detours spdlog imgui simdjson m3 wasm3_cpp)
 target_include_directories(UltimatePhobia PRIVATE . ../il2cpp_dump)
