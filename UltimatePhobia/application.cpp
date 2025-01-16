@@ -5,6 +5,7 @@
 #include "imgui_man.hpp"
 #include "safe_path.hpp"
 #include "wasm_loader.hpp"
+#include "il2cpp_dynamic.hpp"
 #include "generated/il2cpp.hpp"
 
 #include "mods/global_instance_manager.hpp"
@@ -82,15 +83,19 @@ void Application::init() {
     }
 
     if (modsDirExists) {
-        g.logger->info("Preparing WebAssembly mods...");
-        for (const auto& entry : std::filesystem::directory_iterator(modsDir)) {
-            if (!entry.is_regular_file())
-                continue;
-            if (entry.path().extension() != ".wasm")
-                continue;
-            const auto filename = entry.path().filename().string();
-            const auto identifier = filename.substr(0, filename.size() - 5);
-            mods.emplace_back(WASMLoader::createModInfo(modsDir, identifier));
+        if (Il2Cpp::Dynamic::isLoaded()) {
+            g.logger->info("Preparing WebAssembly mods...");
+            for (const auto& entry : std::filesystem::directory_iterator(modsDir)) {
+                if (!entry.is_regular_file())
+                    continue;
+                if (entry.path().extension() != ".wasm")
+                    continue;
+                const auto filename = entry.path().filename().string();
+                const auto identifier = filename.substr(0, filename.size() - 5);
+                mods.emplace_back(WASMLoader::createModInfo(modsDir, identifier));
+            }
+        } else {
+            g.logger->warn("WebAssembly mods found but ignored because script.json is missing.");
         }
     }
 }
