@@ -176,8 +176,6 @@ int call(MethodHandle method_handle, int argCount) {
     // Call function
     const auto args = std::move(std::exchange(call_args, {}));
     try {
-        g.logger->debug("Calling into {} at {} with {} args...", method.name, method.address, args.size());
-        g.logger->flush();
         switch (argCount) {
         case 0: return_value = method.getFunction<void *()>()(); break;
         case 1: return_value = method.getFunction<void *(void *)>()(args[0]); break;
