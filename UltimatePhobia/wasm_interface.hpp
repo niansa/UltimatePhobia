@@ -25,39 +25,161 @@ using MethodHandle = int;
 #endif
 constexpr int unknownArgCount = 0x6D616E63;
 
-UP_API void dropObject(ObjectHandle id);
-UP_API int isValidObject(ObjectHandle id);
+/**
+ * @brief Invalidates given handle to C# object allowing it to be garbage collected
+ */
+UP_API void dropObject(ObjectHandle);
+/**
+ * @brief Check if given handle is a valid C# object
+ * @return 1 if handle is valid, otherwise 0
+ */
+UP_API int isValidObject(ObjectHandle);
+/**
+ * @return C# null object (0 handle)
+ */
 UP_API ObjectHandle getNull();
 
+/**
+ * @brief Converts given C string to System.String object until null-terminator
+ * @param str C string
+ */
 UP_API ObjectHandle toCsString(const char *str);
+/**
+ * @brief Converts given C string of specified length to System.String object
+ * @param str C string
+ * @param length Length of C string
+ */
 UP_API ObjectHandle toCsStringWithLength(const char *str, int length);
+/**
+ * @brief Converts given string to C string (including null terminator)
+ * @param str System.String object
+ * @param buf Buffer to write string to
+ * @param maxlen Length of buffer
+ */
 UP_API void toCString(ObjectHandle str, char *buf, int maxlen);
 
+/**
+ * @brief Logs given message on trace level
+ * @param message System.String object containing message
+ */
 UP_API void logTrace(ObjectHandle message);
+/**
+ * @brief Logs given message on debug level
+ * @param message System.String object containing message
+ */
 UP_API void logDebug(ObjectHandle message);
+/**
+ * @brief Logs given message on info level
+ * @param message System.String object containing message
+ */
 UP_API void logInfo(ObjectHandle message);
+/**
+ * @brief Logs given message on warn level
+ * @param message System.String object containing message
+ */
 UP_API void logWarn(ObjectHandle message);
+/**
+ * @brief Logs given message on error level
+ * @param message System.String object containing message
+ */
 UP_API void logError(ObjectHandle message);
+/**
+ * @brief Logs given message on critical level
+ * @param message System.String object containing message
+ */
 UP_API void logCritical(ObjectHandle message);
 
-UP_API MethodHandle getMethodByIdentifier(const char *name);
+/**
+ * @brief Gets given method
+ * @param identifier Name or signature to look up function by
+ * @return First method found, or -1
+ */
+UP_API MethodHandle getMethodByIdentifier(const char *identifier);
+/**
+ * @brief Gets given method
+ * @param addr Address to look up function by
+ * @return First method found, or -1
+ */
 UP_API MethodHandle getMethodByAddress(int64_t addr);
-UP_API ObjectHandle getMethodName(int index);
-UP_API ObjectHandle getMethodSignature(int index);
+/**
+ * @brief Gets name of given method
+ * @return System.String object
+ */
+UP_API ObjectHandle getMethodName(MethodHandle);
+/**
+ * @brief Gets signature of given method
+ * @return System.String object
+ */
+UP_API ObjectHandle getMethodSignature(MethodHandle);
 
+/**
+ * @brief Adds 32 bit integer to argument list
+ * @param v Value to add
+ */
 UP_API void addArgI32(int32_t v);
+/**
+ * @brief Adds 64 bit integer to argument list
+ * @param v Value to add
+ */
 UP_API void addArgI64(int64_t v);
+/**
+ * @brief Adds float to argument list
+ * @param v Value to add
+ */
 UP_API void addArgFloat(float v);
+/**
+ * @brief Adds double to argument list
+ * @param v Value to add
+ */
 UP_API void addArgDouble(double v);
+/**
+ * @brief Adds C# object to argument list
+ * @param v C# object to add
+ */
 UP_API void addArgObject(ObjectHandle v);
+/**
+ * @brief Adds null value to argument list
+ */
 UP_API void addArgNull();
+/**
+ * @brief Clears previously added arguments
+ */
 UP_API void clearArgs();
+/**
+ * @brief Gets 32 bit integer stored in argument list or return value
+ * @param index argument index or -1 for return value
+ */
 UP_API int32_t getValueI32(int index = -1);
+/**
+ * @brief Gets 64 bit integer stored in argument list or return value
+ * @param index argument index or -1 for return value
+ */
 UP_API int64_t getValueI64(int index = -1);
+/**
+ * @brief Gets float stored in argument list or return value
+ * @param index argument index or -1 for return value
+ */
 UP_API float getValueFloat(int index = -1);
+/**
+ * @brief Gets double stored in argument list or return value
+ * @param index argument index or -1 for return value
+ */
 UP_API double getValueDouble(int index = -1);
+/**
+ * @brief Gets C# object stored in argument list or return value
+ * @param index argument index or -1 for return value
+ */
 UP_API ObjectHandle getValueObject(int index = -1);
+/**
+ * @brief Gets error message from call function
+ * @return System.String object
+ */
 UP_API ObjectHandle getCallError();
+/**
+ * @brief Calls given method with previously added arguments (also clears them if function call was able to be initiated)
+ * @param argCount Amount of arguments previously added (optional, may be unknownArgCount)
+ * @return 1 on success, 0 on failure (use getCallError to get error string)
+ */
 UP_API int call(MethodHandle, int argCount);
 }
 

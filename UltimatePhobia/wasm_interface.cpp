@@ -13,9 +13,14 @@ namespace {
 std::map<ObjectHandle, void *> objects;
 ObjectHandle addObject(void *ptr) {
     // Find empty handle ID
-    ObjectHandle fres = objects.size()+1;
+    static ObjectHandle last_id = 0;
+    ObjectHandle fres = ++last_id;
     while (objects.find(fres) != objects.end())
         ++fres;
+    if (fres <= 0) {
+        g.logger->warn("Ran out of object handles! Please consider dropping some handles.");
+        return -1;
+    }
     objects[fres] = ptr;
     return fres;
 }
@@ -33,7 +38,7 @@ void dropObject(ObjectHandle id) {
         objects.erase(id);
 }
 int isValidObject(ObjectHandle id) {
-    return objects.find(id) != objects.end();
+    return id == 0 || objects.find(id) != objects.end();
 }
 ObjectHandle getNull() {
     return 0;
@@ -69,18 +74,18 @@ void logCritical(ObjectHandle message) {
 }
 
 namespace Dynamic = Il2Cpp::Dynamic;
-MethodHandle getMethodByIdentifier(const char *name) {
-    return Dynamic::getMethod(name, true).index;
+MethodHandle getMethodByIdentifier(const char *identifier) {
+    return Dynamic::getMethod(identifier, true).index;
 }
 MethodHandle getMethodByAddress(int64_t addr) {
     return Dynamic::getMethod(reinterpret_cast<void *>(addr), true).index;
 }
-ObjectHandle getMethodName(int index) {
+ObjectHandle getMethodName(MethodHandle index) {
     if (index < 0)
         return 0;
     return addObject(Il2Cpp::CppInterop::ToCsString(Dynamic::getMethod(index).name));
 }
-ObjectHandle getMethodSignature(int index) {
+ObjectHandle getMethodSignature(MethodHandle index) {
     if (index < 0)
         return 0;
     return addObject(Il2Cpp::CppInterop::ToCsString(Dynamic::getMethod(index).signature));
@@ -145,7 +150,7 @@ void logBadCall() {
     g.logger->warn("WebAssembly interface failed to call function: {}", call_error);
 }
 }
-int call(MethodHandle method_handle, int argCount) {
+int call(MethodHandle index, int argCount) {
     // Handle unknown argument count
     if (argCount == unknownArgCount)
         argCount = call_args.size();
@@ -158,9 +163,9 @@ int call(MethodHandle method_handle, int argCount) {
     }
 
     // Get method
-    const auto method = Dynamic::getMethod(method_handle);
+    const auto method = Dynamic::getMethod(index);
     if (!method.isValid()) {
-        call_error = fmt::format("Bad method handle ({})", method_handle);
+        call_error = fmt::format("Bad method index ({})", index);
         logBadCall();
         return false;
     }
