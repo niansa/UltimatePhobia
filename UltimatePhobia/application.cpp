@@ -3,6 +3,8 @@
 #include "il2cpp.h"
 #include "game_hook.hpp"
 #include "imgui_man.hpp"
+#include "safe_path.hpp"
+#include "wasm_loader.hpp"
 #include "generated/il2cpp.hpp"
 
 #include "mods/global_instance_manager.hpp"
@@ -15,6 +17,7 @@
 #include "mods/cheats.hpp"
 
 #include <optional>
+#include <filesystem>
 #include <imgui.h>
 
 
@@ -69,6 +72,27 @@ void Application::init() {
     g.logger->info("Loading essential mods...");
     globalInstanceManagerInfo.load();
     fixesInfo.load();
+
+    const auto modsDir = SafePath::get()/"mods";
+    bool modsDirExists = false;
+    try {
+        modsDirExists = std::filesystem::is_directory(modsDir);
+    } catch (...) {
+        modsDirExists = false;
+    }
+
+    if (modsDirExists) {
+        g.logger->info("Loading WebAssembly mods...");
+        for (const auto& entry : std::filesystem::directory_iterator(modsDir)) {
+            if (!entry.is_regular_file())
+                continue;
+            if (entry.path().extension() != ".wasm")
+                continue;
+            const auto filename = entry.path().filename().string();
+            const auto identifier = filename.substr(0, filename.size() - 5);
+            mods.emplace_back(WASMLoader::createModInfo(modsDir, identifier));
+        }
+    }
 }
 
 void Application::update() {
@@ -87,7 +111,7 @@ void Application::update() {
             if (mod->hidden)
                 continue;
             bool isLoaded = mod->instance != nullptr;
-            if (Checkbox(mod->name, &isLoaded)) {
+            if (Checkbox(mod->name.c_str(), &isLoaded)) {
                 if (isLoaded)
                     mod->load();
                 else

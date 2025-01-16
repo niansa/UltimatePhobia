@@ -15,7 +15,7 @@
 namespace Il2Cpp::Dynamic {
 namespace {
 std::vector<Method> methods;
-std::mutex methods_mutex;
+std::mutex methods_mutex; // Intentionally used only very loosely
 
 inline void *calculateAddress(void *addr) {
     return reinterpret_cast<uint8_t *>(g.base) + reinterpret_cast<intptr_t>(addr);
@@ -54,6 +54,7 @@ void init() {
                 m.name = functionJson["Name"];
                 m.signature = functionJson["Signature"];
                 m.typeSignature = functionJson["TypeSignature"];
+                m.index = methods.size();
                 methods.emplace_back(std::move(m));
             } catch (...) {
                 ++errors;
@@ -123,6 +124,16 @@ Method getMethod(void *addr, bool noError) {
     return {nullptr};
 }
 
+Method getMethod(unsigned idx, bool noError) {
+    if (idx > methods.size()) {
+        if (!noError)
+            g.logger->error("Failed to find method by index: {}", idx);
+        return {nullptr};
+    }
+
+    return methods[idx];
+}
+
 std::vector<Method> searchMethods(std::string_view identifier) {
     std::vector<Method> fres;
 
@@ -163,5 +174,9 @@ std::vector<Method> searchMethods(std::string_view identifier) {
     }
 
     return fres;
+}
+
+const std::vector<Method>& getMethods() {
+    return methods;
 }
 }

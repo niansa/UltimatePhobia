@@ -8,6 +8,7 @@ namespace Il2Cpp::Dynamic {
 struct Method {
     void *address;
     std::string_view name, signature, typeSignature;
+    int index = -1;
 
     bool isValid() const {
         return address != nullptr;
@@ -24,5 +25,7 @@ void init();
 bool isLoaded();
 Method getMethod(std::string_view identifier, bool noError = false);
 Method getMethod(void *addr, bool noError = false);
+Method getMethod(unsigned idx, bool noError = false);
 std::vector<Method> searchMethods(std::string_view identifier);
+const std::vector<Method>& getMethods();
 }

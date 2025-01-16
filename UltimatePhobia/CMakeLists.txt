@@ -11,6 +11,8 @@ option(ULTIMATEPHOBIA_CHEATS "Build cheats module" ON)
 add_subdirectory(../deps/detours Detours)
 add_subdirectory(../deps/spdlog spdlog)
 add_subdirectory(../deps/simdjson simdjson)
+add_subdirectory(../deps/wasm3/source wasm3)
+add_subdirectory(../deps/wasm3/platforms/cpp/wasm3_cpp wasm3_cpp)
 
 add_library(imgui STATIC
     ../deps/imgui/imgui.cpp ../deps/imgui/imgui_draw.cpp ../deps/imgui/imgui_tables.cpp ../deps/imgui/imgui_widgets.cpp
@@ -45,8 +47,10 @@ add_executable(UltimatePhobia WIN32 main.cpp icon.rc
     mods/fixes.hpp mods/fixes.cpp
     generated/il2cpp.hpp generated/il2cpp.cpp
     safe_path.hpp safe_path.cpp
+    wasm_loader.hpp wasm_loader.cpp
+    wasm_interface.h wasm_interface.cpp
 )
-target_link_libraries(UltimatePhobia PRIVATE dbghelp Detours spdlog imgui simdjson)
+target_link_libraries(UltimatePhobia PRIVATE dbghelp Detours spdlog imgui simdjson m3 wasm3_cpp)
 target_include_directories(UltimatePhobia PRIVATE . ../il2cpp_dump)
 target_precompile_headers(UltimatePhobia PRIVATE ../il2cpp_dump/il2cpp.h generated/il2cpp.hpp)
 target_compile_definitions(UltimatePhobia PUBLIC _CRT_SECURE_NO_WARNINGS)

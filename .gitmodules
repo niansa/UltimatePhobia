@@ -13,3 +13,6 @@
 [submodule "deps/simdjson"]
 	path = deps/simdjson
 	url = https://github.com/simdjson/simdjson.git
+[submodule "deps/crosslibc"]
+	path = deps/crosslibc
+	url = https://gitlab.com/niansa/crosslibc.git
