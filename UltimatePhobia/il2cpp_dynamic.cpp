@@ -22,11 +22,12 @@ inline void *calculateAddress(void *addr) {
 
 void init() {
     using std::chrono::high_resolution_clock;
-    const auto script_json = SafePath::get()/"script.json";
+    const auto scriptJsonPath = SafePath::get()/"script.json";
 
     // Make sure file exists and get info
+    unsigned scriptJsonSize;
     try {
-        const auto script_json_status = std::filesystem::status(script_json);
+        scriptJsonSize = std::filesystem::file_size(scriptJsonPath);
     } catch (...) {
         return;
     }
@@ -36,7 +37,7 @@ void init() {
     methods.clear();
     const auto time_start = high_resolution_clock::now();
     static simdjson::ondemand::parser parser;
-    static auto json = simdjson::padded_string::load(script_json.string());
+    static auto json = simdjson::padded_string::load(scriptJsonPath.string());
     auto scriptJson = parser.iterate(json);
     // Get functions
     unsigned errors = 0;
@@ -52,7 +53,7 @@ void init() {
             ++errors;
         }
     }
-    const auto time_taken = std::chrono::duration_cast<std::chrono::milliseconds>(high_resolution_clock::now() - time_start);
+    const auto time_taken = std::chrono::duration_cast<std::chrono::milliseconds>(high_resolution_clock::now() - time_start).count();
 
     // Log out function count
     if (errors) {
@@ -60,7 +61,7 @@ void init() {
     } else {
         g.logger->info("Processed {} methods from script.json file", methods.size());
     }
-    g.logger->info("Processing script.json took {time_taken}ms");
+    g.logger->info("Processing script.json took {} ms ({} MB/s)", time_taken, unsigned((double(scriptJsonSize)*0.000001) / (double(time_taken)*0.001) + 0.5));
 
     // Validate some pointers
     bool valid = true;
