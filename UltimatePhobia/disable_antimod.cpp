@@ -26,7 +26,7 @@ static bool maybeForbiddenFile(std::string path, bool dllSearch = false) {
     std::transform(path.begin(), path.end(), path.begin(),::tolower);
 
     // Check blacklist
-    for (std::string_view term : {".exe", ".dll", "melon", "bepin", "doorstop", "dotnet", "mono", "coreclr", "bootstrap", "up_log.txt", "up_log.txt", "imgui.ini", "ultimatephobia.dll"}) {
+    for (std::string_view term : {".exe", ".dll", "melon", "bepin", "doorstop", "dotnet", "mono", "coreclr", "bootstrap", "script.json", "up_log.txt", "up_log.txt", "imgui.ini", "ultimatephobia.dll"}) {
         if (dllSearch && term[0] == '.')
             continue;
         if (path.find(term) != path.npos) {

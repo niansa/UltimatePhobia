@@ -7,10 +7,10 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_INTERPROCEDURAL_OPTIMIZATION ON)
 
 option(ULTIMATEPHOBIA_CHEATS "Build cheats module" ON)
-option(ULTIMATEPHOBIA_TRACER "Build tracer module" OFF)
 
 add_subdirectory(../deps/detours Detours)
 add_subdirectory(../deps/spdlog spdlog)
+add_subdirectory(../deps/simdjson simdjson)
 
 add_library(imgui STATIC
     ../deps/imgui/imgui.cpp ../deps/imgui/imgui_draw.cpp ../deps/imgui/imgui_tables.cpp ../deps/imgui/imgui_widgets.cpp
@@ -25,7 +25,7 @@ add_executable(UltimatePhobia WIN32 main.cpp icon.rc
     getbaseaddr.hpp getbaseaddr.cpp
     misc_utils.hpp misc_utils.cpp
     application.hpp application.cpp
-    gamedata.hpp gamedata.cpp
+    il2cpp_dynamic.hpp il2cpp_dynamic.cpp
     game_hook.hpp game_hook.cpp
     imgui_man.hpp imgui_man.cpp
     game_enums.hpp
@@ -44,14 +44,12 @@ add_executable(UltimatePhobia WIN32 main.cpp icon.rc
     mods/player_manager.hpp mods/player_manager.cpp
     mods/fixes.hpp mods/fixes.cpp
     generated/il2cpp.hpp generated/il2cpp.cpp
+    safe_path.hpp safe_path.cpp
 )
-target_link_libraries(UltimatePhobia PRIVATE dbghelp Detours spdlog imgui)
+target_link_libraries(UltimatePhobia PRIVATE dbghelp Detours spdlog imgui simdjson)
 target_include_directories(UltimatePhobia PRIVATE . ../il2cpp_dump)
 target_precompile_headers(UltimatePhobia PRIVATE ../il2cpp_dump/il2cpp.h generated/il2cpp.hpp)
 target_compile_definitions(UltimatePhobia PUBLIC _CRT_SECURE_NO_WARNINGS)
 if (ULTIMATEPHOBIA_CHEATS)
     target_compile_definitions(UltimatePhobia PRIVATE MOD_ENABLE_CHEATS)
-endif()
-if (ULTIMATEPHOBIA_TRACER)
-    target_compile_definitions(UltimatePhobia PRIVATE MOD_ENABLE_TRACER ENABLE_OLD_GAMEDATA)
 endif()

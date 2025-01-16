@@ -1,6 +1,6 @@
 #include "misc_utils.hpp"
 #include "game_hook.hpp"
-#include "gamedata.hpp"
+#include "il2cpp_dynamic.hpp"
 
 #include <string>
 #include <string_view>

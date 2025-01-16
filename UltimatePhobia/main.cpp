@@ -2,7 +2,9 @@
 #include "getbaseaddr.hpp"
 #include "disable_antimod.hpp"
 #include "disable_splashscreen.hpp"
+#include "il2cpp_dynamic.hpp"
 //#include "crash_handler.hpp"
+#include "safe_path.hpp"
 #include "imgui_man.hpp"
 #include "application.hpp"
 
@@ -23,6 +25,7 @@ static void onLoad() {
         //setupCrashHandler();
         g.logger->info("Found GameAssembly base address at {}", g.base);
         ImGuiMan::init();
+        Il2Cpp::Dynamic::init();
         disableAntiMod();
         disableSplashscreen();
         new Application;
@@ -52,14 +55,19 @@ int wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR lpCmdLine, int
     TCHAR szFileName[MAX_PATH];
     GetModuleFileName(NULL, szFileName, MAX_PATH);
 
+    // Initialize and get safe path for logs
+    SafePath::init();
+    const auto safePath = SafePath::get();
+
     // Set up logger
     try {
-        std::filesystem::rename("up_log.txt", "up_log.prev.txt");
+        std::filesystem::rename(safePath/"up_log.txt", safePath/"up_log.prev.txt");
     } catch (...) {}
-    g.logger = spdlog::basic_logger_mt("UltimatePhobia", "up_log.txt");
+    g.logger = spdlog::basic_logger_mt("UltimatePhobia", (safePath/"up_log.txt").string());
     g.logger->set_level(spdlog::level::debug);
     g.logger->flush_on(spdlog::level::info);
     g.logger->info("PID: {} - Module name: {}", GetCurrentProcessId(), szFileName);
+    g.logger->info("Safe path determined to be at {}", safePath.string());
 
     // Set up detours
     g.logger->info("Initializing Microsoft Detours...", szFileName);

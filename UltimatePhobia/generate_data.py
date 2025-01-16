@@ -154,20 +154,3 @@ for data in methods:
 write_both("}\n")
 output_hpp.close()
 output_cpp.close()
-
-
-
-output = open("generated/game_data.inc", "w")
-output.write("""
-#include <string_view>
-#include <vector>
-
-
-static std::vector<GameData::Method> methods = {
-""")
-
-for method in script["ScriptMethod"]:
-    output.write(f"    {{(void*){method['Address']}, {json.dumps(method['Name'])}, {json.dumps(method['Signature'])}, {json.dumps(method['TypeSignature'])}}},\n");
-
-output.write("};")
-output.close()

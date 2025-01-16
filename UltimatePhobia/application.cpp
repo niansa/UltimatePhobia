@@ -46,10 +46,7 @@ struct ApplicationHooks {
 
 Application::Application() {
     currentApplication = this;
-    mods = {&photonSettingsInfo, &saveFileManagerInfo, &fixesInfo, &playerManagerInfo, &goldbergEmuManagerInfo,
-#ifdef MOD_ENABLE_TRACER
-            &tracerInfo,
-#endif
+    mods = {&photonSettingsInfo, &saveFileManagerInfo, &fixesInfo, &playerManagerInfo, &goldbergEmuManagerInfo, &tracerInfo,
 #ifdef MOD_ENABLE_CHEATS
             &cheatsInfo,
 #endif
@@ -87,7 +84,7 @@ void Application::update() {
         NewLine();
 
         for (const auto mod : mods) {
-            if (mod->autoMode)
+            if (mod->hidden)
                 continue;
             bool isLoaded = mod->instance != nullptr;
             if (Checkbox(mod->name, &isLoaded)) {

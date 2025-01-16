@@ -1,9 +1,11 @@
 #include "tracer.hpp"
-#include "gamedata.hpp"
+#include "il2cpp_dynamic.hpp"
 #include "global_state.hpp"
 
 #include <string>
 #include <imgui.h>
+
+namespace Dynamic = Il2Cpp::Dynamic;
 
 
 
@@ -13,13 +15,11 @@ void *tracerModHook(void *a, void *b, void *c, void *d, void *e, void *f, void *
     if (depth < 0)
         depth = 0;
 
-#ifdef MOD_ENABLE_TRACER
-    const auto method = GameData::getMethod(GameHook::getTrampolineCaller());
+    const auto method = Dynamic::getMethod(GameHook::getTrampolineCaller());
     auto& hook = tracerInfo.get<Tracer>()->getHook(method.signature);
     tracerInfo.get<Tracer>()->log(fmt::format("{}{}<{}>(...)\n", std::string(depth, '>'), method.name, GameHook::getTrampolineCaller()));
 
     GameHookRelease GHR(hook);
-#endif
     ++depth;
     const auto fres = reinterpret_cast<decltype(tracerModHook)*>(GameHook::getTrampolineCaller())(a, b, c, d, e, f, g, h);
     --depth;
@@ -29,7 +29,6 @@ GAMEHOOK_TRAMPOLINE(tracerModHook)
 
 
 void Tracer::uiUpdate() {
-#ifdef MOD_ENABLE_TRACER
     using namespace ImGui;
     Begin("Function Tracer");
     // Contents
@@ -41,7 +40,7 @@ void Tracer::uiUpdate() {
     if (searchString.size() > 3) {
         // Show all results
         BeginChild("Search results", ImVec2(0, GetFontSize() * 20.0f), true);
-        for (const GameData::Method& method : GameData::searchMethods(searchString)) {
+        for (const Dynamic::Method& method : Dynamic::searchMethods(searchString)) {
             HookButton(method.signature);
         }
         EndChild();
@@ -69,29 +68,27 @@ void Tracer::uiUpdate() {
     Checkbox("Autoscroll", &logAutoScroll);
     // Window end
     End();
-#endif
 }
 
 void Tracer::HookButton(std::string_view signature, bool isDefinitelyHooked) {
-#ifdef MOD_ENABLE_TRACER
     bool hooked = isDefinitelyHooked;
     if (!hooked)
         hooked = hooks.find(signature) != hooks.end();
 
     if (ImGui::Button((fmt::format("{} {}", hooked ? '-' : '+', signature)).c_str())) {
-        const auto method = GameData::getMethod(signature);
+        const auto method = Dynamic::getMethod(signature);
         if (!hooked)
             hooks.emplace(signature, std::make_unique<GameHook>(method.address, hookTrampoline_tracerModHook, true));
         else
             hooks.erase(hooks.find(signature));
         log(fmt::format(" {} {} <{}>\n", hooked?'-':'+', method.name, method.address));
     }
-#endif
 }
 
 
 ModInfo tracerInfo {
     "Tracer",
     false,
-    [] () {return std::make_unique<Tracer>();}
+    [] () {return std::make_unique<Tracer>();},
+    [] () {tracerInfo.hidden = !Dynamic::isLoaded();}
 };
