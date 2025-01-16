@@ -35,9 +35,9 @@ void init() {
     // Start processing file
     g.logger->info("Processing script.json file for dynamic reflection...");
     methods.clear();
-    const auto time_start = high_resolution_clock::now();
     static simdjson::ondemand::parser parser;
     static auto json = simdjson::padded_string::load(scriptJsonPath.string());
+    const auto time_start = high_resolution_clock::now();
     auto scriptJson = parser.iterate(json);
     // Get functions
     unsigned errors = 0;
