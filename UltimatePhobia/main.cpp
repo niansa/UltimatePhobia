@@ -23,7 +23,7 @@ static void onLoad() {
     g.logger->info("Getting GameAssembly base address...");
     getBaseAddr([] () {
         //setupCrashHandler();
-        g.logger->info("Found GameAssembly base address at {}", g.base);
+        g.logger->info("Found GameAssembly base address at {}", reinterpret_cast<void *>(g.base));
         ImGuiMan::init();
         Il2Cpp::Dynamic::init();
         disableAntiMod();
