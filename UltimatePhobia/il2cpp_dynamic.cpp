@@ -5,6 +5,8 @@
 
 #include <chrono>
 #include <filesystem>
+#include <thread>
+#include <mutex>
 #include <cstdint>
 #include <simdjson.h>
 
@@ -13,6 +15,7 @@
 namespace Il2Cpp::Dynamic {
 namespace {
 std::vector<Method> methods;
+std::mutex methods_mutex;
 
 inline void *calculateAddress(void *addr) {
     return reinterpret_cast<uint8_t *>(g.base) + reinterpret_cast<intptr_t>(addr);
@@ -21,62 +24,67 @@ inline void *calculateAddress(void *addr) {
 
 
 void init() {
-    using std::chrono::high_resolution_clock;
-    const auto scriptJsonPath = SafePath::get()/"script.json";
+    std::thread([] () {
+        std::scoped_lock L(methods_mutex);
 
-    // Make sure file exists and get info
-    unsigned scriptJsonSize;
-    try {
-        scriptJsonSize = std::filesystem::file_size(scriptJsonPath);
-    } catch (...) {
-        return;
-    }
+        using std::chrono::high_resolution_clock;
+        const auto scriptJsonPath = SafePath::get()/"script.json";
 
-    // Start processing file
-    g.logger->info("Processing script.json file for dynamic reflection...");
-    methods.clear();
-    static simdjson::ondemand::parser parser;
-    static auto json = simdjson::padded_string::load(scriptJsonPath.string());
-    const auto time_start = high_resolution_clock::now();
-    auto scriptJson = parser.iterate(json);
-    // Get functions
-    unsigned errors = 0;
-    for (auto functionJson : scriptJson["ScriptMethod"]) {
+        // Make sure file exists and get info
+        unsigned scriptJsonSize;
         try {
-            Method m;
-            m.address = reinterpret_cast<void *>(functionJson["Address"].get_int64().value());
-            m.name = functionJson["Name"];
-            m.signature = functionJson["Signature"];
-            m.typeSignature = functionJson["TypeSignature"];
-            methods.emplace_back(std::move(m));
+            scriptJsonSize = std::filesystem::file_size(scriptJsonPath);
         } catch (...) {
-            ++errors;
+            return;
         }
-    }
-    const auto time_taken = std::chrono::duration_cast<std::chrono::milliseconds>(high_resolution_clock::now() - time_start).count();
 
-    // Log out function count
-    if (errors) {
-        g.logger->info("Processed {} methods and failed on {} function from script.json file", methods.size(), errors);
-    } else {
-        g.logger->info("Processed {} methods from script.json file", methods.size());
-    }
-    g.logger->info("Processing script.json took {} ms ({} MB/s)", time_taken, unsigned((double(scriptJsonSize)*0.000001) / (double(time_taken)*0.001) + 0.5));
+        // Start processing file
+        g.logger->info("Processing script.json file for dynamic reflection...");
+        methods.clear();
+        static simdjson::ondemand::parser parser;
+        static auto json = simdjson::padded_string::load(scriptJsonPath.string());
+        const auto time_start = high_resolution_clock::now();
+        auto scriptJson = parser.iterate(json);
+        // Get functions
+        unsigned errors = 0;
+        for (auto functionJson : scriptJson["ScriptMethod"]) {
+            try {
+                Method m;
+                m.address = reinterpret_cast<void *>(functionJson["Address"].get_int64().value());
+                m.name = functionJson["Name"];
+                m.signature = functionJson["Signature"];
+                m.typeSignature = functionJson["TypeSignature"];
+                methods.emplace_back(std::move(m));
+            } catch (...) {
+                ++errors;
+            }
+        }
+        const auto time_taken = std::chrono::duration_cast<std::chrono::milliseconds>(high_resolution_clock::now() - time_start).count();
 
-    // Validate some pointers
-    bool valid = true;
-    const auto validate = [&valid] (std::string_view name, void *ptr) {
-        if (getMethod(name).address != ptr)
-            valid = false;
-    };
-    validate("void UnityEngine_Application__Quit (const MethodInfo* method);", Il2Cpp::UnityEngine::Application::Quit_getPtr());
-    validate("Player$$Update", Il2Cpp::Player::Update_getPtr());
-    validate("GhostAI$$Appear", Il2Cpp::GhostAI::Appear_getPtr());
-    if (!valid)
-        g.logger->warn("Loaded script.json file doesn't match script.json UltimatePhobia was compiled with! Expect serious issues.");
+        // Log out function count
+        if (errors) {
+            g.logger->info("Processed {} methods and failed on {} function from script.json file", methods.size(), errors);
+        } else {
+            g.logger->info("Processed {} methods from script.json file", methods.size());
+        }
+        g.logger->info("Processing script.json took {} ms ({} MB/s)", time_taken, unsigned((double(scriptJsonSize)*0.000001) / (double(time_taken)*0.001) + 0.5));
+
+        // Validate some pointers
+        bool valid = true;
+        const auto validate = [&valid] (std::string_view name, void *ptr) {
+            if (getMethod(name).address != ptr)
+                valid = false;
+        };
+        validate("void UnityEngine_Application__Quit (const MethodInfo* method);", Il2Cpp::UnityEngine::Application::Quit_getPtr());
+        validate("Player$$Update", Il2Cpp::Player::Update_getPtr());
+        validate("GhostAI$$Appear", Il2Cpp::GhostAI::Appear_getPtr());
+        if (!valid)
+            g.logger->warn("Loaded script.json file doesn't match script.json UltimatePhobia was compiled with! Expect serious issues.");
+    }).detach();
 }
 
 bool isLoaded() {
+    std::scoped_lock L(methods_mutex);
     return !methods.empty();
 }
 
