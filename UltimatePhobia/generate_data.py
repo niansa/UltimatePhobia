@@ -70,20 +70,23 @@ def enter_namespace(namespace):
 def leave_namespace(namespace):
     return "}"*len(namespace)+"\n"
 
+print("Loading script.json...")
 script = json.load(open(argv[1], "r"))
 print("Collecting methods...")
 for method in script["ScriptMethod"]:
+    raw_signature = method["Signature"]
+    raw_name = method["Name"]
     # Extract return type, name and arguments
-    return_type, sig_name, arguments = method["Signature"].split(' ', 2)
+    return_type, sig_name, arguments = raw_signature.split(' ', 2)
     if sig_name == "________________________":
         continue
-    namespace, name = get_namespace_name(method["Name"])
+    namespace, name = get_namespace_name(raw_name)
     if is_blacklisted(namespace, name):
         continue
     full_name = get_full_name(namespace, name)
     address = method["Address"]
     arguments = arguments[:-2][1:] + "Info_il2cpp"
-    methods.append((return_type, arguments, address, namespace, name))
+    methods.append((return_type, arguments, address, namespace, name, raw_name, raw_signature))
     if full_name in method_name_duplicates:
         duplicate_count = method_name_duplicates[full_name] + 1
         method_name_duplicates[full_name] = duplicate_count
@@ -97,7 +100,7 @@ for method in script["ScriptMethod"]:
 print("Generating functions...")
 dedup = {}
 for data in methods:
-    return_type, arguments, address, namespace, name = data
+    return_type, arguments, address, namespace, name, raw_name, raw_signature = data
     full_name = get_full_name(namespace, name)
     args_names = []
     args_types = []
@@ -144,6 +147,7 @@ for data in methods:
     write_cpp(f" {{return reinterpret_cast<void *>({address}ul + g.base);}}\n")
 
     # Generate function
+    write_hpp(f"/**\n * Name: {json.dumps(raw_name)}\n * Signature: {json.dumps(raw_signature)}\n */\n")
     write_both(f"{return_type} {name}({arguments}")
     write_hpp(" = nullptr);\n")
     write_cpp(f") {{return reinterpret_cast<{return_type} (*) ({args_types})>(reinterpret_cast<void *>(({address}ul + ::g.base)))({args_names});}}\n")

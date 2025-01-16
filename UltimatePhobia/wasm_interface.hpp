@@ -12,7 +12,10 @@
 
 namespace WASMInterface {
 #ifdef WASM
-struct ObjectHandle {int id;};
+enum class ObjectHandle : int {
+    Null = 0,
+    Invalid = -1
+};
 #else
 using ObjectHandle = int;
 #endif
