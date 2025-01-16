@@ -69,10 +69,10 @@ void logCritical(ObjectHandle message) {
 }
 
 namespace Dynamic = Il2Cpp::Dynamic;
-int getMethodByIdentifier(const char *name) {
+MethodHandle getMethodByIdentifier(const char *name) {
     return Dynamic::getMethod(name, true).index;
 }
-int getMethodByAddress(intptr_t addr) {
+MethodHandle getMethodByAddress(int64_t addr) {
     return Dynamic::getMethod(reinterpret_cast<void *>(addr), true).index;
 }
 ObjectHandle getMethodName(int index) {
@@ -145,7 +145,7 @@ void logBadCall() {
     g.logger->warn("WebAssembly interface failed to fall function: {}", call_error);
 }
 }
-int call(int index, int argCount) {
+int call(MethodHandle method_handle, int argCount) {
     // Handle unknown argument count
     if (argCount == unknownArgCount)
         argCount = call_args.size();
@@ -158,9 +158,9 @@ int call(int index, int argCount) {
     }
 
     // Get method
-    const auto method = Dynamic::getMethod(index);
+    const auto method = Dynamic::getMethod(method_handle);
     if (!method.isValid()) {
-        call_error = fmt::format("Bad method ({})", index);
+        call_error = fmt::format("Bad method handle ({})", method_handle);
         logBadCall();
         return false;
     }

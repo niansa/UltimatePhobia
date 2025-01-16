@@ -16,8 +16,12 @@ enum class ObjectHandle : int {
     Null = 0,
     Invalid = -1
 };
+enum class MethodHandle : int {
+    Invalid = -1
+};
 #else
 using ObjectHandle = int;
+using MethodHandle = int;
 #endif
 constexpr int unknownArgCount = 0x6D616E63;
 
@@ -36,8 +40,8 @@ UP_API void logWarn(ObjectHandle message);
 UP_API void logError(ObjectHandle message);
 UP_API void logCritical(ObjectHandle message);
 
-UP_API int getMethodByIdentifier(const char *name);
-UP_API int getMethodByAddress(int64_t addr);
+UP_API MethodHandle getMethodByIdentifier(const char *name);
+UP_API MethodHandle getMethodByAddress(int64_t addr);
 UP_API ObjectHandle getMethodName(int index);
 UP_API ObjectHandle getMethodSignature(int index);
 
@@ -54,7 +58,7 @@ UP_API float getValueFloat(int index = -1);
 UP_API double getValueDouble(int index = -1);
 UP_API ObjectHandle getValueObject(int index = -1);
 UP_API ObjectHandle getCallError();
-UP_API int call(int index, int argCount);
+UP_API int call(MethodHandle, int argCount);
 }
 
 #ifdef WASM
@@ -103,7 +107,7 @@ void addArgs(Arg0 arg0, Args... args) {
 template<StringLiteral identifier, typename... Args>
 void call(Args... args) {
     ::WASMInterface::clearArgs();
-    static int methodIndex = ::WASMInterface::getMethodByIdentifier(identifier);
+    static ::WASMInterface::MethodHandle methodIndex = ::WASMInterface::getMethodByIdentifier(identifier);
     addArgs(args...);
     ::WASMInterface::call(methodIndex, ::WASMInterface::unknownArgCount);
 }
