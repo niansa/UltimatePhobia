@@ -142,7 +142,7 @@ ObjectHandle getCallError() {
 }
 namespace {
 void logBadCall() {
-    g.logger->warn("WebAssembly interface failed to fall function: {}", call_error);
+    g.logger->warn("WebAssembly interface failed to call function: {}", call_error);
 }
 }
 int call(MethodHandle method_handle, int argCount) {
@@ -186,6 +186,7 @@ int call(MethodHandle method_handle, int argCount) {
         case 6: return_value = method.getFunction<void *(void *, void *, void *, void *, void *, void *)>()(args[0], args[1], args[2], args[3], args[4], args[5]); break;
         default: {
             call_error = fmt::format("Too many arguments ({}) (max. 6 supported)", argCount);
+            logBadCall();
             return false;
         }
         }
