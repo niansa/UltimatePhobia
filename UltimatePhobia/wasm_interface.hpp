@@ -206,6 +206,9 @@ void addArg(int32_t v) {
 void addArg(int64_t v) {
     ::WASMInterface::addArgI64(v);
 }
+void addArg(bool v) {
+    ::WASMInterface::addArgI32(v);
+}
 void addArg(float v) {
     ::WASMInterface::addArgFloat(v);
 }
@@ -219,6 +222,35 @@ void addArg(decltype(nullptr)) {
     ::WASMInterface::addArgNull();
 }
 
+template<typename T>
+T getReturnValue() = delete;
+template<>
+void getReturnValue<void>() {}
+template<>
+int32_t getReturnValue<int32_t>() {
+    return ::WASMInterface::getValueI32();
+}
+template<>
+int64_t getReturnValue<int64_t>() {
+    return::WASMInterface::getValueI64();
+}
+template<>
+bool getReturnValue<bool>() {
+    return ::WASMInterface::getValueI32();
+}
+template<>
+float getReturnValue<float>() {
+    return::WASMInterface::getValueFloat();
+}
+template<>
+double getReturnValue<double>() {
+    return ::WASMInterface::getValueDouble();
+}
+template<>
+::WASMInterface::ObjectHandle getReturnValue<::WASMInterface::ObjectHandle>() {
+    return ::WASMInterface::getValueObject();
+}
+
 inline void addArgs() {}
 template <typename Arg0, typename... Args>
 void addArgs(Arg0 arg0, Args... args) {
@@ -226,12 +258,13 @@ void addArgs(Arg0 arg0, Args... args) {
     addArgs(args...);
 }
 
-template<StringLiteral identifier, typename... Args>
-void call(Args... args) {
+template<StringLiteral identifier, typename returnT = void, typename... Args>
+returnT call(Args... args) {
     ::WASMInterface::clearArgs();
     static ::WASMInterface::MethodHandle methodIndex = ::WASMInterface::getMethodByIdentifier(identifier);
     addArgs(args...);
     ::WASMInterface::call(methodIndex, ::WASMInterface::unknownArgCount);
+    return getReturnValue<returnT>();
 }
 
 namespace Literals {

@@ -1,5 +1,5 @@
 #include <wasm32sdk.h>
-#include "../UltimatePhobia/wasm_interface.hpp"
+#include "wasm_interface.hpp"
 
 using namespace WASMInterface;
 using namespace Helpers::Literals;
