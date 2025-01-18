@@ -75,7 +75,7 @@ void onCreateRoom() {
     auto originalName = getArg<ObjectHandle>(0);
 
     // Replace room name
-    addArg("WASM Test Mod user"_cs);
+    addArg("WASM Test Mod user#0000"_cs);
     moveArg(0);
 
     // Call origin function
