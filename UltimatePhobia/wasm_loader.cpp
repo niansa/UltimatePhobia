@@ -105,6 +105,10 @@ ModInfo *WASMMod::getCurrent() {
     return currentMod;
 }
 
+void WASMMod::setCurrent(ModInfo *mod) {
+    currentMod = mod;
+}
+
 
 ModInfo *createModInfo(const std::filesystem::path& base, std::string_view identifier) {
     // Make sure JSON and WASM files both exist

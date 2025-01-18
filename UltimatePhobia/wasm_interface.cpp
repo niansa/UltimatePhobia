@@ -203,8 +203,12 @@ int call(MethodHandle index, int argCount) {
         return false;
     }
 
+    // Back up current mod in case called function triggers hook from another mod
+    ModInfo *currentModBackup = WASMLoader::WASMMod::getCurrent();
+
     // Call function
     const auto args = std::move(std::exchange(call_args, {}));
+    bool fres = true;
     try {
         switch (argCount) {
         case 0: return_value = method.getFunction<void *()>()(); break;
@@ -217,21 +221,27 @@ int call(MethodHandle index, int argCount) {
         default: {
             call_error = fmt::format("Too many arguments ({}) (max. 6 supported)", argCount);
             logBadCall();
-            return false;
+            return false; // No need to clean up so not using fres here
         }
         }
     } catch (const std::exception& e) {
         call_error = fmt::format("Method has thrown an exception: {}", e.what());
         logBadCall();
-        return false;
+        fres = false;
     } catch (...) {
         call_error = "Method has thrown an unknown exception";
         logBadCall();
-        return false;
+        fres = false;
     }
 
+    // Restore current mod (see comment near declaration)
+    WASMLoader::WASMMod::setCurrent(currentModBackup);
+
+    // Clear arguments again in case called function ended up adding arguments through hook
+    call_args.clear();
+
     // Everything seems to have gone well
-    return true;
+    return fres;
 }
 
 namespace {

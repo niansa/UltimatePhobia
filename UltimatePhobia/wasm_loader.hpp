@@ -27,6 +27,7 @@ public:
     void simpleCall(const char *name);
 
     static ModInfo *getCurrent();
+    static void setCurrent(ModInfo *mod);
 };
 
 ModInfo *createModInfo(const std::filesystem::path& base, std::string_view identifier);
