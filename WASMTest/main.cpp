@@ -79,7 +79,7 @@ void onCreateRoom() {
     moveArg(0);
 
     // Call origin function
-    call(getOriginal(), getArgCount());
+    call(getOriginal(), unknownArgCount);
     printf("Room created with replacement name instead of \"%s\"!\n", getCString(originalName));
 
     dropObject(originalName);
