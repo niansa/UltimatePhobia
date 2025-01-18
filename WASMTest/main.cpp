@@ -55,7 +55,7 @@ void onUiUpdate() {
 
 
 WASM_EXPORT("onFuseBoxUseNetworked")
-void onFuseBoxUseNetworked() {
+void onFuseBoxUse() {
     // Get new fuse box object (which is passed as first argument)
     dropObject(fuseBox);
     fuseBox = getArg<ObjectHandle>(0);
