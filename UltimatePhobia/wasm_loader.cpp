@@ -62,7 +62,6 @@ WASMMod::WASMMod(const std::filesystem::path& wasmPath, ModInfo *modInfo, unsign
     i->module->link_optional("*", "addArgNull", addArgNull);
     i->module->link_optional("*", "clearArgs", clearArgs);
     i->module->link_optional("*", "getArgCount", getArgCount);
-    i->module->link_optional("*", "setReturnValue", setReturnValue);
     i->module->link_optional("*", "moveArg", moveArg);
     i->module->link_optional("*", "getValueI32", getValueI32);
     i->module->link_optional("*", "getValueI64", getValueI64);

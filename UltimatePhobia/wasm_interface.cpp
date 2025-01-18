@@ -107,7 +107,9 @@ std::vector<void *> call_args;
 void *return_value;
 std::string call_error;
 
-void *getValue(unsigned index) {
+void *getValue(int index) {
+    if (index < 0)
+        return return_value;
     if (index > call_args.size())
         return nullptr;
     return call_args[index];
@@ -146,10 +148,13 @@ void setReturnValue() {
     }
 }
 int moveArg(int index) {
-    unsigned u_index = index; // For some reason this generates less instructions than checking if (index < 0)
-    if (call_args.empty() || call_args.size() < u_index)
+    if (call_args.empty() || call_args.size() < index)
         return false;
-    call_args[u_index] = call_args.back();
+    if (index >= 0) {
+        call_args[index] = call_args.back();
+    } else {
+        return_value = call_args.back();
+    }
     call_args.pop_back();
     return true;
 }

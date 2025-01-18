@@ -150,12 +150,8 @@ UP_API void clearArgs();
  */
 UP_API int getArgCount();
 /**
- * @brief Sets last argument as return value while removing it from list. Sets null as return value if argument list is empty
- */
-UP_API void setReturnValue();
-/**
  * @brief Moves last argument to specified index replacing its value
- * @param index New argument index.
+ * @param index New argument index or negative value to replace return value
  * @return 1 on success, 0 on error (if argument list empty or index out of range)
  */
 UP_API int moveArg(int index);
@@ -293,7 +289,7 @@ T getReturnValue() {
 template<typename T>
 void setReturnValue(T v) {
     addArg(v);
-    WASMInterface::setReturnValue();
+    WASMInterface::moveArg(-1);
 }
 
 inline void addArgs() {}
