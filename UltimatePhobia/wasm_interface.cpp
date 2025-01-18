@@ -139,14 +139,6 @@ void clearArgs() {
 int getArgCount() {
     return call_args.size();
 }
-void setReturnValue() {
-    if (!call_args.empty()) {
-        return_value = call_args.back();
-        call_args.pop_back();
-    } else {
-        return_value = nullptr;
-    }
-}
 int moveArg(int index) {
     if (call_args.empty() || call_args.size() < index)
         return false;
