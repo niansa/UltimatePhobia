@@ -12,14 +12,14 @@ System_String_o *ToCsString(std::string_view str) {
 
 std::string ToCppString(System_String_o *str) {
     if (str == nullptr)
-        return {};
+        return "<null>";
 
     return utf8Encode({reinterpret_cast<wchar_t*>(&str->fields.m_firstChar), static_cast<size_t>(str->fields.m_stringLength)});
 }
 
 std::wstring_view ToCppWideString(System_String_o *str) {
     if (str == nullptr)
-        return {};
+        return L"<null>";
 
     return {reinterpret_cast<wchar_t*>(&str->fields.m_firstChar), static_cast<size_t>(str->fields.m_stringLength)};
 }

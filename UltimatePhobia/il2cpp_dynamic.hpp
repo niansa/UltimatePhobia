@@ -24,6 +24,10 @@ struct Method {
     fncT *getFunction() const {
         return reinterpret_cast<fncT*>(getFullAddress());
     }
+
+    unsigned getArgCount() const {
+        return typeSignature.size() - 1;
+    }
 };
 
 

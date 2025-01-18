@@ -19,6 +19,7 @@
 
 #include <optional>
 #include <filesystem>
+#include <exception>
 #include <imgui.h>
 
 
@@ -31,8 +32,13 @@ struct ApplicationHooks {
                                           splashScreenCtorHook;
 
     static void appUpdateFnc(Photon_Pun_PhotonHandler_o* __this, const MethodInfo *method) {
-        //if (__this->fields.photonView->fields._AmOwner_k__BackingField)
+        try {
             currentApplication->update();
+        } catch (const std::exception& e) {
+            g.logger->error("Exception in main loop: {}", e.what());
+        } catch (...) {
+            g.logger->error("Unknown exception in main loop");
+        }
         GameHookRelease GHR(*appUpdateHook);
         appUpdateHook->getFunction<decltype(ApplicationHooks::appUpdateFnc)>()(__this, method);
     }

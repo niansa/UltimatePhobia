@@ -142,9 +142,23 @@ UP_API void addArgObject(ObjectHandle v);
  */
 UP_API void addArgNull();
 /**
- * @brief Clears previously added arguments
+ * @brief Clears arguments
  */
 UP_API void clearArgs();
+/**
+ * @brief Returns amount of arguments
+ */
+UP_API int getArgCount();
+/**
+ * @brief Sets last argument as return value while removing it from list. Sets null as return value if argument list is empty
+ */
+UP_API void setReturnValue();
+/**
+ * @brief Moves last argument to specified index replacing its value
+ * @param index New argument index.
+ * @return 1 on success, 0 on error (if argument list empty or index out of range)
+ */
+UP_API int moveArg(int index);
 /**
  * @brief Gets 32 bit integer stored in argument list or return value
  * @param index argument index or -1 for return value
@@ -181,6 +195,23 @@ UP_API ObjectHandle getCallError();
  * @return 1 on success, 0 on failure (use getCallError to get error string)
  */
 UP_API int call(MethodHandle, int argCount);
+
+/**
+ * @brief Hooks given method
+ * @param callback Name of function to call with arguments passed by game added instead when game calls given method
+ * @return 1 on success, 0 on failure (if method is already hooked or is invalid)
+ */
+UP_API int hook(MethodHandle, const char *callback);
+/**
+ * @brief Unhooks given method. MUST NOT be called inside hook for given method!
+ * @return 1 on success, 0 on failure (if method isn't hooked or is invalid)
+ */
+UP_API int unhook(MethodHandle);
+/**
+ * @brief Gets original method. MUST be called inside hook!
+ * @return Original method or bogus data if not called inside hook
+ */
+UP_API MethodHandle getOriginal();
 }
 
 #ifdef WASM
@@ -200,55 +231,69 @@ struct StringLiteral {
     }
 };
 
+WASMInterface::ObjectHandle createCsString() {
+    return WASMInterface::toCsStringWithLength(nullptr, 0);
+}
+
 void addArg(int32_t v) {
-    ::WASMInterface::addArgI32(v);
+    WASMInterface::addArgI32(v);
 }
 void addArg(int64_t v) {
-    ::WASMInterface::addArgI64(v);
+    WASMInterface::addArgI64(v);
 }
 void addArg(bool v) {
-    ::WASMInterface::addArgI32(v);
+    WASMInterface::addArgI32(v);
 }
 void addArg(float v) {
-    ::WASMInterface::addArgFloat(v);
+    WASMInterface::addArgFloat(v);
 }
 void addArg(double v) {
-    ::WASMInterface::addArgDouble(v);
+    WASMInterface::addArgDouble(v);
 }
-void addArg(::WASMInterface::ObjectHandle v) {
-    ::WASMInterface::addArgObject(v);
+void addArg(WASMInterface::ObjectHandle v) {
+    WASMInterface::addArgObject(v);
 }
 void addArg(decltype(nullptr)) {
-    ::WASMInterface::addArgNull();
+    WASMInterface::addArgNull();
 }
 
 template<typename T>
-T getReturnValue() = delete;
+T getArg(int idx) = delete;
 template<>
-void getReturnValue<void>() {}
+void getArg<void>(int idx) {}
 template<>
-int32_t getReturnValue<int32_t>() {
-    return ::WASMInterface::getValueI32();
+int32_t getArg<int32_t>(int idx) {
+    return WASMInterface::getValueI32(idx);
 }
 template<>
-int64_t getReturnValue<int64_t>() {
-    return::WASMInterface::getValueI64();
+int64_t getArg<int64_t>(int idx) {
+    return WASMInterface::getValueI64(idx);
 }
 template<>
-bool getReturnValue<bool>() {
-    return ::WASMInterface::getValueI32();
+bool getArg<bool>(int idx) {
+    return WASMInterface::getValueI32(idx);
 }
 template<>
-float getReturnValue<float>() {
-    return::WASMInterface::getValueFloat();
+float getArg<float>(int idx) {
+    return WASMInterface::getValueFloat(idx);
 }
 template<>
-double getReturnValue<double>() {
-    return ::WASMInterface::getValueDouble();
+double getArg<double>(int idx) {
+    return WASMInterface::getValueDouble(idx);
 }
 template<>
-::WASMInterface::ObjectHandle getReturnValue<::WASMInterface::ObjectHandle>() {
-    return ::WASMInterface::getValueObject();
+WASMInterface::ObjectHandle getArg<WASMInterface::ObjectHandle>(int idx) {
+    return WASMInterface::getValueObject(idx);
+}
+
+template<typename T>
+T getReturnValue() {
+    return getArg<T>(-1);
+}
+template<typename T>
+void setReturnValue(T v) {
+    addArg(v);
+    WASMInterface::setReturnValue();
 }
 
 inline void addArgs() {}
@@ -258,18 +303,38 @@ void addArgs(Arg0 arg0, Args... args) {
     addArgs(args...);
 }
 
+template<unsigned maxlen = 64>
+const char *getCString(WASMInterface::ObjectHandle str) {
+    static char buf[maxlen];
+    WASMInterface::toCString(str, buf, maxlen);
+    return buf;
+}
+
+WASMInterface::MethodHandle getMethod(const char *identifier) {
+    return WASMInterface::getMethodByIdentifier(identifier);
+}
+WASMInterface::MethodHandle getMethod(int64_t address) {
+    return WASMInterface::getMethodByAddress(address);
+}
+
+template<StringLiteral identifier>
+WASMInterface::MethodHandle getMethodCached() {
+    static WASMInterface::MethodHandle fres = WASMInterface::getMethodByIdentifier(identifier);
+    return fres;
+}
+
+bool call_error;
 template<StringLiteral identifier, typename returnT = void, typename... Args>
 returnT call(Args... args) {
-    ::WASMInterface::clearArgs();
-    static ::WASMInterface::MethodHandle methodIndex = ::WASMInterface::getMethodByIdentifier(identifier);
+    WASMInterface::clearArgs();
     addArgs(args...);
-    ::WASMInterface::call(methodIndex, ::WASMInterface::unknownArgCount);
+    call_error = !WASMInterface::call(getMethodCached<identifier>(), WASMInterface::unknownArgCount);
     return getReturnValue<returnT>();
 }
 
 namespace Literals {
-inline ::WASMInterface::ObjectHandle operator "" _cs(const char *str, size_t len) {
-    return ::WASMInterface::toCsStringWithLength(str, len);
+inline WASMInterface::ObjectHandle operator "" _cs(const char *str, size_t len) {
+    return WASMInterface::toCsStringWithLength(str, len);
 }
 }
 }

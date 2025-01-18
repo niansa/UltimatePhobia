@@ -2,16 +2,22 @@
 #include "global_state.hpp"
 #include "il2cpp_dynamic.hpp"
 #include "il2cpp_cppinterop.hpp"
-#include "generated/il2cpp.hpp"
+#include "game_hook.hpp"
+#include "wasm_loader.hpp"
+#include "mods/base.hpp"
 
 #include <map>
+#include <exception>
 
 
 
 namespace WASMInterface {
 namespace {
 std::map<ObjectHandle, void *> objects;
+
 ObjectHandle addObject(void *ptr) {
+    if (ptr == nullptr)
+        return 0;
     // Find empty handle ID
     static ObjectHandle last_id = 0;
     ObjectHandle fres = ++last_id;
@@ -54,23 +60,28 @@ void toCString(ObjectHandle str, char *buf, int maxlen) {
     Il2Cpp::CppInterop::ToCString(reinterpret_cast<System_String_o *>(getObject(str)), buf, maxlen);
 }
 
+namespace {
+void log(spdlog::level::level_enum level, ObjectHandle message) {
+    g.logger->log(level, "[{} (WASM)] {}", WASMLoader::WASMMod::getCurrent()->name, Il2Cpp::CppInterop::ToCppString(reinterpret_cast<System_String_o *>(getObject(message))));
+}
+}
 void logTrace(ObjectHandle message) {
-    g.logger->trace("{}", Il2Cpp::CppInterop::ToCppString(reinterpret_cast<System_String_o *>(getObject(message))));
+    log(spdlog::level::trace, message);
 }
 void logDebug(ObjectHandle message) {
-    g.logger->debug("{}", Il2Cpp::CppInterop::ToCppString(reinterpret_cast<System_String_o *>(getObject(message))));
+    log(spdlog::level::debug, message);
 }
 void logInfo(ObjectHandle message) {
-    g.logger->info("{}", Il2Cpp::CppInterop::ToCppString(reinterpret_cast<System_String_o *>(getObject(message))));
+    log(spdlog::level::info, message);
 }
 void logWarn(ObjectHandle message) {
-    g.logger->warn("{}", Il2Cpp::CppInterop::ToCppString(reinterpret_cast<System_String_o *>(getObject(message))));
+    log(spdlog::level::warn, message);
 }
 void logError(ObjectHandle message) {
-    g.logger->error("{}", Il2Cpp::CppInterop::ToCppString(reinterpret_cast<System_String_o *>(getObject(message))));
+    log(spdlog::level::err, message);
 }
 void logCritical(ObjectHandle message) {
-    g.logger->critical("{}", Il2Cpp::CppInterop::ToCppString(reinterpret_cast<System_String_o *>(getObject(message))));
+    log(spdlog::level::critical, message);
 }
 
 namespace Dynamic = Il2Cpp::Dynamic;
@@ -96,9 +107,7 @@ std::vector<void *> call_args;
 void *return_value;
 std::string call_error;
 
-void *getValue(int index) {
-    if (index < 0)
-        return return_value;
+void *getValue(unsigned index) {
     if (index > call_args.size())
         return nullptr;
     return call_args[index];
@@ -124,6 +133,25 @@ void addArgNull() {
 }
 void clearArgs() {
     call_args.clear();
+}
+int getArgCount() {
+    return call_args.size();
+}
+void setReturnValue() {
+    if (!call_args.empty()) {
+        return_value = call_args.back();
+        call_args.pop_back();
+    } else {
+        return_value = nullptr;
+    }
+}
+int moveArg(int index) {
+    unsigned u_index = index; // For some reason this generates less instructions than checking if (index < 0)
+    if (call_args.empty() || call_args.size() < u_index)
+        return false;
+    call_args[u_index] = call_args.back();
+    call_args.pop_back();
+    return true;
 }
 int32_t getValueI32(int index) {
     return reinterpret_cast<uintptr_t>(getValue(index));
@@ -171,7 +199,7 @@ int call(MethodHandle index, int argCount) {
     }
 
     // Check argument count
-    const auto actualArgCount = method.typeSignature.size() - 1;
+    const auto actualArgCount = method.getArgCount();
     if (argCount != actualArgCount) {
         call_error = fmt::format("Mismatched passed ({}) vs. actual ({}) arg count", argCount, actualArgCount);
         logBadCall();
@@ -207,5 +235,77 @@ int call(MethodHandle index, int argCount) {
 
     // Everything seems to have gone well
     return true;
+}
+
+namespace {
+struct WASMGameHookInfo {
+    std::unique_ptr<GameHook> hook;
+    ModInfo *modInfo;
+    std::string callback;
+};
+std::map<MethodHandle, WASMGameHookInfo> hooks;
+MethodHandle currentHookMethod;
+void *wasmHook(void *a, void *b, void *c, void *d, void *e, void *f) noexcept {
+    // Get method
+    const auto method = Dynamic::getMethod(GameHook::getTrampolineCaller());
+    if (!method.isValid()) {
+        g.logger->error("WASM GameHook interface encountered an invalid hook!");
+        return nullptr;
+    }
+    currentHookMethod = method.index;
+
+    // Get hook
+    auto res = hooks.find(currentHookMethod);
+    if (res == hooks.end()) {
+        g.logger->error("WASM GameHook interface encountered an unknown hook!");
+        return nullptr;
+    }
+    WASMGameHookInfo& hookInfo = res->second;
+
+    // Make sure mod is still loaded
+    if (!hookInfo.modInfo->isLoaded()) {
+        g.logger->error("WASM GameHook interface attempted to handle hook for unloaded mod!");
+        hooks.erase(method.index);
+        return nullptr;
+    }
+
+    // Set up argument list
+    call_args = {a, b, c, d, e, f};
+    call_args.resize(method.getArgCount());
+
+    // Call hook callback
+    try {
+        GameHookRelease GHR(*hooks.at(currentHookMethod).hook);
+        hookInfo.modInfo->get<WASMLoader::WASMMod>()->simpleCall(hookInfo.callback.c_str());
+        return return_value;
+    } catch (const std::exception& e) {
+        g.logger->error("Exception while executing WASM GameHook callback '{}': {}", hookInfo.callback, e.what());
+        return nullptr;
+    } catch (...) {
+        g.logger->error("Unknown exception while executing WASM GameHook callback '{}'!", hookInfo.callback);
+        return nullptr;
+    }
+}
+GAMEHOOK_TRAMPOLINE(wasmHook)
+}
+int hook(MethodHandle method, const char *callback) {
+    const auto methodInfo = Dynamic::getMethod(method);
+    if (!methodInfo.isValid())
+        return false;
+    if (methodInfo.getArgCount() > 6) {
+        g.logger->warn("WASM Mod attempted to hook function with more than 6 arguments (which is unsupported)");
+        return false;
+    }
+    return hooks.emplace(method, WASMGameHookInfo{
+                                                  std::make_unique<GameHook>(methodInfo.getFullAddress(), reinterpret_cast<void *>(hookTrampoline_wasmHook), true),
+                                                  WASMLoader::WASMMod::getCurrent(),
+                                                  callback
+                                 }).second;
+}
+int unhook(MethodHandle method) {
+    return hooks.erase(method);
+}
+MethodHandle getOriginal() {
+    return currentHookMethod;
 }
 }
