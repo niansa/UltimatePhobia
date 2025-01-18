@@ -11,17 +11,17 @@ using namespace Helpers::Literals;
 extern "C" {
 namespace {
 ObjectHandle buffer = createCsString();
-}
 
-static void append_buffer(ObjectHandle str) {
+void append_buffer(ObjectHandle str) {
     ObjectHandle new_buffer = call<"System_String_o* System_String__Concat (System_String_o* str0, System_String_o* str1, const MethodInfo* method);", ObjectHandle>(buffer, str, nullptr);
     dropObject(buffer);
     buffer = new_buffer;
 }
-static void flush_buffer() {
+void flush_buffer() {
     logInfo(buffer);
     dropObject(buffer);
     buffer = createCsString();
+}
 }
 
 void _putchar(char c) {
