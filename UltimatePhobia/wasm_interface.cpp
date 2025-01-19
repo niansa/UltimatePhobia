@@ -246,7 +246,7 @@ int call(MethodHandle index, int argCount) {
 
 namespace {
 struct WASMGameHookInfo {
-    std::unique_ptr<GameHook> hook;
+    std::shared_ptr<GameHook> hook;
     ModInfo *modInfo;
     std::string callback;
 };
@@ -268,6 +268,7 @@ void *wasmHook(void *a, void *b, void *c, void *d, void *e, void *f) noexcept {
         return nullptr;
     }
     WASMGameHookInfo& hookInfo = res->second;
+    auto hook = hookInfo.hook; // Prevents UB when hook is erased in callback
 
     // Make sure mod is still loaded
     if (!hookInfo.modInfo->isLoaded()) {
@@ -304,7 +305,7 @@ int hook(MethodHandle method, const char *callback) {
         return false;
     }
     return hooks.emplace(method, WASMGameHookInfo{
-                                                  std::make_unique<GameHook>(methodInfo.getFullAddress(), reinterpret_cast<void *>(hookTrampoline_wasmHook), true),
+                                                  std::make_shared<GameHook>(methodInfo.getFullAddress(), reinterpret_cast<void *>(hookTrampoline_wasmHook), true),
                                                   WASMLoader::WASMMod::getCurrent(),
                                                   callback
                                  }).second;
