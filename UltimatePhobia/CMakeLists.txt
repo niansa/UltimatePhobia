@@ -57,3 +57,8 @@ target_compile_definitions(UltimatePhobia PUBLIC _CRT_SECURE_NO_WARNINGS)
 if (ULTIMATEPHOBIA_CHEATS)
     target_compile_definitions(UltimatePhobia PRIVATE MOD_ENABLE_CHEATS)
 endif()
+
+add_custom_command(OUTPUT ${CMAKE_CURRENT_SOURCE_DIR}/generated/il2cpp.hpp ${CMAKE_CURRENT_SOURCE_DIR}/generated/il2cpp.cpp
+                   COMMAND python3 generate_data.py ../il2cpp_dump/script.json generated/ false generation_filter.json
+                   DEPENDS generate_data.py ../il2cpp_dump/script.json generation_filter.json
+                   WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})

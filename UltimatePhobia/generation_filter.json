@@ -1,0 +1,21 @@
+[
+    "System.String$$",
+    "System.Type$$",
+    "System.Activator$$",
+    "System.IO.",
+    "Photon.Pun.PhotonNetwork$$",
+    "Photon.Realtime.",
+    "ES3$$",
+    "ES3Internal.ES3Stream$$",
+    "UnityEngine.",
+    "SplashScreen$$",
+    "InventoryManager$$",
+    "PCPropGrab$$",
+    "Player$$",
+    "PlayerStamina$$",
+    "PlayerSanity$$",
+    "GhostAI$$",
+    "GhostActivity$$",
+    "Door$$",
+    "Key$$"
+]

@@ -3,19 +3,26 @@ from sys import exit
 import re
 import json
 
-if len(argv) < 3:
-    print(f"Usage: {argv[0]} <script.json file> <WASM mode?>")
+if len(argv) < 4:
+    print(f"Usage: {argv[0]} <script.json file> <output dir> <WASM mode?> [filter list]")
     exit(0)
 
 
+script_json = argv[1]
+output_dir = argv[2]
+wasm_mode = argv[3].lower() in ['true', '1', 't', 'y', 'yes', 'true', 'on']
+filter_list = None
+try:
+    filter_list = json.load(open(argv[4], "r"))
+except IndexError:
+    pass
 
-wasm_mode = argv[2].lower() in ['true', '1', 't', 'y', 'yes', 'true', 'on']
 if not wasm_mode:
-    output_hpp = open("generated/il2cpp.hpp", "w")
-    output_cpp = open("generated/il2cpp.cpp", "w")
+    output_hpp = open(output_dir+"/il2cpp.hpp", "w")
+    output_cpp = open(output_dir+"/il2cpp.cpp", "w")
 else:
-    output_hpp = open("generated/il2cpp_wasm.hpp", "w")
-    output_cpp = open("generated/il2cpp_wasm.cpp", "w")
+    output_hpp = open(output_dir+"/il2cpp_wasm.hpp", "w")
+    output_cpp = open(output_dir+"/il2cpp_wasm.cpp", "w")
 
 if not wasm_mode:
     method_pointer = "void *"
@@ -63,7 +70,7 @@ def get_full_name(namespace, name):
     return ".".join(namespace)+"$$"+name
 
 def is_blacklisted(namespace, name):
-    if name in ["_", "_object_object_", "ZeroMemory"]:
+    if name in ["_", "_object_object_", "ZeroMemory"] or "___________" in name:
         return True
     for v in namespace:
         if v in ["_", "___________", "____________object__object_"]:
@@ -94,11 +101,14 @@ else:
         return type_name.strip()
 
 print("Loading script.json...")
-script = json.load(open(argv[1], "r"))
+script = json.load(open(script_json, "r"))
 print("Collecting methods...")
 for method in script["ScriptMethod"]:
     raw_signature = method["Signature"]
     raw_name = method["Name"]
+    # Skip names not in filter list
+    if filter_list != None and not any(raw_name.startswith(v) for v in filter_list):
+        continue
     # Extract return type, name and arguments
     return_type, sig_name, arguments = raw_signature.split(' ', 2)
     if sig_name == "________________________":
@@ -163,7 +173,7 @@ for data in methods:
         continue
 
     # Ignore duplicate functions
-    identifier = f"{full_name}<{args_types}>"
+    identifier = f"{full_name}<{args_types_nomi}>"
     if identifier in dedup:
         continue
     dedup[identifier] = None
