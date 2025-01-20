@@ -72,6 +72,7 @@ WASMMod::WASMMod(const std::filesystem::path& wasmPath, ModInfo *modInfo, unsign
     i->module->link_optional("*", "call", call);
     i->module->link_optional("*", "hook", hook);
     i->module->link_optional("*", "unhook", unhook);
+    i->module->link_optional("*", "getOriginal", getOriginal);
     i->module->link_optional("*", "ImGuiBegin", ImGuiBegin);
     i->module->link_optional("*", "ImGuiEnd", ImGuiEnd);
     i->module->link_optional("*", "ImGuiText", ImGuiText);
