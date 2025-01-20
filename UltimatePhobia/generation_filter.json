@@ -13,7 +13,7 @@
     "PCPropGrab$$",
     "Player$$",
     "PlayerStamina$$",
-    "PlayerSanity$$",
+    "PlayerSanity$$Update",
     "GhostAI$$",
     "GhostActivity$$",
     "Door$$",

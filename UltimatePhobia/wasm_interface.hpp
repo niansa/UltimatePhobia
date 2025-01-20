@@ -208,6 +208,13 @@ UP_API int unhook(MethodHandle);
  * @return Original method or bogus data if not called inside hook
  */
 UP_API MethodHandle getOriginal();
+
+UP_API void ImGuiBegin(const char *name = "");
+UP_API void ImGuiEnd();
+UP_API void ImGuiText(MethodHandle text);
+UP_API void ImGuiCheckbox(const char *label, bool *v);
+UP_API void ImGuiSeparator();
+UP_API void ImGuiSeparatorText(const char *label);
 }
 
 #ifdef WASM

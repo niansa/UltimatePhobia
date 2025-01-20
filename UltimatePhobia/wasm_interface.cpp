@@ -8,6 +8,7 @@
 
 #include <map>
 #include <exception>
+#include <imgui.h>
 
 
 
@@ -316,4 +317,27 @@ int unhook(MethodHandle method) {
 MethodHandle getOriginal() {
     return currentHookMethod;
 }
+
+void ImGuiBegin(const char *name) {
+    ImGui::Begin(name);
+}
+
+void ImGuiEnd() {
+    ImGui::End();
+}
+
+void ImGuiText(MethodHandle text) {
+    ImGui::TextUnformatted(Il2Cpp::CppInterop::ToCppString(reinterpret_cast<System_String_o *>(getObject(text))).c_str());
+}
+
+void ImGuiCheckbox(const char *label, bool *v) {
+    ImGui::Checkbox(label, v);
+}
+void ImGuiSeparator() {
+    ImGui::Separator();
+}
+void ImGuiSeparatorText(const char *label) {
+    ImGui::SeparatorText(label);
+}
+
 }

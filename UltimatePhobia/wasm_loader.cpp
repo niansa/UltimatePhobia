@@ -72,7 +72,12 @@ WASMMod::WASMMod(const std::filesystem::path& wasmPath, ModInfo *modInfo, unsign
     i->module->link_optional("*", "call", call);
     i->module->link_optional("*", "hook", hook);
     i->module->link_optional("*", "unhook", unhook);
-    i->module->link_optional("*", "getOriginal", getOriginal);
+    i->module->link_optional("*", "ImGuiBegin", ImGuiBegin);
+    i->module->link_optional("*", "ImGuiEnd", ImGuiEnd);
+    i->module->link_optional("*", "ImGuiText", ImGuiText);
+    i->module->link_optional("*", "ImGuiCheckbox", ImGuiCheckbox);
+    i->module->link_optional("*", "ImGuiSeparator", ImGuiSeparator);
+    i->module->link_optional("*", "ImGuiSeparatorText", ImGuiSeparatorText);
 
     // Call init
     std::optional<wasm3::wasm_function> init;

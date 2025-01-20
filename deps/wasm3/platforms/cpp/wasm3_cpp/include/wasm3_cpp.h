@@ -70,7 +70,7 @@ namespace wasm3 {
         template<> struct m3_type_to_sig<const void *> : m3_sig<'*'> {};
         template<> struct m3_type_to_sig<char *> : m3_sig<'*'> {};
         template<> struct m3_type_to_sig<const char *> : m3_sig<'*'> {};
-
+        template<> struct m3_type_to_sig<bool *> : m3_sig<'*'> {};
 
         template<typename Ret, typename ... Args>
         struct m3_signature {
