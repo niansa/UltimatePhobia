@@ -140,7 +140,7 @@ void clearArgs() {
 int getArgCount() {
     return call_args.size();
 }
-int moveArg(int index) {
+WIBool moveArg(int index) {
     if (call_args.empty() || call_args.size() < index)
         return false;
     if (index >= 0) {
@@ -176,7 +176,7 @@ void logBadCall() {
     g.logger->warn("WebAssembly interface failed to call function: {}", call_error);
 }
 }
-int call(MethodHandle index, int argCount) {
+WIBool call(MethodHandle index, int argCount) {
     // Handle unknown argument count
     if (argCount == unknownArgCount)
         argCount = call_args.size();
@@ -297,7 +297,7 @@ void *wasmHook(void *a, void *b, void *c, void *d, void *e, void *f) noexcept {
 }
 GAMEHOOK_TRAMPOLINE(wasmHook)
 }
-int hook(MethodHandle method, const char *callback) {
+WIBool hook(MethodHandle method, const char *callback) {
     const auto methodInfo = Dynamic::getMethod(method);
     if (!methodInfo.isValid())
         return false;
@@ -311,7 +311,7 @@ int hook(MethodHandle method, const char *callback) {
                                                   callback
                                  }).second;
 }
-int unhook(MethodHandle method) {
+WIBool unhook(MethodHandle method) {
     return hooks.erase(method);
 }
 MethodHandle getOriginal() {
@@ -321,17 +321,17 @@ MethodHandle getOriginal() {
 void ImGuiBegin(const char *name) {
     ImGui::Begin(name);
 }
-
 void ImGuiEnd() {
     ImGui::End();
 }
-
 void ImGuiText(ObjectHandle text) {
     ImGui::TextUnformatted(Il2Cpp::CppInterop::ToCppString(reinterpret_cast<System_String_o *>(getObject(text))).c_str());
 }
-
 void ImGuiCheckbox(const char *label, bool *v) {
     ImGui::Checkbox(label, v);
+}
+WIBool ImGuiButton(const char *label) {
+    return ImGui::Button(label);
 }
 void ImGuiSeparator() {
     ImGui::Separator();

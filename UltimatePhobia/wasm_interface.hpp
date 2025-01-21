@@ -23,6 +23,7 @@ enum class MethodHandle : int {
 using ObjectHandle = int;
 using MethodHandle = int;
 #endif
+using WIBool = int;
 constexpr int unknownArgCount = 0x6D616E63;
 
 /**
@@ -154,7 +155,7 @@ UP_API int getArgCount();
  * @param index New argument index or negative value to replace return value
  * @return 1 on success, 0 on error (if argument list empty or index out of range)
  */
-UP_API int moveArg(int index);
+UP_API WIBool moveArg(int index);
 /**
  * @brief Gets 32 bit integer stored in argument list or return value
  * @param index argument index or -1 for return value
@@ -190,19 +191,19 @@ UP_API ObjectHandle getCallError();
  * @param argCount Amount of arguments previously added (optional, may be unknownArgCount)
  * @return 1 on success, 0 on failure (use getCallError to get error string)
  */
-UP_API int call(MethodHandle, int argCount);
+UP_API WIBool call(MethodHandle, int argCount);
 
 /**
  * @brief Hooks given method
  * @param callback Name of function to call with arguments passed by game added instead when game calls given method
  * @return 1 on success, 0 on failure (if method is already hooked or is invalid)
  */
-UP_API int hook(MethodHandle, const char *callback);
+UP_API WIBool hook(MethodHandle, const char *callback);
 /**
  * @brief Unhooks given method. MUST NOT be called inside hook for given method!
  * @return 1 on success, 0 on failure (if method isn't hooked or is invalid)
  */
-UP_API int unhook(MethodHandle);
+UP_API WIBool unhook(MethodHandle);
 /**
  * @brief Gets original method. MUST be called inside hook!
  * @return Original method or bogus data if not called inside hook
@@ -213,6 +214,7 @@ UP_API void ImGuiBegin(const char *name = "");
 UP_API void ImGuiEnd();
 UP_API void ImGuiText(ObjectHandle text);
 UP_API void ImGuiCheckbox(const char *label, bool *v);
+UP_API WIBool ImGuiButton(const char *label);
 UP_API void ImGuiSeparator();
 UP_API void ImGuiSeparatorText(const char *label);
 }

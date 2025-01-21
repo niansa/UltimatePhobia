@@ -77,6 +77,7 @@ WASMMod::WASMMod(const std::filesystem::path& wasmPath, ModInfo *modInfo, unsign
     i->module->link_optional("*", "ImGuiEnd", ImGuiEnd);
     i->module->link_optional("*", "ImGuiText", ImGuiText);
     i->module->link_optional("*", "ImGuiCheckbox", ImGuiCheckbox);
+    i->module->link_optional("*", "ImGuiButton", ImGuiButton);
     i->module->link_optional("*", "ImGuiSeparator", ImGuiSeparator);
     i->module->link_optional("*", "ImGuiSeparatorText", ImGuiSeparatorText);
 
