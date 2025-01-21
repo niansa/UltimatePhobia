@@ -326,7 +326,7 @@ void ImGuiEnd() {
     ImGui::End();
 }
 
-void ImGuiText(MethodHandle text) {
+void ImGuiText(ObjectHandle text) {
     ImGui::TextUnformatted(Il2Cpp::CppInterop::ToCppString(reinterpret_cast<System_String_o *>(getObject(text))).c_str());
 }
 
@@ -339,5 +339,4 @@ void ImGuiSeparator() {
 void ImGuiSeparatorText(const char *label) {
     ImGui::SeparatorText(label);
 }
-
 }

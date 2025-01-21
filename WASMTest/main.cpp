@@ -51,6 +51,10 @@ void onUiUpdate() {
     } else if (useBoxCountDown > 0) {
         --useBoxCountDown;
     }
+
+    ImGuiBegin("WebAssembly Test Mod");
+    ImGuiText("Hello World through ImGui"_cs);
+    ImGuiEnd();
 }
 
 
