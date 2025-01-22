@@ -339,4 +339,11 @@ void ImGuiSeparator() {
 void ImGuiSeparatorText(const char *label) {
     ImGui::SeparatorText(label);
 }
+
+void abort(const char *message, const char *filename, int lineNumber, int columnNumber) {
+    auto modInfo = WASMLoader::WASMMod::getCurrent();
+    g.logger->critical("WebAssembly module {} has called abort()!\n - Message: {}\n - Filename: {}\n - Line: {}\n - Column: {}", modInfo->name, message?message:"none", filename?filename:"unknown", lineNumber, columnNumber);
+    g.logger->flush();
+    ::abort();
+}
 }

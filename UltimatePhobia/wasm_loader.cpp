@@ -80,6 +80,7 @@ WASMMod::WASMMod(const std::filesystem::path& wasmPath, ModInfo *modInfo, unsign
     i->module->link_optional("*", "ImGuiButton", ImGuiButton);
     i->module->link_optional("*", "ImGuiSeparator", ImGuiSeparator);
     i->module->link_optional("*", "ImGuiSeparatorText", ImGuiSeparatorText);
+    i->module->link_optional("*", "abort", WASMInterface::abort);
 
     // Call init
     std::optional<wasm3::wasm_function> init;

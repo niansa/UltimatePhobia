@@ -34,7 +34,7 @@ UP_API void dropObject(ObjectHandle);
  * @brief Check if given handle is a valid C# object
  * @return 1 if handle is valid, otherwise 0
  */
-UP_API int isValidObject(ObjectHandle);
+UP_API WIBool isValidObject(ObjectHandle);
 /**
  * @return C# null object (0 handle)
  */
@@ -217,6 +217,8 @@ UP_API void ImGuiCheckbox(const char *label, bool *v);
 UP_API WIBool ImGuiButton(const char *label);
 UP_API void ImGuiSeparator();
 UP_API void ImGuiSeparatorText(const char *label);
+
+UP_API void abort(const char *message, const char *filename, int lineNumber, int columnNumber);
 }
 
 #ifdef WASM
