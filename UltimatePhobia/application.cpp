@@ -114,8 +114,7 @@ void Application::update() {
         using namespace ImGui;
         Begin("Mod manager");
 
-        static unsigned counter = 0;
-        Text("Frame %u", counter++);
+        Text("%f FPS", ImGui::GetIO().Framerate);
         NewLine();
 
         for (const auto mod : mods) {
