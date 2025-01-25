@@ -7,6 +7,8 @@
 
 namespace Il2Cpp::CppInterop {
 System_String_o *ToCsString(std::string_view str) {
+    if (str == "<null>")
+        return nullptr;
     return Il2Cpp::System::String::CreateString(nullptr, const_cast<signed char *>(reinterpret_cast<const signed char *>(str.data())), 0, str.size());
 }
 
