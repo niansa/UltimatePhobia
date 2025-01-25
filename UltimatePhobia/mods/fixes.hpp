@@ -17,6 +17,7 @@ class Fixes final : public Mod {
     bool isSceneFixed();
     void markSceneFixed();
     void sceneFix();
+    void playerFix();
 
 public:
     Fixes();

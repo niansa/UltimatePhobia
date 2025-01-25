@@ -50,12 +50,16 @@ void Fixes::sceneFix() {
     // Do fixups
     g.logger->info("Fixing scene...");
     fixDestroy("/_House/_Second Floor/_Girls Bedroom/_Lighting/floor lamp (1)");
+}
+
+void Fixes::playerFix() {
     fixPlayerController(globalInstanceManagerInfo.get<GlobalInstanceManager>()->player);
 }
 
 void Fixes::uiUpdate() {
     if (!isSceneFixed())
         sceneFix();
+    playerFix();
 }
 
 
