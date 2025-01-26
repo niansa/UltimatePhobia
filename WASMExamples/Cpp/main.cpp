@@ -1,8 +1,8 @@
 #include <stdio.h>
 #include <wasm32sdk.h>
-#include "wasm_interface.hpp"
+#include "ffi_interface.hpp"
 
-using namespace WASMInterface;
+using namespace FFIInterface;
 using namespace Helpers;
 using namespace Helpers::Literals;
 

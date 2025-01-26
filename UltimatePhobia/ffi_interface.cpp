@@ -1,4 +1,4 @@
-#include "wasm_interface.hpp"
+#include "ffi_interface.hpp"
 #include "global_state.hpp"
 #include "il2cpp_dynamic.hpp"
 #include "il2cpp_cppinterop.hpp"
@@ -12,7 +12,7 @@
 
 
 
-namespace WASMInterface {
+namespace FFIInterface {
 namespace {
 std::map<ObjectHandle, void *> objects;
 

@@ -1,8 +1,8 @@
-#include "wasm_interface.hpp"
+#include "ffi_interface.hpp"
 
 #include <user-impl.h>
 
-using namespace WASMInterface;
+using namespace FFIInterface;
 using namespace Helpers;
 using namespace Helpers::Literals;
 

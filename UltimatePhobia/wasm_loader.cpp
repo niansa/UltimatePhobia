@@ -1,6 +1,6 @@
 #include "wasm_loader.hpp"
 #include "global_state.hpp"
-#include "wasm_interface.hpp"
+#include "ffi_interface.hpp"
 
 #include <string>
 #include <fstream>
@@ -38,7 +38,7 @@ WASMMod::WASMMod(const std::filesystem::path& wasmPath, ModInfo *modInfo, unsign
     i->runtime.load(*i->module);
 
     // Set up bindings
-    using namespace WASMInterface;
+    using namespace FFIInterface;
     i->module->link_optional("*", "dropObject", dropObject);
     i->module->link_optional("*", "isValidObject", isValidObject);
     i->module->link_optional("*", "toCsString", toCsString);
@@ -80,7 +80,7 @@ WASMMod::WASMMod(const std::filesystem::path& wasmPath, ModInfo *modInfo, unsign
     i->module->link_optional("*", "ImGuiButton", ImGuiButton);
     i->module->link_optional("*", "ImGuiSeparator", ImGuiSeparator);
     i->module->link_optional("*", "ImGuiSeparatorText", ImGuiSeparatorText);
-    i->module->link_optional("*", "abort", WASMInterface::abort);
+    i->module->link_optional("*", "abort", FFIInterface::abort);
 
     // Call init
     std::optional<wasm3::wasm_function> init;

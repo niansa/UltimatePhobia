@@ -3,15 +3,23 @@
 #include <stdint.h>
 #include <stddef.h>
 
-#ifdef WASM
-#define UP_API WASM_IMPORT
-#else
-#define UP_API
+#ifndef FFI_EXT
+#   if defined(WASM)
+#      define FFI_EXT
+#   endif
+#endif
+
+#ifndef UP_API
+#   ifdef WASM
+#       define UP_API WASM_IMPORT
+#   else
+#       define UP_API
+#   endif
 #endif
 
 
-namespace WASMInterface {
-#ifdef WASM
+namespace FFIInterface {
+#ifdef FFI_EXT
 enum class ObjectHandle : int {
     Null = 0,
     Invalid = -1
@@ -221,7 +229,7 @@ UP_API void ImGuiSeparatorText(const char *label);
 UP_API void abort(const char *message, const char *filename, int lineNumber, int columnNumber);
 }
 
-#ifdef WASM
+#ifdef FFI_EXT
 namespace Helpers {
 namespace {
 template<size_t N>
@@ -238,30 +246,30 @@ struct StringLiteral {
     }
 };
 
-WASMInterface::ObjectHandle createCsString() {
-    return WASMInterface::toCsStringWithLength(nullptr, 0);
+FFIInterface::ObjectHandle createCsString() {
+    return FFIInterface::toCsStringWithLength(nullptr, 0);
 }
 
 void addArg(int32_t v) {
-    WASMInterface::addArgI32(v);
+    FFIInterface::addArgI32(v);
 }
 void addArg(int64_t v) {
-    WASMInterface::addArgI64(v);
+    FFIInterface::addArgI64(v);
 }
 void addArg(bool v) {
-    WASMInterface::addArgI32(v);
+    FFIInterface::addArgI32(v);
 }
 void addArg(float v) {
-    WASMInterface::addArgFloat(v);
+    FFIInterface::addArgFloat(v);
 }
 void addArg(double v) {
-    WASMInterface::addArgDouble(v);
+    FFIInterface::addArgDouble(v);
 }
-void addArg(WASMInterface::ObjectHandle v) {
-    WASMInterface::addArgObject(v);
+void addArg(FFIInterface::ObjectHandle v) {
+    FFIInterface::addArgObject(v);
 }
 void addArg(decltype(nullptr)) {
-    WASMInterface::addArgNull();
+    FFIInterface::addArgNull();
 }
 
 template<typename T>
@@ -270,27 +278,27 @@ template<>
 void getArg<void>(int idx) {}
 template<>
 int32_t getArg<int32_t>(int idx) {
-    return WASMInterface::getValueI32(idx);
+    return FFIInterface::getValueI32(idx);
 }
 template<>
 int64_t getArg<int64_t>(int idx) {
-    return WASMInterface::getValueI64(idx);
+    return FFIInterface::getValueI64(idx);
 }
 template<>
 bool getArg<bool>(int idx) {
-    return WASMInterface::getValueI32(idx);
+    return FFIInterface::getValueI32(idx);
 }
 template<>
 float getArg<float>(int idx) {
-    return WASMInterface::getValueFloat(idx);
+    return FFIInterface::getValueFloat(idx);
 }
 template<>
 double getArg<double>(int idx) {
-    return WASMInterface::getValueDouble(idx);
+    return FFIInterface::getValueDouble(idx);
 }
 template<>
-WASMInterface::ObjectHandle getArg<WASMInterface::ObjectHandle>(int idx) {
-    return WASMInterface::getValueObject(idx);
+FFIInterface::ObjectHandle getArg<FFIInterface::ObjectHandle>(int idx) {
+    return FFIInterface::getValueObject(idx);
 }
 
 template<typename T>
@@ -300,7 +308,7 @@ T getReturnValue() {
 template<typename T>
 void setReturnValue(T v) {
     addArg(v);
-    WASMInterface::moveArg(-1);
+    FFIInterface::moveArg(-1);
 }
 
 inline void addArgs() {}
@@ -311,37 +319,37 @@ void addArgs(Arg0 arg0, Args... args) {
 }
 
 template<unsigned maxlen = 64>
-const char *getCString(WASMInterface::ObjectHandle str) {
+const char *getCString(FFIInterface::ObjectHandle str) {
     static char buf[maxlen];
-    WASMInterface::toCString(str, buf, maxlen);
+    FFIInterface::toCString(str, buf, maxlen);
     return buf;
 }
 
-WASMInterface::MethodHandle getMethod(const char *identifier) {
-    return WASMInterface::getMethodByIdentifier(identifier);
+FFIInterface::MethodHandle getMethod(const char *identifier) {
+    return FFIInterface::getMethodByIdentifier(identifier);
 }
-WASMInterface::MethodHandle getMethod(int64_t address) {
-    return WASMInterface::getMethodByAddress(address);
+FFIInterface::MethodHandle getMethod(int64_t address) {
+    return FFIInterface::getMethodByAddress(address);
 }
 
 template<StringLiteral identifier>
-WASMInterface::MethodHandle getMethodCached() {
-    static WASMInterface::MethodHandle fres = WASMInterface::getMethodByIdentifier(identifier);
+FFIInterface::MethodHandle getMethodCached() {
+    static FFIInterface::MethodHandle fres = FFIInterface::getMethodByIdentifier(identifier);
     return fres;
 }
 
 bool call_error;
 template<StringLiteral identifier, typename returnT = void, typename... Args>
 returnT call(Args... args) {
-    WASMInterface::clearArgs();
+    FFIInterface::clearArgs();
     addArgs(args...);
-    call_error = !WASMInterface::call(getMethodCached<identifier>(), WASMInterface::unknownArgCount);
+    call_error = !FFIInterface::call(getMethodCached<identifier>(), FFIInterface::unknownArgCount);
     return getReturnValue<returnT>();
 }
 
 namespace Literals {
-inline WASMInterface::ObjectHandle operator "" _cs(const char *str, size_t len) {
-    return WASMInterface::toCsStringWithLength(str, len);
+inline FFIInterface::ObjectHandle operator "" _cs(const char *str, size_t len) {
+    return FFIInterface::toCsStringWithLength(str, len);
 }
 }
 }
