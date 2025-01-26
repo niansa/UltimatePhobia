@@ -99,14 +99,14 @@ void player$$OnDisableFnc(Player_o *__this, const MethodInfo *method) {
 
 
 PlayerManager::PlayerManager()
-    : player$$UpdateHook(
+    : player$$UpdateHook(GameHook::safeCreateOrPanic(playerManagerInfo,
           Il2Cpp::Player::Update_getPtr(),
           reinterpret_cast<void*>(player$$UpdateFnc)
-          )
-    , player$$OnDisableHook(
+          ))
+    , player$$OnDisableHook(GameHook::safeCreateOrPanic(playerManagerInfo,
           Il2Cpp::Player::OnDisable_getPtr(),
           reinterpret_cast<void*>(player$$OnDisableFnc)
-          ) {}
+          )) {}
 
 PlayerManager::~PlayerManager() {
     for (auto [player, gameObject] : trackedPlayers)

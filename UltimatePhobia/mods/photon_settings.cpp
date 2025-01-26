@@ -38,10 +38,10 @@ static bool photonNetwork$$ConnectUsingSettingsFnc(Photon_Realtime_AppSettings_o
 
 
 PhotonSettings::PhotonSettings()
-    : photonNetwork$$ConnectUsingSettingsHook(
+    : photonNetwork$$ConnectUsingSettingsHook(GameHook::safeCreateOrPanic(photonSettingsInfo,
           Il2Cpp::Photon::Pun::PhotonNetwork::ConnectUsingSettings_getPtr<Photon_Realtime_AppSettings_o *, bool>(),
           reinterpret_cast<void*>(photonNetwork$$ConnectUsingSettingsFnc)
-          ) {
+          )) {
     memset(&settings, 0, sizeof(settings));
 }
 

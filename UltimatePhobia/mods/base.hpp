@@ -3,17 +3,12 @@
 #include "global_state.hpp"
 
 #include <string>
+#include <string_view>
 #include <functional>
 #include <memory>
 
 
-class Mod {
-public:
-    Mod() {}
-    virtual ~Mod() {}
-
-    virtual void uiUpdate() {}
-};
+class Mod;
 
 struct ModInfo {
     const std::string name;
@@ -43,4 +38,31 @@ struct ModInfo {
             load();
         return dynamic_cast<ModT*>(instance.get());
     }
+};
+
+class ModPanic {
+    // This class isn't inherited from std::exception on purpose so it can't accidentally be caught through generic std::exception handlers
+    ModInfo& mod;
+    std::string msg;
+
+public:
+    ModPanic(ModInfo& mod, std::string_view msg) : mod(mod), msg(msg) {}
+    ~ModPanic() {
+        // Unload mod after exception has been handled
+        mod.unload();
+    }
+    const char *where() const {
+        return mod.name.c_str();
+    }
+    const char *what() const {
+        return msg.c_str();
+    }
+};
+
+class Mod {
+public:
+    Mod() {}
+    virtual ~Mod() {}
+
+    virtual void uiUpdate() {}
 };

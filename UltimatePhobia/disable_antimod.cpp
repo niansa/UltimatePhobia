@@ -10,9 +10,9 @@
 #include <windows.h>
 
 
-GameHook *file$$ExistsHook,
-         *directory$$ExistsHook,
-         *path$$GetFileNameHook;
+std::optional<GameHook> file$$ExistsHook,
+                        directory$$ExistsHook,
+                        path$$GetFileNameHook;
 
 
 static void fixPath(std::string& path) {
@@ -54,11 +54,11 @@ static void *tryCheckFnc(System_String_o *path, const MethodInfo *method) {
     GameHook *hook;
     void *caller = GameHook::getTrampolineCaller();
     if (caller == file$$ExistsHook->getAddr())
-        hook = file$$ExistsHook;
+        hook = &*file$$ExistsHook;
     if (caller == directory$$ExistsHook->getAddr())
-        hook = directory$$ExistsHook;
+        hook = &*directory$$ExistsHook;
     if (caller == path$$GetFileNameHook->getAddr())
-        hook = path$$GetFileNameHook;
+        hook = &*path$$GetFileNameHook;
     GameHookRelease GHR(*hook);
     return hook->getFunction<decltype(tryCheckFnc)>()
         (path, method);
@@ -85,11 +85,11 @@ void disableAntiMod() {
     g.logger->info("Disabling mod detection...");
 
     using namespace Il2Cpp;
-    file$$ExistsHook = new GameHook(System::IO::File::Exists_getPtr(), reinterpret_cast<void *>(hookTrampoline_tryCheckFnc), true);
+    GameHook::safeCreate(file$$ExistsHook, System::IO::File::Exists_getPtr(), reinterpret_cast<void *>(hookTrampoline_tryCheckFnc), true);
 
-    directory$$ExistsHook = new GameHook(System::IO::Directory::Exists_getPtr(), reinterpret_cast<void *>(hookTrampoline_tryCheckFnc), true);
+    GameHook::safeCreate(directory$$ExistsHook, System::IO::Directory::Exists_getPtr(), reinterpret_cast<void *>(hookTrampoline_tryCheckFnc), true);
 
-    path$$GetFileNameHook = new GameHook(System::IO::Path::GetFileName_getPtr(), reinterpret_cast<void *>(hookTrampoline_tryCheckFnc), true);
+    GameHook::safeCreate(path$$GetFileNameHook, System::IO::Path::GetFileName_getPtr(), reinterpret_cast<void *>(hookTrampoline_tryCheckFnc), true);
 
     DetoursTransaction DT;
     DetourAttach(&reinterpret_cast<PVOID&>(getModuleHandleOrig), reinterpret_cast<void*>(getModuleHandleFnc));

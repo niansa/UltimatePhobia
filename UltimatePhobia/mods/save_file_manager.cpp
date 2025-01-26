@@ -40,10 +40,10 @@ static System_IO_Stream_o *es3Stream$$CreateStreamFnc(System_IO_Stream_o* stream
 
 
 SaveFileManager::SaveFileManager()
-    : es3Stream$$CreateStreamHook(
+    : es3Stream$$CreateStreamHook(GameHook::safeCreateOrPanic(saveFileManagerInfo,
           Il2Cpp::ES3Internal::ES3Stream::CreateStream_getPtr<System_IO_Stream_o *, ES3Settings_o *, int32_t>(),
           reinterpret_cast<void*>(es3Stream$$CreateStreamFnc)
-          ) {}
+          )) {}
 
 void SaveFileManager::uiUpdate() {
     using namespace ImGui;

@@ -36,8 +36,10 @@ struct ApplicationHooks {
             currentApplication->update();
         } catch (const std::exception& e) {
             g.logger->error("Exception in main loop: {}", e.what());
+        } catch (const ModPanic& e) {
+            g.logger->error("Mod '{}' has panicked: {}", e.where(), e.what());
         } catch (...) {
-            g.logger->error("Unknown exception in main loop");
+            g.logger->error("Unknown exception (maybe C# exception?) in main loop");
         }
         GameHookRelease GHR(*appUpdateHook);
         appUpdateHook->getFunction<decltype(ApplicationHooks::appUpdateFnc)>()(__this, method);
@@ -63,12 +65,12 @@ Application::Application() {
     };
 
     g.logger->info("Waiting for game start...");
-    ApplicationHooks::splashScreenCtorHook.emplace(Il2Cpp::SplashScreen::_ctor_getPtr(), ApplicationHooks::splashScreenCtorFnc);
+    GameHook::safeCreate(ApplicationHooks::splashScreenCtorHook, Il2Cpp::SplashScreen::_ctor_getPtr(), reinterpret_cast<void *>(ApplicationHooks::splashScreenCtorFnc));
 }
 
 void Application::init() {
     g.logger->info("Starting to listen for local player updates...");
-    ApplicationHooks::appUpdateHook.emplace(Il2Cpp::PlayerSanity::Update_getPtr(), ApplicationHooks::appUpdateFnc);
+    GameHook::safeCreate(ApplicationHooks::appUpdateHook, Il2Cpp::PlayerSanity::Update_getPtr(), reinterpret_cast<void *>(ApplicationHooks::appUpdateFnc));
 
     g.logger->info("Calling onAppStart functions...");
     for (auto& mod : mods) {

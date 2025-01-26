@@ -1,5 +1,6 @@
 #include "game_hook.hpp"
 #include "global_state.hpp"
+#include "mods/base.hpp"
 
 #include <array>
 #include <cstring>
@@ -30,6 +31,36 @@ GameHook::GameHook(void *fnc, void *hook, bool useTrampoline)
 
     // Initial hook "restore"
     restore();
+}
+
+std::optional<GameHook> GameHook::safeCreate(void *fnc, void *hook, bool useTrampoline) {
+    std::optional<GameHook> fres;
+    safeCreate(fres, fnc, hook, useTrampoline);
+    return fres;
+}
+
+void GameHook::safeCreate(std::optional<GameHook>& fres, void *fnc, void *hook, bool useTrampoline) {
+    fres.reset();
+    if (isHookAt(fnc)) {
+        g.logger->warn("Prevented safe hook creation because target function already has a hook set");
+        return;
+    }
+    GameHook maybeFres(fnc, hook, useTrampoline);
+    if (maybeFres.isActive())
+        fres.emplace(std::move(maybeFres));
+    else
+        g.logger->warn("Prevented safe hook creation because hook failed to set initialize");
+}
+
+GameHook GameHook::safeCreateOrPanic(ModInfo& mod, void *fnc, void *hook, bool useTrampoline) {
+    auto fres = safeCreate(fnc, hook, useTrampoline);
+    if (!fres.has_value())
+        throw ModPanic(mod, fmt::format("Failed to set mandatory hook at {}"));
+    return std::move(*fres);
+}
+
+GameHook GameHook::unsafeCreate(void *fnc, void *hook, bool useTrampoline) {
+    return GameHook(fnc, hook, useTrampoline);
 }
 
 void *GameHook::getTrampolineCaller() {
@@ -70,7 +101,7 @@ void *GameHook::getHookAt(void *fnc) {
 }
 
 bool GameHook::release() {
-    // Restore original data
+    // Restore original datadelete
     SIZE_T writ = 0;
     WriteProcessMemory(GetCurrentProcess(), fnc, original.data(), original_len, &writ);
 

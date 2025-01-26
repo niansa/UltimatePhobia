@@ -305,8 +305,11 @@ WIBool hook(MethodHandle method, const char *callback) {
         g.logger->warn("WASM Mod attempted to hook function with more than 6 arguments (which is unsupported)");
         return false;
     }
+    auto hook = GameHook::safeCreate(methodInfo.getFullAddress(), reinterpret_cast<void *>(hookTrampoline_wasmHook), true);
+    if (!hook.has_value())
+        return false;
     return hooks.emplace(method, WASMGameHookInfo{
-                                                  std::make_shared<GameHook>(methodInfo.getFullAddress(), reinterpret_cast<void *>(hookTrampoline_wasmHook), true),
+                                                  std::make_shared<GameHook>(std::move(*hook)),
                                                   WASMLoader::WASMMod::getCurrent(),
                                                   callback
                                  }).second;

@@ -21,9 +21,24 @@ std::string utf8Encode(std::wstring_view wstr) {
 
 void hookToggle(const char *description, std::optional<GameHook>& hook, bool& boolean, void *method, void *hookFnc) {
     if (ImGui::Checkbox(description, &boolean)) {
-        if (boolean)
-            hook.emplace(method, hookFnc);
-        else
+        if (boolean) {
+            auto hook = GameHook::safeCreate(method, hookFnc);
+            if (!hook.has_value()) {
+                boolean = false;
+                return;
+            }
+            hook.emplace(GameHook(std::move(*hook)));
+        } else {
             hook.reset();
+        }
+    }
+}
+
+void hookToggle(const char *description, GameHookPool& hookPool, bool& boolean, void *method, void *hookFnc) {
+    if (ImGui::Checkbox(description, &boolean)) {
+        if (boolean)
+            boolean = hookPool.add(method, hookFnc) != nullptr;
+        else
+            hookPool.remove(hookPool.get(method));
     }
 }

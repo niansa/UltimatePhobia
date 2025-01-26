@@ -1,6 +1,13 @@
 #pragma once
 
+#include "global_state.hpp"
+#include "mods/base.hpp"
+
+#include <vector>
 #include <array>
+#include <memory>
+#include <algorithm>
+#include <optional>
 #include <cstdint>
 
 
@@ -20,16 +27,27 @@ class GameHook {
     bool release();
     bool restore();
 
+    GameHook(void *fnc, void *hook, bool useTrampoline = false);
+
 public:
     static void noop();
 
-    GameHook(void *fnc, void *hook, bool useTrampoline = false);
-    ~GameHook() {release();}
+    ~GameHook() {if (!released) release();}
     GameHook(const GameHook&) = delete;
-    GameHook(GameHook&&) = delete;
+    GameHook(GameHook&& o)
+        : fnc(o.fnc), hook(o.hook), use2NdTrampoline(o.use2NdTrampoline), original(o.original), released(o.released) {
+        o.released = true;
+    }
 
+    static std::optional<GameHook> safeCreate(void *fnc, void *hook, bool useTrampoline = false);
+    static void safeCreate(std::optional<GameHook>& fres, void *fnc, void *hook, bool useTrampoline = false);
+    static GameHook safeCreateOrPanic(ModInfo& mod, void *fnc, void *hook, bool useTrampoline = false);
+    static GameHook unsafeCreate(void *fnc, void *hook, bool useTrampoline = false);
     static void *getTrampolineCaller();
     static void *getHookAt(void *fnc);
+    static inline bool isHookAt(void *fnc) {
+        return getHookAt(fnc) != nullptr;
+    }
 
     void *getAddr() const {
         return fnc;
@@ -57,6 +75,35 @@ public:
 
     bool isValid() const {
         return active;
+    }
+};
+
+class GameHookPool {
+    std::vector<std::shared_ptr<GameHook>> hooks;
+
+public:
+    template<typename fncT>
+    std::shared_ptr<GameHook> add(void *fnc, fncT *hook, bool useTrampoline = false) {
+        if (get(fnc) != nullptr) {
+            g.logger->warn("Not adding function to hook pool more than once");
+            return nullptr;
+        }
+        auto fres = GameHook::safeCreate(fnc, reinterpret_cast<void *>(hook), useTrampoline);
+        if (!fres.has_value() || !fres->isActive())
+            return nullptr;
+        return hooks.emplace_back(std::make_shared<GameHook>(std::move(*fres)));
+    }
+    std::shared_ptr<GameHook> get(void *fnc) {
+        for (auto& hook : hooks) {
+            if (hook->getAddr() == fnc)
+                return hook;
+        }
+        return nullptr;
+    }
+    void remove(const std::shared_ptr<GameHook>& hook) {
+        if (hook == nullptr)
+            return;
+        hooks.erase(std::remove(hooks.begin(), hooks.end(), hook), hooks.end());
     }
 };
 

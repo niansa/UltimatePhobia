@@ -14,5 +14,5 @@ void splashScreen$$AwakeFnc(SplashScreen_o* __this, const MethodInfo* method) {
 
 void disableSplashscreen() {
     g.logger->info("Disabling splash screen...");
-    new GameHook(Il2Cpp::SplashScreen::Awake_getPtr(), reinterpret_cast<void *>(splashScreen$$AwakeFnc));
+    static auto hook = GameHook::safeCreate(Il2Cpp::SplashScreen::Awake_getPtr(), reinterpret_cast<void *>(splashScreen$$AwakeFnc));
 }

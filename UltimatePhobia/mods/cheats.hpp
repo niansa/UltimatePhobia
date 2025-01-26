@@ -4,7 +4,6 @@
 #include "game_hook.hpp"
 #include "game_enums.hpp"
 
-#include <optional>
 #include <queue>
 
 
@@ -22,14 +21,7 @@ class Cheats final : public Mod {
 public:
     std::queue<GhostState> ghostStateQueue;
 
-    std::optional<GameHook> playerStamina$$StartDrainingHook,
-                            ghost$$UpdateHook,
-                            player$$StartKillingPlayerHook,
-                            ghostAI$$ChangeStateHook,
-                            key$$StartHook,
-                            door$$UpdateHook,
-                            inventoryManager$$RemoveItemsFromInventoryHook,
-                            pcPropGrab$$PlayerDiedHook;
+    GameHookPool hooks;
 
     void uiUpdate() override;
 

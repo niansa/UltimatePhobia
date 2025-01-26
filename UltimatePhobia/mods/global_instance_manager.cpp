@@ -6,7 +6,7 @@
 
 static void player$$StartFnc(Player_o* __this, const MethodInfo* method) {
     const auto self = globalInstanceManagerInfo.get<GlobalInstanceManager>();
-    auto& hook = self->player$$StartHook.value();
+    auto& hook = self->player$$StartHook;
     GameHookRelease GHR(hook);
     hook.getFunction<decltype(player$$StartFnc)>()(__this, method);
     self->player = __this;
@@ -14,17 +14,17 @@ static void player$$StartFnc(Player_o* __this, const MethodInfo* method) {
 
 static void ghostAI$$StartFnc(GhostAI_o* __this, const MethodInfo* method) {
     const auto self = globalInstanceManagerInfo.get<GlobalInstanceManager>();
-    auto& hook = self->ghostAI$$StartHook.value();
+    auto& hook = self->ghostAI$$StartHook;
     GameHookRelease GHR(hook);
     hook.getFunction<decltype(ghostAI$$StartFnc)>()(__this, method);
     self->ghost = __this;
 }
 
 
-GlobalInstanceManager::GlobalInstanceManager() {
-    player$$StartHook.emplace(Il2Cpp::Player::Start_getPtr(), player$$StartFnc);
-    ghostAI$$StartHook.emplace(Il2Cpp::GhostAI::Start_getPtr(), ghostAI$$StartFnc);
-}
+GlobalInstanceManager::GlobalInstanceManager()
+    : player$$StartHook(GameHook::safeCreateOrPanic(globalInstanceManagerInfo, Il2Cpp::Player::Start_getPtr(), reinterpret_cast<void *>(player$$StartFnc)))
+    , ghostAI$$StartHook(GameHook::safeCreateOrPanic(globalInstanceManagerInfo, Il2Cpp::GhostAI::Start_getPtr(), reinterpret_cast<void *>(ghostAI$$StartFnc)))
+{}
 
 
 ModInfo globalInstanceManagerInfo {

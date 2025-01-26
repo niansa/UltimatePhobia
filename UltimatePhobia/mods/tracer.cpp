@@ -77,10 +77,14 @@ void Tracer::HookButton(std::string_view signature, bool isDefinitelyHooked) {
 
     if (ImGui::Button((fmt::format("{} {}", hooked ? '-' : '+', signature)).c_str())) {
         const auto method = Dynamic::getMethod(signature);
-        if (!hooked)
-            hooks.emplace(signature, std::make_unique<GameHook>(method.getFullAddress(), hookTrampoline_tracerModHook, true));
-        else
+        if (!hooked) {
+            auto hook = GameHook::safeCreate(method.getFullAddress(), reinterpret_cast<void *>(hookTrampoline_tracerModHook), true);
+            if (!hook.has_value())
+                return;
+            hooks.emplace(signature, std::make_unique<GameHook>(std::move(*hook)));
+        } else {
             hooks.erase(hooks.find(signature));
+        }
         log(fmt::format(" {} {} <{}>\n", hooked?'-':'+', method.name, method.getFullAddress()));
     }
 }

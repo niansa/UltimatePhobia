@@ -13,7 +13,7 @@
 
 static void ghostAI$$ChangeStateFnc(GhostAI_o* __this, int32_t newState, PhotonObjectInteract_o* objectInteraction, PhotonObjectInteract_array* interactionArray, bool unk0, const MethodInfo* method) {
     const auto self = cheatsInfo.get<Cheats>();
-    auto& hook = self->ghostAI$$ChangeStateHook.value();
+    auto hook = self->hooks.get(Il2Cpp::GhostAI::ChangeState_getPtr());
 
     // Adjust ghost state
     if (!self->ghostStateQueue.empty()) {
@@ -22,17 +22,17 @@ static void ghostAI$$ChangeStateFnc(GhostAI_o* __this, int32_t newState, PhotonO
     }
 
     // Call original function
-    GameHookRelease GHR(hook);
-    hook.getFunction<decltype(ghostAI$$ChangeStateFnc)>()(__this, newState, objectInteraction, interactionArray, unk0, method);
+    GameHookRelease GHR(*hook);
+    hook->getFunction<decltype(ghostAI$$ChangeStateFnc)>()(__this, newState, objectInteraction, interactionArray, unk0, method);
 }
 
 static void key$$StartFnc(Key_o *__this, const MethodInfo *method) {
     const auto self = cheatsInfo.get<Cheats>();
-    auto& hook = self->key$$StartHook.value();
+    auto hook = self->hooks.get(Il2Cpp::Key::Start_getPtr());
 
     // Start key first
-    GameHookRelease GHR(hook);
-    hook.getFunction<decltype(key$$StartFnc)>()
+    GameHookRelease GHR(*hook);
+    hook->getFunction<decltype(key$$StartFnc)>()
         (__this, method);
 
     // Call GrabbedKey photon RPC
@@ -41,7 +41,7 @@ static void key$$StartFnc(Key_o *__this, const MethodInfo *method) {
 
 static void door$$UpdateFnc(Door_o *__this, const MethodInfo *method) {
     const auto self = cheatsInfo.get<Cheats>();
-    auto& hook = self->door$$UpdateHook.value();
+    auto hook = self->hooks.get(Il2Cpp::Door::Update_getPtr());
 
     // Unlock and open door, then permanently disable hunt collider
     using namespace Il2Cpp;
@@ -53,15 +53,16 @@ static void door$$UpdateFnc(Door_o *__this, const MethodInfo *method) {
         GameObject::SetActive(Component::get_gameObject(reinterpret_cast<UnityEngine_Component_o *>((__this->fields.huntCollider))), false);
 
     // Call original method first
-    GameHookRelease GHR(hook);
-    hook.getFunction<decltype(door$$UpdateFnc)>()
+    GameHookRelease GHR(*hook);
+    hook->getFunction<decltype(door$$UpdateFnc)>()
         (__this, method);
 }
 
 
 void Cheats::setGhostAIChangeStateHook() {
-    if (!ghostAI$$ChangeStateHook.has_value())
-        ghostAI$$ChangeStateHook.emplace(Il2Cpp::GhostAI::ChangeState_getPtr(), ghostAI$$ChangeStateFnc);
+    auto fnc = Il2Cpp::GhostAI::ChangeState_getPtr();
+    if (hooks.get(fnc) == nullptr)
+        hooks.add(fnc, ghostAI$$ChangeStateFnc);
 }
 
 void Cheats::uiUpdate() {
@@ -69,14 +70,14 @@ void Cheats::uiUpdate() {
     Begin("Cheats");
 
     using namespace Il2Cpp;
-    hookToggle("Infinite stamina", playerStamina$$StartDrainingHook, infiniteStamina, PlayerStamina::StartDraining_getPtr(), reinterpret_cast<void *>(GameHook::noop));
-    hookToggle("Auto grab keys", key$$StartHook, autoGrabKeys, Key::Start_getPtr(), reinterpret_cast<void *>(key$$StartFnc));
-    hookToggle("Keep items after death", inventoryManager$$RemoveItemsFromInventoryHook, keepItemsAfterDeath, InventoryManager::RemoveItemsFromInventory_getPtr(), reinterpret_cast<void *>(GameHook::noop));
+    hookToggle("Infinite stamina", hooks, infiniteStamina, PlayerStamina::StartDraining_getPtr(), reinterpret_cast<void *>(GameHook::noop));
+    hookToggle("Auto grab keys", hooks, autoGrabKeys, Key::Start_getPtr(), reinterpret_cast<void *>(key$$StartFnc));
+    hookToggle("Keep items after death", hooks, keepItemsAfterDeath, InventoryManager::RemoveItemsFromInventory_getPtr(), reinterpret_cast<void *>(GameHook::noop));
     Separator();
-    hookToggle("Invincibility", player$$StartKillingPlayerHook, invincibility, Player::StartKillingPlayer_getPtr(), reinterpret_cast<void *>(GameHook::noop));
-    hookToggle("Pause ghost", ghost$$UpdateHook, pauseGhost, GhostAI::Update_getPtr(), reinterpret_cast<void *>(GameHook::noop));
-    hookToggle("Unlock all doors", door$$UpdateHook, autoUnlockDoors, Door::Update_getPtr(), reinterpret_cast<void *>(door$$UpdateFnc));
-    hookToggle("Allow grab when dead", pcPropGrab$$PlayerDiedHook, allowGrabWhenDead, PCPropGrab::PlayerDied_getPtr(), reinterpret_cast<void *>(GameHook::noop));
+    hookToggle("Invincibility", hooks, invincibility, Player::StartKillingPlayer_getPtr(), reinterpret_cast<void *>(GameHook::noop));
+    hookToggle("Pause ghost", hooks, pauseGhost, GhostAI::Update_getPtr(), reinterpret_cast<void *>(GameHook::noop));
+    hookToggle("Unlock all doors", hooks, autoUnlockDoors, Door::Update_getPtr(), reinterpret_cast<void *>(door$$UpdateFnc));
+    hookToggle("Allow grab when dead", hooks, allowGrabWhenDead, PCPropGrab::PlayerDied_getPtr(), reinterpret_cast<void *>(GameHook::noop));
 
     SeparatorText("Queue ghost states");
     if (Button("Short event")) {
