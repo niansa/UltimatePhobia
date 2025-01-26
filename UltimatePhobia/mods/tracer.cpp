@@ -85,7 +85,7 @@ void Tracer::HookButton(std::string_view signature, bool isDefinitelyHooked) {
         } else {
             hooks.erase(hooks.find(signature));
         }
-        log(fmt::format(" {} {} <{}>\n", hooked?'-':'+', method.name, method.getFullAddress()));
+        log(fmt::format(" {} {} <{}>\n", hooked ? '-' : '+', method.name, method.getFullAddress()));
     }
 }
 
