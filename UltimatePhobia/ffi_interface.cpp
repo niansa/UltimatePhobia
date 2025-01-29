@@ -3,7 +3,7 @@
 #include "il2cpp_dynamic.hpp"
 #include "il2cpp_cppinterop.hpp"
 #include "game_hook.hpp"
-#include "wasm_loader.hpp"
+#include "ffi_loader.hpp"
 #include "mods/base.hpp"
 
 #include <map>
@@ -63,7 +63,7 @@ void toCString(ObjectHandle str, char *buf, int maxlen) {
 
 namespace {
 void log(spdlog::level::level_enum level, ObjectHandle message) {
-    g.logger->log(level, "[{} (WASM)] {}", WASMLoader::WASMMod::getCurrent()->name, Il2Cpp::CppInterop::ToCppString(reinterpret_cast<System_String_o *>(getObject(message))));
+    g.logger->log(level, "[{} (FFI)] {}", FFILoader::FFIMod::getCurrent()->name, Il2Cpp::CppInterop::ToCppString(reinterpret_cast<System_String_o *>(getObject(message))));
 }
 }
 void logTrace(ObjectHandle message) {
@@ -205,7 +205,7 @@ WIBool call(MethodHandle index, int argCount) {
     }
 
     // Back up current mod in case called function triggers hook from another mod
-    ModInfo *currentModBackup = WASMLoader::WASMMod::getCurrent();
+    ModInfo *currentModBackup = FFILoader::FFIMod::getCurrent();
 
     // Call function
     const auto args = std::move(std::exchange(call_args, {}));
@@ -236,7 +236,7 @@ WIBool call(MethodHandle index, int argCount) {
     }
 
     // Restore current mod (see comment near declaration)
-    WASMLoader::WASMMod::setCurrent(currentModBackup);
+    FFILoader::FFIMod::setCurrent(currentModBackup);
 
     // Clear arguments again in case called function ended up adding arguments through hook
     call_args.clear();
@@ -246,18 +246,18 @@ WIBool call(MethodHandle index, int argCount) {
 }
 
 namespace {
-struct WASMGameHookInfo {
+struct FFIGameHookInfo {
     std::shared_ptr<GameHook> hook;
     ModInfo *modInfo;
     std::string callback;
 };
-std::map<MethodHandle, WASMGameHookInfo> hooks;
+std::map<MethodHandle, FFIGameHookInfo> hooks;
 MethodHandle currentHookMethod;
-void *wasmHook(void *a, void *b, void *c, void *d, void *e, void *f) noexcept {
+void *ffiHook(void *a, void *b, void *c, void *d, void *e, void *f) noexcept {
     // Get method
     const auto method = Dynamic::getMethod(GameHook::getTrampolineCaller());
     if (!method.isValid()) {
-        g.logger->error("WASM GameHook interface encountered an invalid hook!");
+        g.logger->error("FFI GameHook interface encountered an invalid hook!");
         return nullptr;
     }
     currentHookMethod = method.index;
@@ -265,15 +265,15 @@ void *wasmHook(void *a, void *b, void *c, void *d, void *e, void *f) noexcept {
     // Get hook
     auto res = hooks.find(currentHookMethod);
     if (res == hooks.end()) {
-        g.logger->error("WASM GameHook interface encountered an unknown hook!");
+        g.logger->error("FFI GameHook interface encountered an unknown hook!");
         return nullptr;
     }
-    WASMGameHookInfo& hookInfo = res->second;
+    FFIGameHookInfo& hookInfo = res->second;
     auto hook = hookInfo.hook; // Prevents UB when hook is erased in callback
 
     // Make sure mod is still loaded
     if (!hookInfo.modInfo->isLoaded()) {
-        g.logger->error("WASM GameHook interface attempted to handle hook for unloaded mod!");
+        g.logger->error("FFI GameHook interface attempted to handle hook for unloaded mod!");
         hooks.erase(method.index);
         return nullptr;
     }
@@ -285,33 +285,33 @@ void *wasmHook(void *a, void *b, void *c, void *d, void *e, void *f) noexcept {
     // Call hook callback
     try {
         GameHookRelease GHR(*hooks.at(currentHookMethod).hook);
-        hookInfo.modInfo->get<WASMLoader::WASMMod>()->simpleCall(hookInfo.callback.c_str());
+        hookInfo.modInfo->get<FFILoader::FFIMod>()->simpleCall(hookInfo.callback.c_str());
         return return_value;
     } catch (const std::exception& e) {
-        g.logger->error("Exception while executing WASM GameHook callback '{}': {}", hookInfo.callback, e.what());
+        g.logger->error("Exception while executing FFI GameHook callback '{}': {}", hookInfo.callback, e.what());
         return nullptr;
     } catch (...) {
-        g.logger->error("Unknown exception while executing WASM GameHook callback '{}'!", hookInfo.callback);
+        g.logger->error("Unknown exception while executing FFI GameHook callback '{}'!", hookInfo.callback);
         return nullptr;
     }
 }
-GAMEHOOK_TRAMPOLINE(wasmHook)
+GAMEHOOK_TRAMPOLINE(ffiHook)
 }
 WIBool hook(MethodHandle method, const char *callback) {
     const auto methodInfo = Dynamic::getMethod(method);
     if (!methodInfo.isValid())
         return false;
     if (methodInfo.getArgCount() > 6) {
-        g.logger->warn("WASM Mod attempted to hook function with more than 6 arguments (which is unsupported)");
+        g.logger->warn("FFI Mod attempted to hook function with more than 6 arguments (which is unsupported)");
         return false;
     }
-    auto hook = GameHook::safeCreate(methodInfo.getFullAddress(), reinterpret_cast<void *>(hookTrampoline_wasmHook), true);
+    auto hook = GameHook::safeCreate(methodInfo.getFullAddress(), reinterpret_cast<void *>(hookTrampoline_ffiHook), true);
     if (!hook.has_value())
         return false;
-    return hooks.emplace(method, WASMGameHookInfo{
-                                                  std::make_shared<GameHook>(std::move(*hook)),
-                                                  WASMLoader::WASMMod::getCurrent(),
-                                                  callback
+    return hooks.emplace(method, FFIGameHookInfo{
+                                                 std::make_shared<GameHook>(std::move(*hook)),
+                                                 FFILoader::FFIMod::getCurrent(),
+                                                 callback
                                  }).second;
 }
 WIBool unhook(MethodHandle method) {
@@ -344,7 +344,7 @@ void ImGuiSeparatorText(const char *label) {
 }
 
 void abort(const char *message, const char *filename, int lineNumber, int columnNumber) {
-    auto modInfo = WASMLoader::WASMMod::getCurrent();
+    auto modInfo = FFILoader::FFIMod::getCurrent();
     g.logger->critical("WebAssembly module {} has called abort()!\n - Message: {}\n - Filename: {}\n - Line: {}\n - Column: {}", modInfo->name, message?message:"none", filename?filename:"unknown", lineNumber, columnNumber);
     g.logger->flush();
     ::abort();

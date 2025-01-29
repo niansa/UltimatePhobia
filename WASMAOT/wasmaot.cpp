@@ -1,0 +1,90 @@
+#include "wasmaot.hpp"
+#include "Module.h"
+
+#include <ffi_interface.hpp>
+
+
+namespace {
+const FFIInterface::Imports *imports;
+w2c_Module module;
+}
+
+
+WASMAOT_EXPORT void initImports(const FFIInterface::Imports *imports) {
+    ::imports = imports;
+}
+
+WASMAOT_EXPORT void onLoad() {
+    wasm_rt_init();
+    wasm2c_Module_instantiate(&module, nullptr);
+    w2c_Module_0x5Finitialize(&module);
+    w2c_Module_onLoad(&module);
+}
+WASMAOT_EXPORT void onUnload() {
+    w2c_Module_onUnload(&module);
+    wasm2c_Module_free(&module);
+    wasm_rt_free();
+}
+
+
+#define EXPORT_FUNC(name) WASMAOT_EXPORT void name() {w2c_Module_ ##name(&module);}
+EXPORT_FUNC(onUiUpdate)
+
+EXPORT_FUNC(onFuseBoxUseNetworked)
+EXPORT_FUNC(onCreateRoom)
+
+
+void w2c_env_ImGuiBegin(struct w2c_env*, u32 a) {
+    imports->ImGuiBegin(reinterpret_cast<const char *>(module.w2c_memory.data+a));
+}
+void w2c_env_ImGuiEnd(struct w2c_env*) {
+    imports->ImGuiEnd();
+}
+void w2c_env_ImGuiText(struct w2c_env*, u32 a) {
+    imports->ImGuiText(static_cast<FFIInterface::ObjectHandle>(a));
+}
+void w2c_env_addArgNull(struct w2c_env*) {
+    imports->addArgNull();
+}
+void w2c_env_addArgObject(struct w2c_env*, u32 a) {
+    imports->addArgObject(static_cast<FFIInterface::ObjectHandle>(a));
+}
+u32 w2c_env_call(struct w2c_env*, u32 a, u32 b) {
+    return imports->call(static_cast<FFIInterface::MethodHandle>(a), b);
+}
+void w2c_env_clearArgs(struct w2c_env*) {
+    imports->clearArgs();
+}
+void w2c_env_dropObject(struct w2c_env*, u32 a) {
+    imports->dropObject(static_cast<FFIInterface::ObjectHandle>(a));
+}
+u32 w2c_env_getArgCount(struct w2c_env*) {
+    return imports->getArgCount();
+}
+u32 w2c_env_getMethodByIdentifier(struct w2c_env*, u32 a) {
+    return static_cast<u32>(imports->getMethodByIdentifier(reinterpret_cast<const char *>(module.w2c_memory.data+a)));
+}
+u32 w2c_env_getOriginal(struct w2c_env*) {
+    return static_cast<u32>(imports->getOriginal());
+}
+u32 w2c_env_getValueObject(struct w2c_env*, u32 a) {
+    return static_cast<u32>(imports->getValueObject(a));
+}
+u32 w2c_env_hook(struct w2c_env*, u32 a, u32 b) {
+    return imports->hook(static_cast<FFIInterface::MethodHandle>(a), reinterpret_cast<const char *>(module.w2c_memory.data+b));
+}
+void w2c_env_logInfo(struct w2c_env*, u32 a) {
+    return imports->logInfo(static_cast<FFIInterface::ObjectHandle>(a));
+}
+u32 w2c_env_moveArg(struct w2c_env*, u32 a) {
+    return imports->moveArg(a);
+}
+void w2c_env_toCString(struct w2c_env*, u32 a, u32 b, u32 c) {
+    imports->toCString(static_cast<FFIInterface::ObjectHandle>(a), reinterpret_cast<char *>(module.w2c_memory.data+b), c);
+}
+u32 w2c_env_toCsStringWithLength(struct w2c_env*, u32 a, u32 b) {
+    return static_cast<u32>(imports->toCsStringWithLength(reinterpret_cast<const char *>(module.w2c_memory.data+a), b));
+}
+u32 w2c_env_unhook(struct w2c_env*, u32 a) {
+    return imports->unhook(static_cast<FFIInterface::MethodHandle>(a));
+}

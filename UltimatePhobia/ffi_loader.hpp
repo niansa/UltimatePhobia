@@ -1,26 +1,25 @@
 #pragma once
 
 #include "mods/base.hpp"
+#include "ffi.hpp"
 
-#include <string>
 #include <string_view>
 #include <filesystem>
+#include <memory>
 
 
-namespace WASMLoader {
-struct WASMModInternal;
+namespace FFILoader {
+struct FFIModInternal;
 
-class WASMMod : public Mod {
+class FFIMod : public Mod {
     ModInfo *const modInfo;
-    const std::string wasmPath;
-
-    WASMModInternal *i;
+    std::unique_ptr<FFI> ffi;
 
 public:
-    WASMMod(const std::filesystem::path& wasmPath, ModInfo *modInfo, unsigned memSize = 1024);
-    ~WASMMod();
-    WASMMod(const WASMMod&) = delete;
-    WASMMod(WASMMod&&) = delete;
+    FFIMod(const std::filesystem::path& base, std::string_view identifier, ModInfo *modInfo, unsigned memSize = 1024);
+    ~FFIMod();
+    FFIMod(const FFIMod&) = delete;
+    FFIMod(FFIMod&&) = delete;
 
     void uiUpdate() override;
 

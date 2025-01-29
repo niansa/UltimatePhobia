@@ -227,6 +227,63 @@ UP_API void ImGuiSeparator();
 UP_API void ImGuiSeparatorText(const char *label);
 
 UP_API void abort(const char *message, const char *filename, int lineNumber, int columnNumber);
+
+#ifndef FFI_EXT
+struct Exports
+#else
+struct Imports
+#endif
+{
+#ifndef FFI_EXT
+#   define FFI_EXPORTS_DEFAULT_ASSIGN(name) = FFIInterface::name
+#else
+#   define FFI_EXPORTS_DEFAULT_ASSIGN(name)
+#endif
+#define FFI_EXPORTS_BIND(name) decltype(name) *name FFI_EXPORTS_DEFAULT_ASSIGN(name)
+    FFI_EXPORTS_BIND(dropObject);
+    FFI_EXPORTS_BIND(isValidObject);
+    FFI_EXPORTS_BIND(getNull);
+    FFI_EXPORTS_BIND(toCsString);
+    FFI_EXPORTS_BIND(toCsStringWithLength);
+    FFI_EXPORTS_BIND(toCString);
+    FFI_EXPORTS_BIND(logTrace);
+    FFI_EXPORTS_BIND(logDebug);
+    FFI_EXPORTS_BIND(logInfo);
+    FFI_EXPORTS_BIND(logWarn);
+    FFI_EXPORTS_BIND(logError);
+    FFI_EXPORTS_BIND(logCritical);
+    FFI_EXPORTS_BIND(getMethodByIdentifier);
+    FFI_EXPORTS_BIND(getMethodByAddress);
+    FFI_EXPORTS_BIND(getMethodName);
+    FFI_EXPORTS_BIND(getMethodSignature);
+    FFI_EXPORTS_BIND(addArgI32);
+    FFI_EXPORTS_BIND(addArgI64);
+    FFI_EXPORTS_BIND(addArgFloat);
+    FFI_EXPORTS_BIND(addArgDouble);
+    FFI_EXPORTS_BIND(addArgObject);
+    FFI_EXPORTS_BIND(addArgNull);
+    FFI_EXPORTS_BIND(clearArgs);
+    FFI_EXPORTS_BIND(getArgCount);
+    FFI_EXPORTS_BIND(moveArg);
+    FFI_EXPORTS_BIND(getValueI32);
+    FFI_EXPORTS_BIND(getValueI64);
+    FFI_EXPORTS_BIND(getValueFloat);
+    FFI_EXPORTS_BIND(getValueDouble);
+    FFI_EXPORTS_BIND(getValueObject);
+    FFI_EXPORTS_BIND(getCallError);
+    FFI_EXPORTS_BIND(call);
+    FFI_EXPORTS_BIND(hook);
+    FFI_EXPORTS_BIND(unhook);
+    FFI_EXPORTS_BIND(getOriginal);
+    FFI_EXPORTS_BIND(ImGuiBegin);
+    FFI_EXPORTS_BIND(ImGuiEnd);
+    FFI_EXPORTS_BIND(ImGuiText);
+    FFI_EXPORTS_BIND(ImGuiCheckbox);
+    FFI_EXPORTS_BIND(ImGuiButton);
+    FFI_EXPORTS_BIND(ImGuiSeparator);
+    FFI_EXPORTS_BIND(ImGuiSeparatorText);
+    FFI_EXPORTS_BIND(abort);
+};
 }
 
 #ifdef FFI_EXT
