@@ -4,6 +4,6 @@
 
 
 namespace SafePath {
-void init();
+bool init();
 const std::filesystem::path& get();
 }
