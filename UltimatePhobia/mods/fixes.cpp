@@ -12,14 +12,13 @@ using namespace Il2Cpp::UnityEngine;
 
 
 static inline void fixDestroy(std::string_view name) {
-    auto object = GameObject::Find(ToCsString(name));
-    if (!object)
-        return;
-    Object::Destroy(reinterpret_cast<UnityEngine_Object_o *>(object));
+    if (auto object = GameObject::Find(ToCsString(name)))
+        Object::Destroy(reinterpret_cast<UnityEngine_Object_o *>(object));
 }
 
 static inline void fixPlayerController(Player_o *player) {
-    Il2Cpp::UnityEngine::CharacterController::set_detectCollisions(player->fields.characterController, false);
+    if (player->fields.characterController)
+        Il2Cpp::UnityEngine::CharacterController::set_detectCollisions(player->fields.characterController, false);
 }
 
 
@@ -53,8 +52,7 @@ void Fixes::sceneFix() {
 }
 
 void Fixes::playerFix() {
-    auto player = globalInstanceManagerInfo.get<GlobalInstanceManager>()->player;
-    if (player)
+    if (auto player = globalInstanceManagerInfo.get<GlobalInstanceManager>()->player)
         fixPlayerController(player);
 }
 

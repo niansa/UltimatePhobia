@@ -16,3 +16,6 @@
 [submodule "deps/crosslibc"]
 	path = deps/crosslibc
 	url = https://gitlab.com/niansa/crosslibc.git
+[submodule "deps/commoncpp"]
+	path = deps/commoncpp
+	url = https://gitlab.com/niansa/commoncpp.git

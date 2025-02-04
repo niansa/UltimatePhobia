@@ -11,9 +11,9 @@ public:
     GhostAI_o *ghost;
     GameController_o *gameController;
 
-    GameHook player$$StartHook,
-             ghostAI$$StartHook,
-             gameController$$StartHook;
+    GameHook player$$AwakeHook,
+             ghostAI$$AwakeHook,
+             gameController$$AwakeHook;
 
     GlobalInstanceManager();
 };
