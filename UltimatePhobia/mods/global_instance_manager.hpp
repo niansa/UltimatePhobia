@@ -9,9 +9,11 @@ class GlobalInstanceManager final : public Mod {
 public:
     Player_o *player;
     GhostAI_o *ghost;
+    GameController_o *gameController;
 
     GameHook player$$StartHook,
-             ghostAI$$StartHook;
+             ghostAI$$StartHook,
+             gameController$$StartHook;
 
     GlobalInstanceManager();
 };
