@@ -9,7 +9,7 @@ static void player$$StartFnc(Player_o *__this, const MethodInfo *method) {
     auto& hook = self->player$$StartHook;
     GameHookRelease GHR(hook);
     hook.getFunction<decltype(player$$StartFnc)>()(__this, method);
-    auto photonView = self->player->fields.photonView;
+    auto photonView = __this->fields.photonView;
     if (photonView && photonView->fields._AmOwner_k__BackingField)
         self->player = __this;
 }
