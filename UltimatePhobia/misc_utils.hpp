@@ -8,5 +8,5 @@
 
 
 std::string utf8Encode(std::wstring_view wstr);
-void hookToggle(const char *description, std::optional<GameHook>& hook, bool& boolean, void *method, void *hookFnc);
-void hookToggle(const char *description, GameHookPool& hookPool, bool& boolean, void *method, void *hookFnc);
+bool hookToggle(const char *description, std::optional<GameHook>& hook, bool& boolean, void *method, void *hookFnc);
+bool hookToggle(const char *description, GameHookPool& hookPool, bool& boolean, void *method, void *hookFnc);

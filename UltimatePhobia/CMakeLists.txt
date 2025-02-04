@@ -8,6 +8,7 @@ set(CMAKE_INTERPROCEDURAL_OPTIMIZATION ON)
 
 option(ULTIMATEPHOBIA_CHEATS "Build cheats module" ON)
 
+add_subdirectory(../deps/commoncpp commoncpp)
 add_subdirectory(../deps/detours Detours)
 add_subdirectory(../deps/spdlog spdlog)
 add_subdirectory(../deps/simdjson simdjson)
@@ -34,6 +35,7 @@ add_executable(UltimatePhobia WIN32 main.cpp icon.rc
     mods/base.hpp
     mods/global_instance_manager.hpp mods/global_instance_manager.cpp
     mods/cheats.hpp mods/cheats.cpp
+    mods/improvements.hpp mods/improvements.cpp
     mods/tracer.hpp mods/tracer.cpp
     mods/photon_settings.hpp mods/photon_settings.cpp
     il2cpp_cppinterop.hpp il2cpp_cppinterop.cpp
@@ -53,7 +55,7 @@ add_executable(UltimatePhobia WIN32 main.cpp icon.rc
     ffi.hpp
     dll_ffi.hpp dll_ffi.cpp
 )
-target_link_libraries(UltimatePhobia PRIVATE dbghelp Detours spdlog imgui simdjson m3 wasm3_cpp)
+target_link_libraries(UltimatePhobia PRIVATE dbghelp commoncpp Detours spdlog imgui simdjson m3 wasm3_cpp)
 target_include_directories(UltimatePhobia PRIVATE . ../il2cpp_dump)
 target_precompile_headers(UltimatePhobia PRIVATE ../il2cpp_dump/il2cpp.h generated/il2cpp.hpp)
 target_compile_definitions(UltimatePhobia PUBLIC _CRT_SECURE_NO_WARNINGS)

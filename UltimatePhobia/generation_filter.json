@@ -8,6 +8,7 @@
     "ES3$$",
     "ES3Internal.ES3Stream$$",
     "UnityEngine.",
+    "GameController$$",
     "SplashScreen$$",
     "InventoryManager$$",
     "PCPropGrab$$",
@@ -17,5 +18,6 @@
     "GhostAI$$",
     "GhostActivity$$",
     "Door$$",
-    "Key$$"
+    "Key$$",
+    "PainKillers$$"
 ]

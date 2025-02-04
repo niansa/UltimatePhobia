@@ -3,6 +3,7 @@
 #include "misc_utils.hpp"
 
 #include <string_view>
+#include <spdlog/spdlog.h>
 
 
 namespace Il2Cpp::CppInterop {
@@ -29,5 +30,22 @@ std::wstring_view ToCppWideString(System_String_o *str) {
 void ToCString(System_String_o *str, char *buf, size_t maxlen) {
     const auto cppstr = ToCppString(str);
     memcpy(buf, cppstr.c_str(), std::max(cppstr.size()+1, maxlen));
+}
+
+namespace {
+System_Type_o *GetType(std::string_view name) {
+    const auto fres = System::Type::GetType(CppInterop::ToCsString(name));
+    if (!fres)
+        g.logger->error("Failed to get type '{}'!", name);
+    return fres;
+}
+}
+
+System_Type_o *GetType(std::string_view name, std::string_view assemblyName) {
+    return GetType(fmt::format("{}, {}, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null", name, assemblyName));
+}
+
+void *CreateInstance(System_Type_o *type) {
+    return System::Activator::CreateInstance(type);
 }
 }

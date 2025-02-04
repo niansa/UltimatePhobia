@@ -15,6 +15,7 @@
 #include "mods/player_manager.hpp"
 #include "mods/goldberg_emu_manager.hpp"
 #include "mods/fixes.hpp"
+#include "mods/improvements.hpp"
 #include "mods/cheats.hpp"
 
 #include <optional>
@@ -40,6 +41,7 @@ struct ApplicationHooks {
             g.logger->error("Mod '{}' has panicked: {}", e.where(), e.what());
         } catch (...) {
             g.logger->error("Unknown exception (maybe C# exception?) in main loop");
+            std::rethrow_exception(std::current_exception());
         }
         GameHookRelease GHR(*appUpdateHook);
         appUpdateHook->getFunction<decltype(ApplicationHooks::appUpdateFnc)>()(__this, method);
@@ -58,7 +60,7 @@ struct ApplicationHooks {
 
 Application::Application() {
     currentApplication = this;
-    mods = {&photonSettingsInfo, &saveFileManagerInfo, &fixesInfo, &playerManagerInfo, &goldbergEmuManagerInfo, &tracerInfo,
+    mods = {&photonSettingsInfo, &saveFileManagerInfo, &fixesInfo, &playerManagerInfo, &goldbergEmuManagerInfo, &tracerInfo, &improvementsInfo,
 #ifdef MOD_ENABLE_CHEATS
             &cheatsInfo,
 #endif

@@ -290,6 +290,9 @@ void *ffiHook(void *a, void *b, void *c, void *d, void *e, void *f) noexcept {
     } catch (const std::exception& e) {
         g.logger->error("Exception while executing FFI GameHook callback '{}': {}", hookInfo.callback, e.what());
         return nullptr;
+    } catch (const ModPanic& e) {
+        g.logger->error("FFI Mod '{}' has panicked: {}", e.where(), e.what());
+        return nullptr;
     } catch (...) {
         g.logger->error("Unknown exception while executing FFI GameHook callback '{}'!", hookInfo.callback);
         return nullptr;
@@ -345,8 +348,8 @@ void ImGuiSeparatorText(const char *label) {
 
 void abort(const char *message, const char *filename, int lineNumber, int columnNumber) {
     auto modInfo = FFILoader::FFIMod::getCurrent();
-    g.logger->critical("WebAssembly module {} has called abort()!\n - Message: {}\n - Filename: {}\n - Line: {}\n - Column: {}", modInfo->name, message?message:"none", filename?filename:"unknown", lineNumber, columnNumber);
-    g.logger->flush();
-    ::abort();
+    const auto msg = fmt::format("WebAssembly module {} has called abort()!\n - Message: {}\n - Filename: {}\n - Line: {}\n - Column: {}", modInfo->name, message?message:"none", filename?filename:"unknown", lineNumber, columnNumber);
+    g.logger->critical(msg);
+    throw ModPanic(*modInfo, msg);
 }
 }
