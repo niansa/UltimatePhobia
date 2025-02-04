@@ -53,7 +53,9 @@ void Fixes::sceneFix() {
 }
 
 void Fixes::playerFix() {
-    fixPlayerController(globalInstanceManagerInfo.get<GlobalInstanceManager>()->player);
+    auto player = globalInstanceManagerInfo.get<GlobalInstanceManager>()->player;
+    if (player)
+        fixPlayerController(player);
 }
 
 void Fixes::uiUpdate() {
