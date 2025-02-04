@@ -7,9 +7,9 @@
 
 class GlobalInstanceManager final : public Mod {
 public:
-    Player_o *player;
-    GhostAI_o *ghost;
-    GameController_o *gameController;
+    Player_o *player = nullptr;
+    GhostAI_o *ghost = nullptr;
+    GameController_o *gameController = nullptr;
 
     GameHook player$$AwakeHook,
              ghostAI$$AwakeHook,
