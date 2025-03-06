@@ -6,7 +6,6 @@
 #include <filesystem>
 #include <wasm3_cpp.h>
 
-
 class WASMFFI final : public FFI {
     wasm3::wasm_runtime runtime;
     std::optional<wasm3::wasm_module> module;

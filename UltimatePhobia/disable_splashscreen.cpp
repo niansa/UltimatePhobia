@@ -4,15 +4,15 @@
 #include "il2cpp_cppinterop.hpp"
 #include "generated/il2cpp.hpp"
 
-
-
-void splashScreen$$AwakeFnc(SplashScreen_o* __this, const MethodInfo* method) {
+void splashScreen$$AwakeFnc(SplashScreen_o *__this, const MethodInfo *method) {
     // Load into next scene without waiting
-    Il2Cpp::UnityEngine::SceneManagement::SceneManager::LoadScene(Il2Cpp::CppInterop::ToCsString("Menu_New"));
+    Il2Cpp::UnityEngine::SceneManagement::SceneManager::LoadScene(
+        Il2Cpp::CppInterop::ToCsString("Menu_New"));
 }
-
 
 void disableSplashscreen() {
     g.logger->info("Disabling splash screen...");
-    static auto hook = GameHook::safeCreate(Il2Cpp::SplashScreen::Awake_getPtr(), reinterpret_cast<void *>(splashScreen$$AwakeFnc));
+    static auto hook =
+        GameHook::safeCreate(Il2Cpp::SplashScreen::Awake_getPtr(),
+                             reinterpret_cast<void *>(splashScreen$$AwakeFnc));
 }

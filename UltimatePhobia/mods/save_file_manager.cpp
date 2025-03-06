@@ -10,9 +10,9 @@
 
 using namespace Il2Cpp::CppInterop;
 
-
-
-static System_IO_Stream_o *es3Stream$$CreateStreamFnc(System_IO_Stream_o* stream, ES3Settings_o* settings, int32_t fileMode, const MethodInfo* method) {
+static System_IO_Stream_o *
+es3Stream$$CreateStreamFnc(System_IO_Stream_o *stream, ES3Settings_o *settings,
+                           int32_t fileMode, const MethodInfo *method) {
     if (!Application::isActive())
         return nullptr;
     const auto self = saveFileManagerInfo.get<SaveFileManager>();
@@ -24,7 +24,8 @@ static System_IO_Stream_o *es3Stream$$CreateStreamFnc(System_IO_Stream_o* stream
         g.logger->info("Decrypting save file: Closing existing stream...");
         Il2Cpp::System::IO::Stream::Close(stream);
         g.logger->info("Decrypting save file: Loading raw save file...");
-        const auto bytes = Il2Cpp::ES3::LoadRawBytes("SaveFile.es3"_cs, settings);
+        const auto bytes =
+            Il2Cpp::ES3::LoadRawBytes("SaveFile.es3"_cs, settings);
         g.logger->info("Decrypting save file: Disabling encryption...");
         settings->fields.encryptionType = 0;
         g.logger->info("Decrypting save file: Saving loaded save file...");
@@ -35,15 +36,16 @@ static System_IO_Stream_o *es3Stream$$CreateStreamFnc(System_IO_Stream_o* stream
         self->decryptionPending = false;
         return nullptr;
     }
-    return hook.getFunction<decltype(es3Stream$$CreateStreamFnc)>()(stream, settings, fileMode, method);
+    return hook.getFunction<decltype(es3Stream$$CreateStreamFnc)>()(
+        stream, settings, fileMode, method);
 }
 
-
 SaveFileManager::SaveFileManager()
-    : es3Stream$$CreateStreamHook(GameHook::safeCreateOrPanic(saveFileManagerInfo,
-          Il2Cpp::ES3Internal::ES3Stream::CreateStream_getPtr<System_IO_Stream_o *, ES3Settings_o *, int32_t>(),
-          reinterpret_cast<void*>(es3Stream$$CreateStreamFnc)
-          )) {}
+    : es3Stream$$CreateStreamHook(GameHook::safeCreateOrPanic(
+          saveFileManagerInfo,
+          Il2Cpp::ES3Internal::ES3Stream::CreateStream_getPtr<
+              System_IO_Stream_o *, ES3Settings_o *, int32_t>(),
+          reinterpret_cast<void *>(es3Stream$$CreateStreamFnc))) {}
 
 void SaveFileManager::uiUpdate() {
     using namespace ImGui;
@@ -58,7 +60,8 @@ void SaveFileManager::uiUpdate() {
         Checkbox("Disable encryption", &disableSaveEncryption);
         EndDisabled();
         if (Button("Delete save file"))
-            Il2Cpp::ES3::RenameFile("SaveFile.es3"_cs, "SaveFile-trashed.es3"_cs);
+            Il2Cpp::ES3::RenameFile("SaveFile.es3"_cs,
+                                    "SaveFile-trashed.es3"_cs);
         SameLine();
         if (!decryptionPending) {
             BeginDisabled(disableSaveEncryption);
@@ -82,22 +85,22 @@ void SaveFileManager::uiUpdate() {
 
 void SaveFileManager::loadIfNeeded() {
     g.logger->info("Checking if save file is decrypted...");
-    const std::filesystem::path dataPath = ToCppString(Il2Cpp::UnityEngine::Application::get_persistentDataPath());
-    const auto saveFilePath = dataPath/"SaveFile.es3";
-    const bool isJson = std::ifstream(saveFilePath, std::ios::binary).get() == '{';
+    const std::filesystem::path dataPath =
+        ToCppString(Il2Cpp::UnityEngine::Application::get_persistentDataPath());
+    const auto saveFilePath = dataPath / "SaveFile.es3";
+    const bool isJson =
+        std::ifstream(saveFilePath, std::ios::binary).get() == '{';
     if (isJson) {
         g.logger->info("Save file is decrypted, handling this condition...");
         saveFileManagerInfo.load();
-        saveFileManagerInfo.get<SaveFileManager>()->disableSaveEncryption = true;
+        saveFileManagerInfo.get<SaveFileManager>()->disableSaveEncryption =
+            true;
     } else {
         g.logger->info("Save file is encrypted. Nothing to be done here.");
     }
 }
 
-
-ModInfo saveFileManagerInfo {
-    "Save File Manager",
-    false,
-    [] () {return std::make_unique<SaveFileManager>();},
-    [] () {SaveFileManager::loadIfNeeded();}
-};
+ModInfo saveFileManagerInfo{
+    "Save File Manager", false,
+    []() { return std::make_unique<SaveFileManager>(); },
+    []() { SaveFileManager::loadIfNeeded(); }};

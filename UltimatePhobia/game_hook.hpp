@@ -10,7 +10,6 @@
 #include <optional>
 #include <cstdint>
 
-
 extern void *GameHookCallerRip;
 
 class GameHook {
@@ -32,35 +31,36 @@ class GameHook {
 public:
     static void noop();
 
-    ~GameHook() {if (!released) release();}
+    ~GameHook() {
+        if (!released)
+            release();
+    }
     GameHook(const GameHook&) = delete;
     GameHook(GameHook&& o)
-        : fnc(o.fnc), hook(o.hook), use2NdTrampoline(o.use2NdTrampoline), original(o.original), released(o.released) {
+        : fnc(o.fnc), hook(o.hook), use2NdTrampoline(o.use2NdTrampoline),
+          original(o.original), released(o.released) {
         o.released = true;
     }
 
-    static std::optional<GameHook> safeCreate(void *fnc, void *hook, bool useTrampoline = false);
-    static void safeCreate(std::optional<GameHook>& fres, void *fnc, void *hook, bool useTrampoline = false);
-    static GameHook safeCreateOrPanic(ModInfo& mod, void *fnc, void *hook, bool useTrampoline = false);
-    static GameHook unsafeCreate(void *fnc, void *hook, bool useTrampoline = false);
+    static std::optional<GameHook> safeCreate(void *fnc, void *hook,
+                                              bool useTrampoline = false);
+    static void safeCreate(std::optional<GameHook>& fres, void *fnc, void *hook,
+                           bool useTrampoline = false);
+    static GameHook safeCreateOrPanic(ModInfo& mod, void *fnc, void *hook,
+                                      bool useTrampoline = false);
+    static GameHook unsafeCreate(void *fnc, void *hook,
+                                 bool useTrampoline = false);
     static void *getTrampolineCaller();
     static void *getHookAt(void *fnc);
-    static inline bool isHookAt(void *fnc) {
-        return getHookAt(fnc) != nullptr;
+    static inline bool isHookAt(void *fnc) { return getHookAt(fnc) != nullptr; }
+
+    void *getAddr() const { return fnc; }
+
+    template <typename fncT> fncT *getFunction() const {
+        return reinterpret_cast<fncT *>(fnc);
     }
 
-    void *getAddr() const {
-        return fnc;
-    }
-
-    template<typename fncT>
-    fncT *getFunction() const {
-        return reinterpret_cast<fncT*>(fnc);
-    }
-
-    bool isActive() const {
-        return !released;
-    }
+    bool isActive() const { return !released; }
 };
 
 class GameHookRelease {
@@ -68,27 +68,27 @@ class GameHookRelease {
     bool active;
 
 public:
-    GameHookRelease(GameHook &hook);
+    GameHookRelease(GameHook& hook);
     ~GameHookRelease();
-    GameHookRelease(const GameHookRelease &) = delete;
-    GameHookRelease(GameHookRelease &&) = delete;
+    GameHookRelease(const GameHookRelease&) = delete;
+    GameHookRelease(GameHookRelease&&) = delete;
 
-    bool isValid() const {
-        return active;
-    }
+    bool isValid() const { return active; }
 };
 
 class GameHookPool {
     std::vector<std::shared_ptr<GameHook>> hooks;
 
 public:
-    template<typename fncT>
-    std::shared_ptr<GameHook> add(void *fnc, fncT *hook, bool useTrampoline = false) {
+    template <typename fncT>
+    std::shared_ptr<GameHook> add(void *fnc, fncT *hook,
+                                  bool useTrampoline = false) {
         if (get(fnc) != nullptr) {
             g.logger->warn("Not adding function to hook pool more than once");
             return nullptr;
         }
-        auto fres = GameHook::safeCreate(fnc, reinterpret_cast<void *>(hook), useTrampoline);
+        auto fres = GameHook::safeCreate(fnc, reinterpret_cast<void *>(hook),
+                                         useTrampoline);
         if (!fres.has_value() || !fres->isActive())
             return nullptr;
         return hooks.emplace_back(std::make_shared<GameHook>(std::move(*fres)));
@@ -107,11 +107,7 @@ public:
     }
 };
 
-
-#define GAMEHOOK_TRAMPOLINE(hook) \
-    __attribute__((naked)) \
-    static void hookTrampoline_##hook () { \
-        __asm pop r10 \
-        __asm mov GameHookCallerRip, r10 \
-        __asm jmp hook \
+#define GAMEHOOK_TRAMPOLINE(hook)                                              \
+    __attribute__((naked)) static void hookTrampoline_##hook() {               \
+        __asm pop r10 __asm mov GameHookCallerRip, r10 __asm jmp hook          \
     }

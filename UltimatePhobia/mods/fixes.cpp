@@ -9,8 +9,6 @@
 using namespace Il2Cpp::CppInterop;
 using namespace Il2Cpp::UnityEngine;
 
-
-
 static inline void fixDestroy(std::string_view name) {
     if (auto object = GameObject::Find(ToCsString(name)))
         Object::Destroy(reinterpret_cast<UnityEngine_Object_o *>(object));
@@ -18,29 +16,28 @@ static inline void fixDestroy(std::string_view name) {
 
 static inline void fixPlayerController(Player_o *player) {
     if (player->fields.characterController)
-        Il2Cpp::UnityEngine::CharacterController::set_detectCollisions(player->fields.characterController, false);
+        Il2Cpp::UnityEngine::CharacterController::set_detectCollisions(
+            player->fields.characterController, false);
 }
 
-
-static bool photonNetwork$$ConnectToBestCloudServerFnc(const MethodInfo* method) {
+static bool
+photonNetwork$$ConnectToBestCloudServerFnc(const MethodInfo *method) {
     // TODO: Use last region instead
     return Il2Cpp::Photon::Pun::PhotonNetwork::ConnectToRegion("EU"_cs);
 }
 
-
 Fixes::Fixes()
-    : photonNetwork$$ConnectToBestCloudServerHook(GameHook::safeCreateOrPanic(fixesInfo,
+    : photonNetwork$$ConnectToBestCloudServerHook(GameHook::safeCreateOrPanic(
+          fixesInfo,
           Il2Cpp::Photon::Pun::PhotonNetwork::ConnectToBestCloudServer_getPtr(),
-          reinterpret_cast<void*>(photonNetwork$$ConnectToBestCloudServerFnc)
-          )) {}
+          reinterpret_cast<void *>(
+              photonNetwork$$ConnectToBestCloudServerFnc))) {}
 
 bool Fixes::isSceneFixed() {
     return fixMark == GameObject::Find("UP_fixes_fixMark"_cs);
 }
 
-void Fixes::markSceneFixed() {
-    fixMark = GameObject::New("UP_fixes_fixMark");
-}
+void Fixes::markSceneFixed() { fixMark = GameObject::New("UP_fixes_fixMark"); }
 
 void Fixes::sceneFix() {
     // Mark as fixed first so exceptions during fixup don't cause infinite havoc
@@ -52,7 +49,8 @@ void Fixes::sceneFix() {
 }
 
 void Fixes::playerFix() {
-    if (auto player = globalInstanceManagerInfo.get<GlobalInstanceManager>()->player)
+    if (auto player =
+            globalInstanceManagerInfo.get<GlobalInstanceManager>()->player)
         fixPlayerController(player);
 }
 
@@ -62,9 +60,4 @@ void Fixes::uiUpdate() {
     playerFix();
 }
 
-
-ModInfo fixesInfo {
-    "Fixes",
-    true,
-    [] () {return std::make_unique<Fixes>();}
-};
+ModInfo fixesInfo{"Fixes", true, []() { return std::make_unique<Fixes>(); }};

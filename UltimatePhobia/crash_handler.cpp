@@ -9,8 +9,6 @@
 #include <psapi.h>
 #include <dbghelp.h>
 
-
-
 static void logStackTraceDetail(CONTEXT c) {
     STACKFRAME64 s;
     s.AddrPC.Offset = c.Rip;
@@ -28,7 +26,9 @@ static void logStackTraceDetail(CONTEXT c) {
 
     unsigned frame_number = 0;
     while (frame_number < 32) {
-        if (!StackWalk64(IMAGE_FILE_MACHINE_AMD64, hProcess, hThread, &s, &c, nullptr, SymFunctionTableAccess64, SymGetModuleBase64, nullptr))
+        if (!StackWalk64(IMAGE_FILE_MACHINE_AMD64, hProcess, hThread, &s, &c,
+                         nullptr, SymFunctionTableAccess64, SymGetModuleBase64,
+                         nullptr))
             break;
 
         trace << std::setw(3) << "\n" << frame_number++ << "\t";
@@ -50,7 +50,6 @@ static LONG WINAPI handleCrash(EXCEPTION_POINTERS *excp) {
     logStackTraceDetail(*(excp->ContextRecord));
     return EXCEPTION_EXECUTE_HANDLER;
 }
-
 
 void setupCrashHandler() {
     g.logger->info("Setting up crash handler...");

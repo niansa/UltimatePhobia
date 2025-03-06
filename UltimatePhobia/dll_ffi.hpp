@@ -6,7 +6,6 @@
 #include <filesystem>
 #include <windows.h>
 
-
 class DLLFFI final : public FFI {
     std::string modPathStr;
     HMODULE chandle;

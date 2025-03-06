@@ -4,29 +4,23 @@
 #include <stddef.h>
 
 #ifndef FFI_EXT
-#   if defined(WASM)
-#      define FFI_EXT
-#   endif
+#if defined(WASM)
+#define FFI_EXT
+#endif
 #endif
 
 #ifndef UP_API
-#   ifdef WASM
-#       define UP_API WASM_IMPORT
-#   else
-#       define UP_API
-#   endif
+#ifdef WASM
+#define UP_API WASM_IMPORT
+#else
+#define UP_API
 #endif
-
+#endif
 
 namespace FFIInterface {
 #ifdef FFI_EXT
-enum class ObjectHandle : int {
-    Null = 0,
-    Invalid = -1
-};
-enum class MethodHandle : int {
-    Invalid = -1
-};
+enum class ObjectHandle : int { Null = 0, Invalid = -1 };
+enum class MethodHandle : int { Invalid = -1 };
 #else
 using ObjectHandle = int;
 using MethodHandle = int;
@@ -35,7 +29,8 @@ using WIBool = int;
 constexpr int unknownArgCount = 0x6D616E63;
 
 /**
- * @brief Invalidates given handle to C# object allowing it to be garbage collected
+ * @brief Invalidates given handle to C# object allowing it to be garbage
+ * collected
  */
 UP_API void dropObject(ObjectHandle);
 /**
@@ -161,7 +156,8 @@ UP_API int getArgCount();
 /**
  * @brief Moves last argument to specified index replacing its value
  * @param index New argument index or negative value to replace return value
- * @return 1 on success, 0 on error (if argument list empty or index out of range)
+ * @return 1 on success, 0 on error (if argument list empty or index out of
+ * range)
  */
 UP_API WIBool moveArg(int index);
 /**
@@ -195,16 +191,20 @@ UP_API ObjectHandle getValueObject(int index = -1);
  */
 UP_API ObjectHandle getCallError();
 /**
- * @brief Calls given method with previously added arguments (also clears them if function call was able to be initiated)
- * @param argCount Amount of arguments previously added (optional, may be unknownArgCount)
+ * @brief Calls given method with previously added arguments (also clears them
+ * if function call was able to be initiated)
+ * @param argCount Amount of arguments previously added (optional, may be
+ * unknownArgCount)
  * @return 1 on success, 0 on failure (use getCallError to get error string)
  */
 UP_API WIBool call(MethodHandle, int argCount);
 
 /**
  * @brief Hooks given method
- * @param callback Name of function to call with arguments passed by game added instead when game calls given method
- * @return 1 on success, 0 on failure (if method is already hooked or is invalid)
+ * @param callback Name of function to call with arguments passed by game added
+ * instead when game calls given method
+ * @return 1 on success, 0 on failure (if method is already hooked or is
+ * invalid)
  */
 UP_API WIBool hook(MethodHandle, const char *callback);
 /**
@@ -226,7 +226,8 @@ UP_API WIBool ImGuiButton(const char *label);
 UP_API void ImGuiSeparator();
 UP_API void ImGuiSeparatorText(const char *label);
 
-UP_API void abort(const char *message, const char *filename, int lineNumber, int columnNumber);
+UP_API void abort(const char *message, const char *filename, int lineNumber,
+                  int columnNumber);
 
 #ifndef FFI_EXT
 struct Exports
@@ -235,11 +236,12 @@ struct Imports
 #endif
 {
 #ifndef FFI_EXT
-#   define FFI_EXPORTS_DEFAULT_ASSIGN(name) = FFIInterface::name
+#define FFI_EXPORTS_DEFAULT_ASSIGN(name) = FFIInterface::name
 #else
-#   define FFI_EXPORTS_DEFAULT_ASSIGN(name)
+#define FFI_EXPORTS_DEFAULT_ASSIGN(name)
 #endif
-#define FFI_EXPORTS_BIND(name) decltype(name) *name FFI_EXPORTS_DEFAULT_ASSIGN(name)
+#define FFI_EXPORTS_BIND(name)                                                 \
+    decltype(name) *name FFI_EXPORTS_DEFAULT_ASSIGN(name)
     FFI_EXPORTS_BIND(dropObject);
     FFI_EXPORTS_BIND(isValidObject);
     FFI_EXPORTS_BIND(getNull);
@@ -284,13 +286,12 @@ struct Imports
     FFI_EXPORTS_BIND(ImGuiSeparatorText);
     FFI_EXPORTS_BIND(abort);
 };
-}
+} // namespace FFIInterface
 
 #ifdef FFI_EXT
 namespace Helpers {
 namespace {
-template<size_t N>
-struct StringLiteral {
+template <size_t N> struct StringLiteral {
     constexpr StringLiteral(const char (&str)[N]) {
         for (unsigned it = 0; it != N; ++it)
             value[it] = str[it];
@@ -298,72 +299,45 @@ struct StringLiteral {
 
     char value[N];
 
-    operator const char *() const {
-        return value;
-    }
+    operator const char *() const { return value; }
 };
 
 FFIInterface::ObjectHandle createCsString() {
     return FFIInterface::toCsStringWithLength(nullptr, 0);
 }
 
-void addArg(int32_t v) {
-    FFIInterface::addArgI32(v);
-}
-void addArg(int64_t v) {
-    FFIInterface::addArgI64(v);
-}
-void addArg(bool v) {
-    FFIInterface::addArgI32(v);
-}
-void addArg(float v) {
-    FFIInterface::addArgFloat(v);
-}
-void addArg(double v) {
-    FFIInterface::addArgDouble(v);
-}
-void addArg(FFIInterface::ObjectHandle v) {
-    FFIInterface::addArgObject(v);
-}
-void addArg(decltype(nullptr)) {
-    FFIInterface::addArgNull();
-}
+void addArg(int32_t v) { FFIInterface::addArgI32(v); }
+void addArg(int64_t v) { FFIInterface::addArgI64(v); }
+void addArg(bool v) { FFIInterface::addArgI32(v); }
+void addArg(float v) { FFIInterface::addArgFloat(v); }
+void addArg(double v) { FFIInterface::addArgDouble(v); }
+void addArg(FFIInterface::ObjectHandle v) { FFIInterface::addArgObject(v); }
+void addArg(decltype(nullptr)) { FFIInterface::addArgNull(); }
 
-template<typename T>
-T getArg(int idx) = delete;
-template<>
-void getArg<void>(int idx) {}
-template<>
-int32_t getArg<int32_t>(int idx) {
+template <typename T> T getArg(int idx) = delete;
+template <> void getArg<void>(int idx) {}
+template <> int32_t getArg<int32_t>(int idx) {
     return FFIInterface::getValueI32(idx);
 }
-template<>
-int64_t getArg<int64_t>(int idx) {
+template <> int64_t getArg<int64_t>(int idx) {
     return FFIInterface::getValueI64(idx);
 }
-template<>
-bool getArg<bool>(int idx) {
+template <> bool getArg<bool>(int idx) {
     return FFIInterface::getValueI32(idx);
 }
-template<>
-float getArg<float>(int idx) {
+template <> float getArg<float>(int idx) {
     return FFIInterface::getValueFloat(idx);
 }
-template<>
-double getArg<double>(int idx) {
+template <> double getArg<double>(int idx) {
     return FFIInterface::getValueDouble(idx);
 }
-template<>
+template <>
 FFIInterface::ObjectHandle getArg<FFIInterface::ObjectHandle>(int idx) {
     return FFIInterface::getValueObject(idx);
 }
 
-template<typename T>
-T getReturnValue() {
-    return getArg<T>(-1);
-}
-template<typename T>
-void setReturnValue(T v) {
+template <typename T> T getReturnValue() { return getArg<T>(-1); }
+template <typename T> void setReturnValue(T v) {
     addArg(v);
     FFIInterface::moveArg(-1);
 }
@@ -375,7 +349,7 @@ void addArgs(Arg0 arg0, Args... args) {
     addArgs(args...);
 }
 
-template<unsigned maxlen = 64>
+template <unsigned maxlen = 64>
 const char *getCString(FFIInterface::ObjectHandle str) {
     static char buf[maxlen];
     FFIInterface::toCString(str, buf, maxlen);
@@ -389,26 +363,28 @@ FFIInterface::MethodHandle getMethod(int64_t address) {
     return FFIInterface::getMethodByAddress(address);
 }
 
-template<StringLiteral identifier>
+template <StringLiteral identifier>
 FFIInterface::MethodHandle getMethodCached() {
-    static FFIInterface::MethodHandle fres = FFIInterface::getMethodByIdentifier(identifier);
+    static FFIInterface::MethodHandle fres =
+        FFIInterface::getMethodByIdentifier(identifier);
     return fres;
 }
 
 bool call_error;
-template<StringLiteral identifier, typename returnT = void, typename... Args>
+template <StringLiteral identifier, typename returnT = void, typename... Args>
 returnT call(Args... args) {
     FFIInterface::clearArgs();
     addArgs(args...);
-    call_error = !FFIInterface::call(getMethodCached<identifier>(), FFIInterface::unknownArgCount);
+    call_error = !FFIInterface::call(getMethodCached<identifier>(),
+                                     FFIInterface::unknownArgCount);
     return getReturnValue<returnT>();
 }
 
 namespace Literals {
-inline FFIInterface::ObjectHandle operator "" _cs(const char *str, size_t len) {
+inline FFIInterface::ObjectHandle operator"" _cs(const char *str, size_t len) {
     return FFIInterface::toCsStringWithLength(str, len);
 }
-}
-}
-}
+} // namespace Literals
+} // namespace
+} // namespace Helpers
 #endif

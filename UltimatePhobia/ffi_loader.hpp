@@ -7,7 +7,6 @@
 #include <filesystem>
 #include <memory>
 
-
 namespace FFILoader {
 struct FFIModInternal;
 
@@ -16,7 +15,8 @@ class FFIMod : public Mod {
     std::unique_ptr<FFI> ffi;
 
 public:
-    FFIMod(const std::filesystem::path& base, std::string_view identifier, ModInfo *modInfo, unsigned memSize = 1024);
+    FFIMod(const std::filesystem::path& base, std::string_view identifier,
+           ModInfo *modInfo, unsigned memSize = 1024);
     ~FFIMod();
     FFIMod(const FFIMod&) = delete;
     FFIMod(FFIMod&&) = delete;
@@ -29,5 +29,6 @@ public:
     static void setCurrent(ModInfo *mod);
 };
 
-ModInfo *createModInfo(const std::filesystem::path& base, std::string_view identifier);
-}
+ModInfo *createModInfo(const std::filesystem::path& base,
+                       std::string_view identifier);
+} // namespace FFILoader

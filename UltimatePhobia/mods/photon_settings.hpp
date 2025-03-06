@@ -5,7 +5,6 @@
 
 #include <string_view>
 
-
 class PhotonSettings final : public Mod {
     struct Settings {
         char AppIdRealtime[64];
@@ -51,6 +50,5 @@ public:
     void fromIl2CppClass(const Photon_Realtime_AppSettings_Fields& o);
     void toIl2CppClass(Photon_Realtime_AppSettings_Fields& o);
 };
-
 
 extern ModInfo photonSettingsInfo;

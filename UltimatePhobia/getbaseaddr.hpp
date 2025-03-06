@@ -2,5 +2,4 @@
 
 #include <functional>
 
-
-void getBaseAddr(const std::function<void ()>& callback);
+void getBaseAddr(const std::function<void()>& callback);

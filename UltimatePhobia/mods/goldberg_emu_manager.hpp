@@ -7,7 +7,6 @@
 #include <array>
 #include <filesystem>
 
-
 class GoldbergEmuManager final : public Mod {
     std::filesystem::path settingsPath;
 

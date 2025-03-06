@@ -1,6 +1,5 @@
 #pragma once
 
-
 enum class GhostState {
     idle = 0,
     wander = 1,

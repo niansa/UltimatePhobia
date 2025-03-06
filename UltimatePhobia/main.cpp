@@ -3,7 +3,7 @@
 #include "disable_antimod.hpp"
 #include "disable_splashscreen.hpp"
 #include "il2cpp_dynamic.hpp"
-//#include "crash_handler.hpp"
+// #include "crash_handler.hpp"
 #include "safe_path.hpp"
 #include "imgui_man.hpp"
 #include "application.hpp"
@@ -15,15 +15,15 @@
 #include <spdlog/spdlog.h>
 #include <spdlog/sinks/basic_file_sink.h>
 
-
-int UnityMain(HINSTANCE hInstance, HINSTANCE hPrevInstanc, LPWSTR lpCmdLine, int nShowCmd);
-
+int UnityMain(HINSTANCE hInstance, HINSTANCE hPrevInstanc, LPWSTR lpCmdLine,
+              int nShowCmd);
 
 static void onLoad() {
     g.logger->info("Getting GameAssembly base address...");
-    getBaseAddr([] () {
-        //setupCrashHandler();
-        g.logger->info("Found GameAssembly base address at {}", reinterpret_cast<void *>(g.base));
+    getBaseAddr([]() {
+        // setupCrashHandler();
+        g.logger->info("Found GameAssembly base address at {}",
+                       reinterpret_cast<void *>(g.base));
         ImGuiMan::init();
         Il2Cpp::Dynamic::init();
         disableAntiMod();
@@ -32,10 +32,7 @@ static void onLoad() {
     });
 }
 
-static void onUnload() {
-    ImGuiMan::deinit();
-}
-
+static void onUnload() { ImGuiMan::deinit(); }
 
 static std::string lastErrorString() {
     auto errorMessageID = GetLastError();
@@ -43,14 +40,18 @@ static std::string lastErrorString() {
         return "No error";
     }
     LPSTR messageBuffer = nullptr;
-    auto size = FormatMessageA(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS,
-                               NULL, errorMessageID, MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), (LPSTR)&messageBuffer, 0, NULL);
+    auto size = FormatMessageA(
+        FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM |
+            FORMAT_MESSAGE_IGNORE_INSERTS,
+        NULL, errorMessageID, MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
+        (LPSTR)&messageBuffer, 0, NULL);
     std::string message(messageBuffer, size);
     LocalFree(messageBuffer);
     return message;
 }
 
-int wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR lpCmdLine, int nShowCmd) {
+int wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR lpCmdLine,
+             int nShowCmd) {
     // Get file name
     TCHAR szFileName[MAX_PATH];
     GetModuleFileName(NULL, szFileName, MAX_PATH);
@@ -61,12 +62,16 @@ int wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR lpCmdLine, int
 
     // Set up logger
     try {
-        std::filesystem::rename(safePath/"up_log.txt", safePath/"up_log.prev.txt");
-    } catch (...) {}
-    g.logger = spdlog::basic_logger_mt("UltimatePhobia", (safePath/"up_log.txt").string());
+        std::filesystem::rename(safePath / "up_log.txt",
+                                safePath / "up_log.prev.txt");
+    } catch (...) {
+    }
+    g.logger = spdlog::basic_logger_mt("UltimatePhobia",
+                                       (safePath / "up_log.txt").string());
     g.logger->set_level(spdlog::level::debug);
     g.logger->flush_on(spdlog::level::info);
-    g.logger->info("PID: {} - Module name: {}", GetCurrentProcessId(), szFileName);
+    g.logger->info("PID: {} - Module name: {}", GetCurrentProcessId(),
+                   szFileName);
     g.logger->info("Safe path determined to be at {}", safePath.string());
 
     // Set up detours
@@ -81,12 +86,15 @@ int wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR lpCmdLine, int
     g.logger->info("Starting Unity Player...");
     HMODULE unityPlayer = LoadLibraryW(L"UnityPlayer.dll");
     if (unityPlayer == nullptr) {
-        g.logger->critical("Failed to load Unity Player: {}", lastErrorString());
+        g.logger->critical("Failed to load Unity Player: {}",
+                           lastErrorString());
         abort();
     }
-    auto unityMain = reinterpret_cast<decltype(UnityMain) *>(GetProcAddress(unityPlayer, "UnityMain"));
+    auto unityMain = reinterpret_cast<decltype(UnityMain) *>(
+        GetProcAddress(unityPlayer, "UnityMain"));
     if (unityMain == nullptr) {
-        g.logger->critical("Failed to get Unity Player entry point: {}", lastErrorString());
+        g.logger->critical("Failed to get Unity Player entry point: {}",
+                           lastErrorString());
     }
     unityMain(hInstance, hPrevInstance, lpCmdLine, nShowCmd);
 

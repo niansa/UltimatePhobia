@@ -8,18 +8,20 @@
 #include <windows.h>
 #include <imgui.h>
 
-
 std::string utf8Encode(std::wstring_view wstr) {
     if (wstr.empty())
         return {};
 
-    int len = WideCharToMultiByte(CP_UTF8, 0, &wstr[0], (int)wstr.size(), nullptr, 0, nullptr, nullptr);
+    int len = WideCharToMultiByte(CP_UTF8, 0, &wstr[0], (int)wstr.size(),
+                                  nullptr, 0, nullptr, nullptr);
     std::string strTo(len, 0);
-    WideCharToMultiByte(CP_UTF8, 0, &wstr[0], (int)wstr.size(), &strTo[0], len, nullptr, nullptr);
+    WideCharToMultiByte(CP_UTF8, 0, &wstr[0], (int)wstr.size(), &strTo[0], len,
+                        nullptr, nullptr);
     return strTo;
 }
 
-bool hookToggle(const char *description, std::optional<GameHook>& hook, bool& boolean, void *method, void *hookFnc) {
+bool hookToggle(const char *description, std::optional<GameHook>& hook,
+                bool& boolean, void *method, void *hookFnc) {
     if (ImGui::Checkbox(description, &boolean)) {
         if (boolean) {
             auto hook = GameHook::safeCreate(method, hookFnc);
@@ -36,7 +38,8 @@ bool hookToggle(const char *description, std::optional<GameHook>& hook, bool& bo
     return false;
 }
 
-bool hookToggle(const char *description, GameHookPool& hookPool, bool& boolean, void *method, void *hookFnc) {
+bool hookToggle(const char *description, GameHookPool& hookPool, bool& boolean,
+                void *method, void *hookFnc) {
     if (ImGui::Checkbox(description, &boolean)) {
         if (boolean)
             boolean = hookPool.add(method, hookFnc) != nullptr;

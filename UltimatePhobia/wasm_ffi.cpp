@@ -3,13 +3,12 @@
 
 #include <fstream>
 
-
 namespace {
 wasm3::wasm_environment env;
 }
 
-
-WASMFFI::WASMFFI(const std::filesystem::path &modPath, unsigned int memSize) : runtime(env.new_runtime(memSize)) {
+WASMFFI::WASMFFI(const std::filesystem::path& modPath, unsigned int memSize)
+    : runtime(env.new_runtime(memSize)) {
     // Load WASM file
     std::ifstream wasmFile(modPath, std::ios::binary | std::ios::in);
     if (!wasmFile)
@@ -24,7 +23,8 @@ WASMFFI::WASMFFI(const std::filesystem::path &modPath, unsigned int memSize) : r
     module->link_optional("*", "dropObject", FFIInterface::dropObject);
     module->link_optional("*", "isValidObject", FFIInterface::isValidObject);
     module->link_optional("*", "toCsString", FFIInterface::toCsString);
-    module->link_optional("*", "toCsStringWithLength", FFIInterface::toCsStringWithLength);
+    module->link_optional("*", "toCsStringWithLength",
+                          FFIInterface::toCsStringWithLength);
     module->link_optional("*", "toCString", FFIInterface::toCString);
     module->link_optional("*", "logTrace", FFIInterface::logTrace);
     module->link_optional("*", "logDebug", FFIInterface::logDebug);
@@ -32,10 +32,13 @@ WASMFFI::WASMFFI(const std::filesystem::path &modPath, unsigned int memSize) : r
     module->link_optional("*", "logWarn", FFIInterface::logWarn);
     module->link_optional("*", "logError", FFIInterface::logError);
     module->link_optional("*", "logCritical", FFIInterface::logCritical);
-    module->link_optional("*", "getMethodByIdentifier", FFIInterface::getMethodByIdentifier);
-    module->link_optional("*", "getMethodByAddress", FFIInterface::getMethodByAddress);
+    module->link_optional("*", "getMethodByIdentifier",
+                          FFIInterface::getMethodByIdentifier);
+    module->link_optional("*", "getMethodByAddress",
+                          FFIInterface::getMethodByAddress);
     module->link_optional("*", "getMethodName", FFIInterface::getMethodName);
-    module->link_optional("*", "getMethodSignature", FFIInterface::getMethodSignature);
+    module->link_optional("*", "getMethodSignature",
+                          FFIInterface::getMethodSignature);
     module->link_optional("*", "addArgI32", FFIInterface::addArgI32);
     module->link_optional("*", "addArgI64", FFIInterface::addArgI64);
     module->link_optional("*", "addArgFloat", FFIInterface::addArgFloat);
@@ -61,14 +64,16 @@ WASMFFI::WASMFFI(const std::filesystem::path &modPath, unsigned int memSize) : r
     module->link_optional("*", "ImGuiCheckbox", FFIInterface::ImGuiCheckbox);
     module->link_optional("*", "ImGuiButton", FFIInterface::ImGuiButton);
     module->link_optional("*", "ImGuiSeparator", FFIInterface::ImGuiSeparator);
-    module->link_optional("*", "ImGuiSeparatorText", FFIInterface::ImGuiSeparatorText);
+    module->link_optional("*", "ImGuiSeparatorText",
+                          FFIInterface::ImGuiSeparatorText);
     module->link_optional("*", "abort", FFIInterface::abort);
 
     // Call initialize
     std::optional<wasm3::wasm_function> init;
     try {
         init = runtime.find_function("_initialize");
-    } catch (const wasm3::error&) {}
+    } catch (const wasm3::error&) {
+    }
     if (init.has_value())
         init->call();
 }

@@ -4,11 +4,10 @@
 
 #include <vector>
 
-
 class Application {
     friend struct ApplicationHooks;
 
-    std::vector<ModInfo*> mods;
+    std::vector<ModInfo *> mods;
 
     void init();
     void update();

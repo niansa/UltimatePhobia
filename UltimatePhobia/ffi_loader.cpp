@@ -10,19 +10,19 @@
 #include <stdexcept>
 #include <simdjson.h>
 
-
 namespace FFILoader {
 namespace {
 ModInfo *currentMod;
 }
 
-
-FFIMod::FFIMod(const std::filesystem::path& base, std::string_view identifier, ModInfo *modInfo, unsigned memSize)
+FFIMod::FFIMod(const std::filesystem::path& base, std::string_view identifier,
+               ModInfo *modInfo, unsigned memSize)
     : modInfo(modInfo) {
-    const auto getPath = [&] (const char *extension) {return base/fmt::format("{}.{}", identifier, extension);};
+    const auto getPath = [&](const char *extension) {
+        return base / fmt::format("{}.{}", identifier, extension);
+    };
 
-    const auto wasmPath = getPath("wasm"),
-               dllPath = getPath("dll");
+    const auto wasmPath = getPath("wasm"), dllPath = getPath("dll");
 
     if (std::filesystem::exists(wasmPath))
         ffi = std::make_unique<WASMFFI>(wasmPath, memSize);
@@ -39,27 +39,21 @@ FFIMod::~FFIMod() {
     simpleCall("onUnload");
 }
 
-void FFIMod::uiUpdate() {
-    simpleCall("onUiUpdate");
-}
+void FFIMod::uiUpdate() { simpleCall("onUiUpdate"); }
 
 void FFIMod::simpleCall(const char *name) {
     currentMod = modInfo;
     ffi->simpleCall(name);
 }
 
-ModInfo *FFIMod::getCurrent() {
-    return currentMod;
-}
+ModInfo *FFIMod::getCurrent() { return currentMod; }
 
-void FFIMod::setCurrent(ModInfo *mod) {
-    currentMod = mod;
-}
+void FFIMod::setCurrent(ModInfo *mod) { currentMod = mod; }
 
-
-ModInfo *createModInfo(const std::filesystem::path& base, std::string_view identifier) {
+ModInfo *createModInfo(const std::filesystem::path& base,
+                       std::string_view identifier) {
     // Make sure JSON and WASM files both exist
-    const auto jsonPath = base/fmt::format("{}.json", identifier);
+    const auto jsonPath = base / fmt::format("{}.json", identifier);
     (void)std::filesystem::file_size(jsonPath);
 
     // Load info from JSON
@@ -75,19 +69,20 @@ ModInfo *createModInfo(const std::filesystem::path& base, std::string_view ident
 
     // Create mod info
     auto modInfoPtr = std::make_shared<ModInfo *>();
-    auto fres = new ModInfo {
-        std::string(json["name"].get_string().value()),
-        false,
-        [base, modInfoPtr, memSize, identifier = std::string(identifier)] () -> std::unique_ptr<Mod> {
+    auto fres = new ModInfo{
+        std::string(json["name"].get_string().value()), false,
+        [base, modInfoPtr, memSize,
+         identifier = std::string(identifier)]() -> std::unique_ptr<Mod> {
             try {
-                return std::make_unique<FFIMod>(base, identifier, *modInfoPtr, memSize);
+                return std::make_unique<FFIMod>(base, identifier, *modInfoPtr,
+                                                memSize);
             } catch (const std::exception& e) {
-                g.logger->error("Failed to load FFI module '{}': {}", identifier, e.what());
+                g.logger->error("Failed to load FFI module '{}': {}",
+                                identifier, e.what());
                 return nullptr;
             }
-        }
-    };
+        }};
     *modInfoPtr = fres;
     return fres;
 }
-}
+} // namespace FFILoader

@@ -8,9 +8,7 @@
 #include <map>
 #include <commoncpp/timer.hpp>
 
-
 struct PainKillers_o;
-
 
 class Improvements final : public Mod {
     bool betterPills = false;

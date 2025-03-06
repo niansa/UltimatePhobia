@@ -23,16 +23,13 @@
 #include <exception>
 #include <imgui.h>
 
-
-
 static Application *currentApplication = nullptr;
 
-
 struct ApplicationHooks {
-    inline static std::optional<GameHook> appUpdateHook,
-                                          splashScreenCtorHook;
+    inline static std::optional<GameHook> appUpdateHook, splashScreenCtorHook;
 
-    static void appUpdateFnc(Photon_Pun_PhotonHandler_o* __this, const MethodInfo *method) {
+    static void appUpdateFnc(Photon_Pun_PhotonHandler_o *__this,
+                             const MethodInfo *method) {
         try {
             currentApplication->update();
         } catch (const std::exception& e) {
@@ -40,16 +37,20 @@ struct ApplicationHooks {
         } catch (const ModPanic& e) {
             g.logger->error("Mod '{}' has panicked: {}", e.where(), e.what());
         } catch (...) {
-            g.logger->error("Unknown exception (maybe C# exception?) in main loop");
+            g.logger->error(
+                "Unknown exception (maybe C# exception?) in main loop");
             std::rethrow_exception(std::current_exception());
         }
         GameHookRelease GHR(*appUpdateHook);
-        appUpdateHook->getFunction<decltype(ApplicationHooks::appUpdateFnc)>()(__this, method);
+        appUpdateHook->getFunction<decltype(ApplicationHooks::appUpdateFnc)>()(
+            __this, method);
     }
 
-    static void splashScreenCtorFnc(SplashScreen_o *__this, const MethodInfo *method) {
+    static void splashScreenCtorFnc(SplashScreen_o *__this,
+                                    const MethodInfo *method) {
         g.logger->info("Game has started!");
-        auto orig = splashScreenCtorHook->getFunction<decltype(ApplicationHooks::splashScreenCtorFnc)>();
+        auto orig = splashScreenCtorHook->getFunction<
+            decltype(ApplicationHooks::splashScreenCtorFnc)>();
         splashScreenCtorHook.reset();
         currentApplication->init();
         GameHookRelease GHR(*splashScreenCtorHook);
@@ -57,22 +58,29 @@ struct ApplicationHooks {
     }
 };
 
-
 Application::Application() {
     currentApplication = this;
-    mods = {&photonSettingsInfo, &saveFileManagerInfo, &fixesInfo, &playerManagerInfo, &goldbergEmuManagerInfo, &tracerInfo, &improvementsInfo,
+    mods = {
+        &photonSettingsInfo, &saveFileManagerInfo,    &fixesInfo,
+        &playerManagerInfo,  &goldbergEmuManagerInfo, &tracerInfo,
+        &improvementsInfo,
 #ifdef MOD_ENABLE_CHEATS
-            &cheatsInfo,
+        &cheatsInfo,
 #endif
     };
 
     g.logger->info("Waiting for game start...");
-    GameHook::safeCreate(ApplicationHooks::splashScreenCtorHook, Il2Cpp::SplashScreen::_ctor_getPtr(), reinterpret_cast<void *>(ApplicationHooks::splashScreenCtorFnc));
+    GameHook::safeCreate(
+        ApplicationHooks::splashScreenCtorHook,
+        Il2Cpp::SplashScreen::_ctor_getPtr(),
+        reinterpret_cast<void *>(ApplicationHooks::splashScreenCtorFnc));
 }
 
 void Application::init() {
     g.logger->info("Starting to listen for local player updates...");
-    GameHook::safeCreate(ApplicationHooks::appUpdateHook, Il2Cpp::PlayerSanity::Update_getPtr(), reinterpret_cast<void *>(ApplicationHooks::appUpdateFnc));
+    GameHook::safeCreate(
+        ApplicationHooks::appUpdateHook, Il2Cpp::PlayerSanity::Update_getPtr(),
+        reinterpret_cast<void *>(ApplicationHooks::appUpdateFnc));
 
     g.logger->info("Calling onAppStart functions...");
     for (auto& mod : mods) {
@@ -84,7 +92,7 @@ void Application::init() {
     globalInstanceManagerInfo.load();
     fixesInfo.load();
 
-    const auto modsDir = SafePath::get()/"mods";
+    const auto modsDir = SafePath::get() / "mods";
     bool modsDirExists = false;
     try {
         modsDirExists = std::filesystem::is_directory(modsDir);
@@ -95,17 +103,20 @@ void Application::init() {
     if (modsDirExists) {
         if (Il2Cpp::Dynamic::isLoaded()) {
             g.logger->info("Preparing FFI mods...");
-            for (const auto& entry : std::filesystem::directory_iterator(modsDir)) {
+            for (const auto& entry :
+                 std::filesystem::directory_iterator(modsDir)) {
                 if (!entry.is_regular_file())
                     continue;
                 if (entry.path().extension() != ".json")
                     continue;
                 const auto filename = entry.path().filename().string();
                 const auto identifier = filename.substr(0, filename.size() - 5);
-                mods.emplace_back(FFILoader::createModInfo(modsDir, identifier));
+                mods.emplace_back(
+                    FFILoader::createModInfo(modsDir, identifier));
             }
         } else {
-            g.logger->warn("FFI mods found but ignored because script.json is missing.");
+            g.logger->warn(
+                "FFI mods found but ignored because script.json is missing.");
         }
     }
 }
@@ -140,8 +151,8 @@ void Application::update() {
     }
 
     for (auto& mod : mods)
-       if (mod->instance)
-           mod->instance->uiUpdate();
+        if (mod->instance)
+            mod->instance->uiUpdate();
 
     g.logger->flush();
     ImGuiMan::post_update();
@@ -155,5 +166,6 @@ void Application::exit(int code) {
 }
 
 bool Application::isActive() {
-    return ApplicationHooks::appUpdateHook.has_value() && ApplicationHooks::appUpdateHook.value().isActive();
+    return ApplicationHooks::appUpdateHook.has_value() &&
+           ApplicationHooks::appUpdateHook.value().isActive();
 }

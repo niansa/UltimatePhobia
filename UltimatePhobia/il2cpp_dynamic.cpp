@@ -10,21 +10,18 @@
 #include <cstdint>
 #include <simdjson.h>
 
-
-
 namespace Il2Cpp::Dynamic {
 namespace {
 std::vector<Method> methods;
 std::mutex methods_mutex; // Intentionally used only very loosely
-}
-
+} // namespace
 
 void init() {
-    std::thread([] () {
+    std::thread([]() {
         std::scoped_lock L(methods_mutex);
 
         using std::chrono::high_resolution_clock;
-        const auto scriptJsonPath = SafePath::get()/"script.json";
+        const auto scriptJsonPath = SafePath::get() / "script.json";
 
         // Make sure file exists and get info
         unsigned scriptJsonSize;
@@ -38,7 +35,8 @@ void init() {
         g.logger->info("Processing script.json file for dynamic reflection...");
         methods.clear();
         static simdjson::ondemand::parser parser;
-        static auto json = simdjson::padded_string::load(scriptJsonPath.string());
+        static auto json =
+            simdjson::padded_string::load(scriptJsonPath.string());
         const auto time_start = high_resolution_clock::now();
         auto scriptJson = parser.iterate(json);
         // Get functions
@@ -56,27 +54,41 @@ void init() {
                 ++errors;
             }
         }
-        const auto time_taken = std::chrono::duration_cast<std::chrono::milliseconds>(high_resolution_clock::now() - time_start).count();
+        const auto time_taken =
+            std::chrono::duration_cast<std::chrono::milliseconds>(
+                high_resolution_clock::now() - time_start)
+                .count();
 
         // Log out function count
         if (errors) {
-            g.logger->info("Processed {} methods and failed on {} function from script.json file", methods.size(), errors);
+            g.logger->info("Processed {} methods and failed on {} function "
+                           "from script.json file",
+                           methods.size(), errors);
         } else {
-            g.logger->info("Processed {} methods from script.json file", methods.size());
+            g.logger->info("Processed {} methods from script.json file",
+                           methods.size());
         }
-        g.logger->info("Processing script.json took {} ms ({} MB/s)", time_taken, unsigned((double(scriptJsonSize)*0.000001) / (double(time_taken)*0.001) + 0.5));
+        g.logger->info("Processing script.json took {} ms ({} MB/s)",
+                       time_taken,
+                       unsigned((double(scriptJsonSize) * 0.000001) /
+                                    (double(time_taken) * 0.001) +
+                                0.5));
 
         // Validate some pointers
         bool valid = true;
-        const auto validate = [&valid] (std::string_view name, void *ptr) {
+        const auto validate = [&valid](std::string_view name, void *ptr) {
             if (getMethod(name).getFullAddress() != ptr)
                 valid = false;
         };
-        validate("void UnityEngine_Application__Quit (const MethodInfo* method);", Il2Cpp::UnityEngine::Application::Quit_getPtr());
+        validate(
+            "void UnityEngine_Application__Quit (const MethodInfo* method);",
+            Il2Cpp::UnityEngine::Application::Quit_getPtr());
         validate("Player$$Update", Il2Cpp::Player::Update_getPtr());
         validate("GhostAI$$Appear", Il2Cpp::GhostAI::Appear_getPtr());
         if (!valid)
-            g.logger->warn("Loaded script.json file doesn't match script.json UltimatePhobia was compiled with! Expect serious issues.");
+            g.logger->warn(
+                "Loaded script.json file doesn't match script.json "
+                "UltimatePhobia was compiled with! Expect serious issues.");
     }).detach();
 }
 
@@ -124,7 +136,7 @@ Method getMethod(unsigned idx, bool noError) {
 std::vector<Method> searchMethods(std::string_view identifier) {
     std::vector<Method> fres;
 
-    const auto isDup = [&fres] (const Method& method) {
+    const auto isDup = [&fres](const Method& method) {
         for (const auto& other_method : fres)
             if (method.signature == other_method.signature)
                 return true;
@@ -157,7 +169,5 @@ std::vector<Method> searchMethods(std::string_view identifier) {
     return fres;
 }
 
-const std::vector<Method>& getMethods() {
-    return methods;
-}
-}
+const std::vector<Method>& getMethods() { return methods; }
+} // namespace Il2Cpp::Dynamic

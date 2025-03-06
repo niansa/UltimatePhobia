@@ -7,7 +7,6 @@
 #include "base.hpp"
 #include "game_hook.hpp"
 
-
 class SaveFileManager final : public Mod {
 public:
     bool disableSaveEncryption = false;
