@@ -11,9 +11,7 @@
 struct PainKillers_o;
 
 class Improvements final : public Mod {
-    bool betterPills = false;
-
-    void setGhostAIChangeStateHook();
+    bool autoGrabKeys = false, betterPills = false;
 
 public:
     std::map<PainKillers_o *, common::Timer> painKillerTimers;

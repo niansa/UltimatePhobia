@@ -29,18 +29,6 @@ ghostAI$$ChangeStateFnc(GhostAI_o *__this, int32_t newState,
         __this, newState, objectInteraction, interactionArray, unk0, method);
 }
 
-static void key$$StartFnc(Key_o *__this, const MethodInfo *method) {
-    const auto self = cheatsInfo.get<Cheats>();
-    auto hook = self->hooks.get(Il2Cpp::Key::Start_getPtr());
-
-    // Start key first
-    GameHookRelease GHR(*hook);
-    hook->getFunction<decltype(key$$StartFnc)>()(__this, method);
-
-    // Call GrabbedKey photon RPC
-    Cheats::sendRPC(__this->fields.view, "GrabbedKey", 0);
-}
-
 static void door$$UpdateFnc(Door_o *__this, const MethodInfo *method) {
     const auto self = cheatsInfo.get<Cheats>();
     auto hook = self->hooks.get(Il2Cpp::Door::Update_getPtr());
@@ -76,11 +64,10 @@ void Cheats::uiUpdate() {
     hookToggle("Infinite stamina", hooks, infiniteStamina,
                PlayerStamina::StartDraining_getPtr(),
                reinterpret_cast<void *>(GameHook::noop));
-    hookToggle("Auto grab keys", hooks, autoGrabKeys, Key::Start_getPtr(),
-               reinterpret_cast<void *>(key$$StartFnc));
     hookToggle("Keep items after death", hooks, keepItemsAfterDeath,
                InventoryManager::RemoveItemsFromInventory_getPtr(),
                reinterpret_cast<void *>(GameHook::noop));
+#ifdef MOD_ENABLE_CHEATS_EXTRA
     Separator();
     hookToggle("Invincibility", hooks, invincibility,
                Player::StartKillingPlayer_getPtr(),
@@ -113,15 +100,9 @@ void Cheats::uiUpdate() {
             globalInstanceManagerInfo.get<GlobalInstanceManager>()
                 ->ghost->fields.ghostActivity);
     }
+#endif
 
     End();
-}
-
-void Cheats::sendRPC(Photon_Pun_PhotonView_o *view, std::string_view methodName,
-                     int32_t target) {
-    Il2Cpp::Photon::Pun::PhotonNetwork::RPC(
-        view, Il2Cpp::CppInterop::ToCsString(methodName), target, false,
-        nullptr);
 }
 
 ModInfo cheatsInfo{"Cheats", false,

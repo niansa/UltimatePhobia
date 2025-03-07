@@ -8,8 +8,8 @@
 
 class Cheats final : public Mod {
     bool infiniteStamina = false, pauseGhost = false, invincibility = false,
-         autoGrabKeys = false, autoUnlockDoors = false,
-         keepItemsAfterDeath = false, allowGrabWhenDead = false;
+         autoUnlockDoors = false, keepItemsAfterDeath = false,
+         allowGrabWhenDead = false;
 
     void setGhostAIChangeStateHook();
 
@@ -19,9 +19,6 @@ public:
     GameHookPool hooks;
 
     void uiUpdate() override;
-
-    static void sendRPC(Photon_Pun_PhotonView_o *view,
-                        std::string_view methodName, int32_t target);
 };
 
 extern ModInfo cheatsInfo;

@@ -2,6 +2,7 @@
 #include "getbaseaddr.hpp"
 #include "disable_antimod.hpp"
 #include "disable_splashscreen.hpp"
+#include "configure_persistentdatapath.hpp"
 #include "il2cpp_dynamic.hpp"
 // #include "crash_handler.hpp"
 #include "safe_path.hpp"
@@ -28,6 +29,7 @@ static void onLoad() {
         Il2Cpp::Dynamic::init();
         disableAntiMod();
         disableSplashscreen();
+        configurePersistentDataPath();
         new Application;
     });
 }

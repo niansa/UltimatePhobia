@@ -10,6 +10,20 @@
 #include <imgui.h>
 #include <commoncpp/timer.hpp>
 
+static void key$$StartFnc(Key_o *__this, const MethodInfo *method) {
+    const auto self = improvementsInfo.get<Improvements>();
+    auto hook = self->hooks.get(Il2Cpp::Key::Start_getPtr());
+
+    // Start key first
+    GameHookRelease GHR(*hook);
+    hook->getFunction<decltype(key$$StartFnc)>()(__this, method);
+
+    // Call GrabbedKey photon RPC
+    Il2Cpp::Photon::Pun::PhotonNetwork::RPC(
+        __this->fields.view, Il2Cpp::CppInterop::ToCsString("GrabbedKey"), 0,
+        false, nullptr);
+}
+
 static void
 painKillers$$NetworkedUseFnc(PainKillers_o *__this,
                              Photon_Pun_PhotonMessageInfo_o *messageInfo,
@@ -80,6 +94,8 @@ void Improvements::uiUpdate() {
     Begin("Improvements");
 
     using namespace Il2Cpp;
+    hookToggle("Auto grab keys", hooks, autoGrabKeys, Key::Start_getPtr(),
+               reinterpret_cast<void *>(key$$StartFnc));
     if (hookToggle("Better sanity pills", hooks, betterPills,
                    PainKillers::NetworkedUse_getPtr(),
                    reinterpret_cast<void *>(painKillers$$NetworkedUseFnc)) &&

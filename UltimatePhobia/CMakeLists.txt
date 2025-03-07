@@ -7,6 +7,9 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_INTERPROCEDURAL_OPTIMIZATION ON)
 
 option(ULTIMATEPHOBIA_CHEATS "Build cheats module" ON)
+if (ULTIMATEPHOBIA_CHEATS)
+    option(ULTIMATEPHOBIA_EXTRA_CHEATS "Build extra cheats module" OFF)
+endif()
 
 add_subdirectory(../deps/commoncpp commoncpp)
 add_subdirectory(../deps/detours Detours)
@@ -54,6 +57,7 @@ add_executable(UltimatePhobia WIN32 main.cpp icon.rc
     wasm_ffi.hpp wasm_ffi.cpp
     ffi.hpp
     dll_ffi.hpp dll_ffi.cpp
+    configure_persistentdatapath.hpp configure_persistentdatapath.cpp
 )
 target_link_libraries(UltimatePhobia PRIVATE dbghelp commoncpp Detours spdlog imgui simdjson m3 wasm3_cpp)
 target_include_directories(UltimatePhobia PRIVATE . ../il2cpp_dump)
@@ -61,6 +65,9 @@ target_precompile_headers(UltimatePhobia PRIVATE ../il2cpp_dump/il2cpp.h generat
 target_compile_definitions(UltimatePhobia PUBLIC _CRT_SECURE_NO_WARNINGS)
 if (ULTIMATEPHOBIA_CHEATS)
     target_compile_definitions(UltimatePhobia PRIVATE MOD_ENABLE_CHEATS)
+    if (ULTIMATEPHOBIA_EXTRA_CHEATS)
+        target_compile_definitions(UltimatePhobia PRIVATE MOD_ENABLE_CHEATS_EXTRA)
+    endif()
 endif()
 
 add_custom_command(OUTPUT ${CMAKE_CURRENT_SOURCE_DIR}/generated/il2cpp.hpp ${CMAKE_CURRENT_SOURCE_DIR}/generated/il2cpp.cpp
