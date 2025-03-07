@@ -11,7 +11,7 @@
 struct PainKillers_o;
 
 class Improvements final : public Mod {
-    bool autoGrabKeys = false, betterPills = false;
+    bool autoGrabKeys = false, refillPills = false;
 
 public:
     std::map<PainKillers_o *, common::Timer> painKillerTimers;

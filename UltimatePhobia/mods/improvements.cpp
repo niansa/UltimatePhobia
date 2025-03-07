@@ -67,7 +67,7 @@ static void painKillers$$UseFnc(PainKillers_o *__this,
     auto hook = self->hooks.get(Il2Cpp::PainKillers::Use_getPtr());
     if (!hook) {
         g.logger->error(
-            "Improved pain killer use function called but hook not set???");
+            "Refilling pain killer use function called but hook not set???");
         return;
     }
 
@@ -96,10 +96,10 @@ void Improvements::uiUpdate() {
     using namespace Il2Cpp;
     hookToggle("Auto grab keys", hooks, autoGrabKeys, Key::Start_getPtr(),
                reinterpret_cast<void *>(key$$StartFnc));
-    if (hookToggle("Better sanity pills", hooks, betterPills,
+    if (hookToggle("Refill sanity pills", hooks, refillPills,
                    PainKillers::NetworkedUse_getPtr(),
                    reinterpret_cast<void *>(painKillers$$NetworkedUseFnc)) &&
-        betterPills)
+        refillPills)
         hooks.add(PainKillers::Use_getPtr(),
                   reinterpret_cast<void *>(painKillers$$UseFnc));
 
