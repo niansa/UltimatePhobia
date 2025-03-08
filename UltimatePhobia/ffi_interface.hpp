@@ -229,6 +229,7 @@ UP_API void ImGuiSeparatorText(const char *label);
 UP_API void abort(const char *message, const char *filename, int lineNumber,
                   int columnNumber);
 
+#if !defined(FFI_EXT) || defined(FFI_USES_FTABLE)
 #ifndef FFI_EXT
 struct Exports
 #else
@@ -236,57 +237,64 @@ struct Imports
 #endif
 {
 #ifndef FFI_EXT
-#define FFI_EXPORTS_DEFAULT_ASSIGN(name) = FFIInterface::name
+#define _FFI_FTABLE_DEFAULT_ASSIGN(name) = FFIInterface::name
 #else
-#define FFI_EXPORTS_DEFAULT_ASSIGN(name)
+#define _FFI_FTABLE_DEFAULT_ASSIGN(name)
 #endif
-#define FFI_EXPORTS_BIND(name)                                                 \
-    decltype(name) *name FFI_EXPORTS_DEFAULT_ASSIGN(name)
-    FFI_EXPORTS_BIND(dropObject);
-    FFI_EXPORTS_BIND(isValidObject);
-    FFI_EXPORTS_BIND(getNull);
-    FFI_EXPORTS_BIND(toCsString);
-    FFI_EXPORTS_BIND(toCsStringWithLength);
-    FFI_EXPORTS_BIND(toCString);
-    FFI_EXPORTS_BIND(logTrace);
-    FFI_EXPORTS_BIND(logDebug);
-    FFI_EXPORTS_BIND(logInfo);
-    FFI_EXPORTS_BIND(logWarn);
-    FFI_EXPORTS_BIND(logError);
-    FFI_EXPORTS_BIND(logCritical);
-    FFI_EXPORTS_BIND(getMethodByIdentifier);
-    FFI_EXPORTS_BIND(getMethodByAddress);
-    FFI_EXPORTS_BIND(getMethodName);
-    FFI_EXPORTS_BIND(getMethodSignature);
-    FFI_EXPORTS_BIND(addArgI32);
-    FFI_EXPORTS_BIND(addArgI64);
-    FFI_EXPORTS_BIND(addArgFloat);
-    FFI_EXPORTS_BIND(addArgDouble);
-    FFI_EXPORTS_BIND(addArgObject);
-    FFI_EXPORTS_BIND(addArgNull);
-    FFI_EXPORTS_BIND(clearArgs);
-    FFI_EXPORTS_BIND(getArgCount);
-    FFI_EXPORTS_BIND(moveArg);
-    FFI_EXPORTS_BIND(getValueI32);
-    FFI_EXPORTS_BIND(getValueI64);
-    FFI_EXPORTS_BIND(getValueFloat);
-    FFI_EXPORTS_BIND(getValueDouble);
-    FFI_EXPORTS_BIND(getValueObject);
-    FFI_EXPORTS_BIND(getCallError);
-    FFI_EXPORTS_BIND(call);
-    FFI_EXPORTS_BIND(hook);
-    FFI_EXPORTS_BIND(unhook);
-    FFI_EXPORTS_BIND(getOriginal);
-    FFI_EXPORTS_BIND(ImGuiBegin);
-    FFI_EXPORTS_BIND(ImGuiEnd);
-    FFI_EXPORTS_BIND(ImGuiText);
-    FFI_EXPORTS_BIND(ImGuiCheckbox);
-    FFI_EXPORTS_BIND(ImGuiButton);
-    FFI_EXPORTS_BIND(ImGuiSeparator);
-    FFI_EXPORTS_BIND(ImGuiSeparatorText);
-    FFI_EXPORTS_BIND(abort);
+#define _FFI_FTABLE_BIND(name)                                                 \
+    decltype(name) *name _FFI_FTABLE_DEFAULT_ASSIGN(name)
+    _FFI_FTABLE_BIND(dropObject);
+    _FFI_FTABLE_BIND(isValidObject);
+    _FFI_FTABLE_BIND(getNull);
+    _FFI_FTABLE_BIND(toCsString);
+    _FFI_FTABLE_BIND(toCsStringWithLength);
+    _FFI_FTABLE_BIND(toCString);
+    _FFI_FTABLE_BIND(logTrace);
+    _FFI_FTABLE_BIND(logDebug);
+    _FFI_FTABLE_BIND(logInfo);
+    _FFI_FTABLE_BIND(logWarn);
+    _FFI_FTABLE_BIND(logError);
+    _FFI_FTABLE_BIND(logCritical);
+    _FFI_FTABLE_BIND(getMethodByIdentifier);
+    _FFI_FTABLE_BIND(getMethodByAddress);
+    _FFI_FTABLE_BIND(getMethodName);
+    _FFI_FTABLE_BIND(getMethodSignature);
+    _FFI_FTABLE_BIND(addArgI32);
+    _FFI_FTABLE_BIND(addArgI64);
+    _FFI_FTABLE_BIND(addArgFloat);
+    _FFI_FTABLE_BIND(addArgDouble);
+    _FFI_FTABLE_BIND(addArgObject);
+    _FFI_FTABLE_BIND(addArgNull);
+    _FFI_FTABLE_BIND(clearArgs);
+    _FFI_FTABLE_BIND(getArgCount);
+    _FFI_FTABLE_BIND(moveArg);
+    _FFI_FTABLE_BIND(getValueI32);
+    _FFI_FTABLE_BIND(getValueI64);
+    _FFI_FTABLE_BIND(getValueFloat);
+    _FFI_FTABLE_BIND(getValueDouble);
+    _FFI_FTABLE_BIND(getValueObject);
+    _FFI_FTABLE_BIND(getCallError);
+    _FFI_FTABLE_BIND(call);
+    _FFI_FTABLE_BIND(hook);
+    _FFI_FTABLE_BIND(unhook);
+    _FFI_FTABLE_BIND(getOriginal);
+    _FFI_FTABLE_BIND(ImGuiBegin);
+    _FFI_FTABLE_BIND(ImGuiEnd);
+    _FFI_FTABLE_BIND(ImGuiText);
+    _FFI_FTABLE_BIND(ImGuiCheckbox);
+    _FFI_FTABLE_BIND(ImGuiButton);
+    _FFI_FTABLE_BIND(ImGuiSeparator);
+    _FFI_FTABLE_BIND(ImGuiSeparatorText);
+    _FFI_FTABLE_BIND(abort);
 };
+#endif
 } // namespace FFIInterface
+
+#ifndef FFI_USES_FTABLE
+#define FFI_USE_FTABLE FFIInterface::
+#else
+#define FFI_USE_FTABLE (FFI_FTABLE).
+#endif
 
 #ifdef FFI_EXT
 namespace Helpers {
@@ -303,43 +311,43 @@ template <size_t N> struct StringLiteral {
 };
 
 FFIInterface::ObjectHandle createCsString() {
-    return FFIInterface::toCsStringWithLength(nullptr, 0);
+    return FFI_USE_FTABLE toCsStringWithLength(nullptr, 0);
 }
 
-void addArg(int32_t v) { FFIInterface::addArgI32(v); }
-void addArg(int64_t v) { FFIInterface::addArgI64(v); }
-void addArg(bool v) { FFIInterface::addArgI32(v); }
-void addArg(float v) { FFIInterface::addArgFloat(v); }
-void addArg(double v) { FFIInterface::addArgDouble(v); }
-void addArg(FFIInterface::ObjectHandle v) { FFIInterface::addArgObject(v); }
-void addArg(decltype(nullptr)) { FFIInterface::addArgNull(); }
+void addArg(int32_t v) { FFI_USE_FTABLE addArgI32(v); }
+void addArg(int64_t v) { FFI_USE_FTABLE addArgI64(v); }
+void addArg(bool v) { FFI_USE_FTABLE addArgI32(v); }
+void addArg(float v) { FFI_USE_FTABLE addArgFloat(v); }
+void addArg(double v) { FFI_USE_FTABLE addArgDouble(v); }
+void addArg(FFIInterface::ObjectHandle v) { FFI_USE_FTABLE addArgObject(v); }
+void addArg(decltype(nullptr)) { FFI_USE_FTABLE addArgNull(); }
 
 template <typename T> T getArg(int idx) = delete;
 template <> void getArg<void>(int idx) {}
 template <> int32_t getArg<int32_t>(int idx) {
-    return FFIInterface::getValueI32(idx);
+    return FFI_USE_FTABLE getValueI32(idx);
 }
 template <> int64_t getArg<int64_t>(int idx) {
-    return FFIInterface::getValueI64(idx);
+    return FFI_USE_FTABLE getValueI64(idx);
 }
 template <> bool getArg<bool>(int idx) {
-    return FFIInterface::getValueI32(idx);
+    return FFI_USE_FTABLE getValueI32(idx);
 }
 template <> float getArg<float>(int idx) {
-    return FFIInterface::getValueFloat(idx);
+    return FFI_USE_FTABLE getValueFloat(idx);
 }
 template <> double getArg<double>(int idx) {
-    return FFIInterface::getValueDouble(idx);
+    return FFI_USE_FTABLE getValueDouble(idx);
 }
 template <>
 FFIInterface::ObjectHandle getArg<FFIInterface::ObjectHandle>(int idx) {
-    return FFIInterface::getValueObject(idx);
+    return FFI_USE_FTABLE getValueObject(idx);
 }
 
 template <typename T> T getReturnValue() { return getArg<T>(-1); }
 template <typename T> void setReturnValue(T v) {
     addArg(v);
-    FFIInterface::moveArg(-1);
+    FFI_USE_FTABLE moveArg(-1);
 }
 
 inline void addArgs() {}
@@ -352,37 +360,37 @@ void addArgs(Arg0 arg0, Args... args) {
 template <unsigned maxlen = 64>
 const char *getCString(FFIInterface::ObjectHandle str) {
     static char buf[maxlen];
-    FFIInterface::toCString(str, buf, maxlen);
+    FFI_USE_FTABLE toCString(str, buf, maxlen);
     return buf;
 }
 
 FFIInterface::MethodHandle getMethod(const char *identifier) {
-    return FFIInterface::getMethodByIdentifier(identifier);
+    return FFI_USE_FTABLE getMethodByIdentifier(identifier);
 }
 FFIInterface::MethodHandle getMethod(int64_t address) {
-    return FFIInterface::getMethodByAddress(address);
+    return FFI_USE_FTABLE getMethodByAddress(address);
 }
 
 template <StringLiteral identifier>
 FFIInterface::MethodHandle getMethodCached() {
     static FFIInterface::MethodHandle fres =
-        FFIInterface::getMethodByIdentifier(identifier);
+        FFI_USE_FTABLE getMethodByIdentifier(identifier);
     return fres;
 }
 
 bool call_error;
 template <StringLiteral identifier, typename returnT = void, typename... Args>
 returnT call(Args... args) {
-    FFIInterface::clearArgs();
+    FFI_USE_FTABLE clearArgs();
     addArgs(args...);
-    call_error = !FFIInterface::call(getMethodCached<identifier>(),
-                                     FFIInterface::unknownArgCount);
+    call_error = !FFI_USE_FTABLE call(getMethodCached<identifier>(),
+                                      FFIInterface::unknownArgCount);
     return getReturnValue<returnT>();
 }
 
 namespace Literals {
 inline FFIInterface::ObjectHandle operator"" _cs(const char *str, size_t len) {
-    return FFIInterface::toCsStringWithLength(str, len);
+    return FFI_USE_FTABLE toCsStringWithLength(str, len);
 }
 } // namespace Literals
 } // namespace
