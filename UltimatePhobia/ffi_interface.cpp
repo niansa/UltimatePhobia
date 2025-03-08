@@ -2,6 +2,7 @@
 #include "global_state.hpp"
 #include "il2cpp_dynamic.hpp"
 #include "il2cpp_cppinterop.hpp"
+#include "il2cpp_api.hpp"
 #include "game_hook.hpp"
 #include "ffi_loader.hpp"
 #include "mods/base.hpp"
@@ -58,6 +59,30 @@ ObjectHandle toCsStringWithLength(const char *str, int length) {
 void toCString(ObjectHandle str, char *buf, int maxlen) {
     Il2Cpp::CppInterop::ToCString(
         reinterpret_cast<System_String_o *>(getObject(str)), buf, maxlen);
+}
+
+ObjectHandle getImageCorlib() {
+    return addObject(const_cast<void *>(
+        reinterpret_cast<const void *>(Il2Cpp::API::il2cpp_get_corlib())));
+}
+ObjectHandle getClassFromName(ObjectHandle image, const char *namespaze,
+                              const char *name) {
+    return addObject(
+        reinterpret_cast<void *>(Il2Cpp::API::il2cpp_class_from_name(
+            reinterpret_cast<Il2Cpp::API::Il2CppImage *>(getObject(image)),
+            namespaze, name)));
+}
+ObjectHandle getArrayFromClass(ObjectHandle elementClass, int32_t rank) {
+    return addObject(
+        reinterpret_cast<void *>(Il2Cpp::API::il2cpp_array_class_get(
+            reinterpret_cast<Il2Cpp::API::Il2CppClass *>(
+                getObject(elementClass)),
+            rank)));
+}
+ObjectHandle createArray(ObjectHandle elementClass, int32_t length) {
+    return addObject(reinterpret_cast<void *>(Il2Cpp::API::il2cpp_array_new(
+        reinterpret_cast<Il2Cpp::API::Il2CppClass *>(getObject(elementClass)),
+        length)));
 }
 
 namespace {

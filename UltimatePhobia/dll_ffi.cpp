@@ -1,6 +1,7 @@
 #include "dll_ffi.hpp"
 #include "global_state.hpp"
 #include "ffi_interface.hpp"
+#include "misc_utils.hpp"
 
 #include <string>
 #include <stdexcept>
@@ -10,7 +11,8 @@ DLLFFI::DLLFFI(const std::filesystem::path& modPath)
     : modPathStr(modPath.string()) {
     chandle = LoadLibraryA(modPathStr.c_str());
     if (!chandle)
-        throw std::runtime_error(fmt::format("dlopen(): {}", modPathStr));
+        throw std::runtime_error(fmt::format("dlopen(\"{}\"): {}", modPathStr,
+                                             lastWinErrorString()));
 
     const static FFIInterface::Exports exports;
     void initImportsDummy(const FFIInterface::Exports *);

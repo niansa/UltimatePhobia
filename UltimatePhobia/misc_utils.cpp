@@ -20,6 +20,22 @@ std::string utf8Encode(std::wstring_view wstr) {
     return strTo;
 }
 
+std::string lastWinErrorString() {
+    auto errorMessageID = GetLastError();
+    if (errorMessageID == 0) {
+        return "No error";
+    }
+    LPSTR messageBuffer = nullptr;
+    auto size = FormatMessageA(
+        FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM |
+            FORMAT_MESSAGE_IGNORE_INSERTS,
+        NULL, errorMessageID, MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
+        (LPSTR)&messageBuffer, 0, NULL);
+    std::string message(messageBuffer, size);
+    LocalFree(messageBuffer);
+    return message;
+}
+
 bool hookToggle(const char *description, std::optional<GameHook>& hook,
                 bool& boolean, void *method, void *hookFnc) {
     if (ImGui::Checkbox(description, &boolean)) {

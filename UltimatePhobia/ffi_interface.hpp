@@ -63,6 +63,35 @@ UP_API ObjectHandle toCsStringWithLength(const char *str, int length);
 UP_API void toCString(ObjectHandle str, char *buf, int maxlen);
 
 /**
+ * @brief Gets corlib image handle
+ * @return Image handle
+ */
+UP_API ObjectHandle getImageCorlib();
+/**
+ * @brief Gets specified class handle
+ * @param image Handle of image to load class from
+ * @param namespaze Namespace to load class from
+ * @param name Name of class to load
+ * @return Class handle
+ */
+UP_API ObjectHandle getClassFromName(ObjectHandle image, const char *namespaze,
+                                     const char *name);
+/**
+ * @brief Gets array class from class
+ * @param elementClass Element type
+ * @param rank ??? = 1
+ * @return Class handle
+ */
+UP_API ObjectHandle getArrayFromClass(ObjectHandle elementClass, int32_t rank);
+/**
+ * @brief Create an array
+ * @param elementClass Element type
+ * @param length Length of array
+ * @return Handle of new array object
+ */
+UP_API ObjectHandle createArray(ObjectHandle elementClass, int32_t length);
+
+/**
  * @brief Logs given message on trace level
  * @param message System.String object containing message
  */
@@ -286,6 +315,10 @@ struct Imports
     _FFI_FTABLE_BIND(ImGuiSeparator);
     _FFI_FTABLE_BIND(ImGuiSeparatorText);
     _FFI_FTABLE_BIND(abort);
+    _FFI_FTABLE_BIND(getImageCorlib);
+    _FFI_FTABLE_BIND(getClassFromName);
+    _FFI_FTABLE_BIND(getArrayFromClass);
+    _FFI_FTABLE_BIND(createArray);
 };
 #endif
 } // namespace FFIInterface

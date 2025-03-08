@@ -21,7 +21,8 @@ struct ModInfo {
     void load() {
         g.logger->info("Loading mod '{}'...", name);
         instance = create();
-        g.logger->info("Mod '{}' loaded.", name);
+        if (instance)
+            g.logger->info("Mod '{}' loaded.", name);
     }
     void unload() {
         g.logger->info("Unloading mod '{}'...", name);

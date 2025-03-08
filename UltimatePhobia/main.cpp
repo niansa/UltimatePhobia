@@ -4,6 +4,7 @@
 #include "disable_splashscreen.hpp"
 #include "configure_persistentdatapath.hpp"
 #include "il2cpp_dynamic.hpp"
+#include "il2cpp_api.hpp"
 // #include "crash_handler.hpp"
 #include "safe_path.hpp"
 #include "imgui_man.hpp"
@@ -26,6 +27,7 @@ static void onLoad() {
         g.logger->info("Found GameAssembly base address at {}",
                        reinterpret_cast<void *>(g.base));
         ImGuiMan::init();
+        Il2Cpp::API::init();
         Il2Cpp::Dynamic::init();
         disableAntiMod();
         disableSplashscreen();
@@ -71,7 +73,7 @@ int wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR lpCmdLine,
     g.logger = spdlog::basic_logger_mt("UltimatePhobia",
                                        (safePath / "up_log.txt").string());
     g.logger->set_level(spdlog::level::debug);
-    g.logger->flush_on(spdlog::level::info);
+    g.logger->flush_on(spdlog::level::err);
     g.logger->info("PID: {} - Module name: {}", GetCurrentProcessId(),
                    szFileName);
     g.logger->info("Safe path determined to be at {}", safePath.string());
