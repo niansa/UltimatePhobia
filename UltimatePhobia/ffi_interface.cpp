@@ -47,6 +47,9 @@ void dropObject(ObjectHandle id) {
 int isValidObject(ObjectHandle id) {
     return id == 0 || objects.find(id) != objects.end();
 }
+int64_t getObjectAddress(ObjectHandle id) {
+    return reinterpret_cast<uintptr_t>(getObject(id));
+}
 ObjectHandle getNull() { return 0; }
 
 ObjectHandle toCsString(const char *str) {
@@ -84,6 +87,11 @@ ObjectHandle createArray(ObjectHandle elementClass, int32_t length) {
         reinterpret_cast<Il2Cpp::API::Il2CppClass *>(getObject(elementClass)),
         length)));
 }
+void copyArrayBytes(ObjectHandle array, int32_t offset, int32_t length,
+                    void *to) {
+    auto csArray = reinterpret_cast<System_Byte_array *>(getObject(array));
+    memcpy(to, csArray->m_Items + offset, length);
+}
 
 namespace {
 void log(spdlog::level::level_enum level, ObjectHandle message) {
@@ -119,6 +127,12 @@ ObjectHandle getMethodSignature(MethodHandle index) {
         return 0;
     return addObject(
         Il2Cpp::CppInterop::ToCsString(Dynamic::getMethod(index).signature));
+}
+int64_t getMethodAddresss(MethodHandle index) {
+    if (index < 0)
+        return 0;
+    return reinterpret_cast<uintptr_t>(
+        Dynamic::getMethod(index).getFullAddress());
 }
 
 namespace {

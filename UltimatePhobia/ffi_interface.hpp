@@ -39,6 +39,11 @@ UP_API void dropObject(ObjectHandle);
  */
 UP_API WIBool isValidObject(ObjectHandle);
 /**
+ * @brief Returns the address of given object
+ * @return Address of object
+ */
+UP_API int64_t getObjectAddress(ObjectHandle);
+/**
  * @return C# null object (0 handle)
  */
 UP_API ObjectHandle getNull();
@@ -90,6 +95,15 @@ UP_API ObjectHandle getArrayFromClass(ObjectHandle elementClass, int32_t rank);
  * @return Handle of new array object
  */
 UP_API ObjectHandle createArray(ObjectHandle elementClass, int32_t length);
+/**
+ * @brief Copies an array into memory
+ * @param array Array to copy from
+ * @param offset Amount of bytes to skip
+ * @param length Amount of bytes to copy
+ * @param to Buffer to copy bytes into
+ */
+UP_API void copyArrayBytes(ObjectHandle array, int32_t offset, int32_t length,
+                           void *to);
 
 /**
  * @brief Logs given message on trace level
@@ -144,6 +158,11 @@ UP_API ObjectHandle getMethodName(MethodHandle);
  * @return System.String object
  */
 UP_API ObjectHandle getMethodSignature(MethodHandle);
+/**
+ * @brief Gets address of given method
+ * @return System.String object
+ */
+UP_API int64_t getMethodAddresss(MethodHandle);
 
 /**
  * @brief Adds 32 bit integer to argument list
@@ -319,6 +338,9 @@ struct Imports
     _FFI_FTABLE_BIND(getClassFromName);
     _FFI_FTABLE_BIND(getArrayFromClass);
     _FFI_FTABLE_BIND(createArray);
+    _FFI_FTABLE_BIND(copyArrayBytes);
+    _FFI_FTABLE_BIND(getMethodAddresss);
+    _FFI_FTABLE_BIND(getObjectAddress);
 };
 #endif
 } // namespace FFIInterface
