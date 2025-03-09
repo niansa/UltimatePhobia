@@ -93,6 +93,17 @@ void copyArrayBytes(ObjectHandle array, int32_t offset, int32_t length,
     memcpy(to, csArray->m_Items + offset, length);
 }
 
+GCHandle gcCreateHandle(ObjectHandle object, int pinned) {
+    auto ptr = getObject(object);
+    if (ptr == nullptr)
+        return -1;
+    return Il2Cpp::API::il2cpp_gchandle_new(
+        reinterpret_cast<Il2CppObject *>(ptr), pinned);
+}
+void gcDeleteHandle(GCHandle handle) {
+    Il2Cpp::API::il2cpp_gchandle_free(handle);
+}
+
 namespace {
 void log(spdlog::level::level_enum level, ObjectHandle message) {
     g.logger->log(level, "[{} (FFI)] {}", FFILoader::FFIMod::getCurrent()->name,

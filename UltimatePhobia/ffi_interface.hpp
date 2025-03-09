@@ -21,9 +21,11 @@ namespace FFIInterface {
 #ifdef FFI_EXT
 enum class ObjectHandle : int { Null = 0, Invalid = -1 };
 enum class MethodHandle : int { Invalid = -1 };
+enum class GCHandle : int { Invalid = -1 };
 #else
 using ObjectHandle = int;
 using MethodHandle = int;
+using GCHandle = int;
 #endif
 using WIBool = int;
 constexpr int unknownArgCount = 0x6D616E63;
@@ -104,6 +106,18 @@ UP_API ObjectHandle createArray(ObjectHandle elementClass, int32_t length);
  */
 UP_API void copyArrayBytes(ObjectHandle array, int32_t offset, int32_t length,
                            void *to);
+
+/**
+ * @brief Create a garbage collection handle
+ * @param object Object to create handle for
+ * @param pinned If object should be pinned
+ * @return Handle that has to be deleted later
+ */
+UP_API GCHandle gcCreateHandle(ObjectHandle object, int pinned);
+/**
+ * @brief Deletes garbage collection handle
+ */
+UP_API void gcDeleteHandle(GCHandle);
 
 /**
  * @brief Logs given message on trace level
@@ -341,6 +355,8 @@ struct Imports
     _FFI_FTABLE_BIND(copyArrayBytes);
     _FFI_FTABLE_BIND(getMethodAddresss);
     _FFI_FTABLE_BIND(getObjectAddress);
+    _FFI_FTABLE_BIND(gcCreateHandle);
+    _FFI_FTABLE_BIND(gcDeleteHandle);
 };
 #endif
 } // namespace FFIInterface
@@ -386,7 +402,7 @@ template <> int64_t getArg<int64_t>(int idx) {
     return FFI_USE_FTABLE getValueI64(idx);
 }
 template <> bool getArg<bool>(int idx) {
-    return FFI_USE_FTABLE getValueI32(idx);
+    return (FFI_USE_FTABLE getValueI32(idx)) & 0xff;
 }
 template <> float getArg<float>(int idx) {
     return FFI_USE_FTABLE getValueFloat(idx);
