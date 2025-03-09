@@ -33,6 +33,8 @@ std::string lastWinErrorString() {
         (LPSTR)&messageBuffer, 0, NULL);
     std::string message(messageBuffer, size);
     LocalFree(messageBuffer);
+    while (message.back() == '\n' || message.back() == '\r')
+        message.pop_back();
     return message;
 }
 
