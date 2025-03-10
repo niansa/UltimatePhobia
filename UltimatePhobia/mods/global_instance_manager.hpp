@@ -6,13 +6,17 @@
 
 class GlobalInstanceManager final : public Mod {
 public:
-    Player_o *player = nullptr;
-    GhostAI_o *ghost = nullptr;
-    GameController_o *gameController = nullptr;
+    Player_o *playerPtr = nullptr;
+    GhostAI_o *ghostPtr = nullptr;
+    GameController_o *gameControllerPtr = nullptr;
 
     GameHook player$$AwakeHook, ghostAI$$AwakeHook, gameController$$AwakeHook;
 
     GlobalInstanceManager();
+
+    Player_o *getPlayer();
+    GhostAI_o *getGhostAI();
+    GameController_o *getGameController();
 };
 
 extern ModInfo globalInstanceManagerInfo;

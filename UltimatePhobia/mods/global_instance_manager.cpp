@@ -9,7 +9,7 @@ static void player$$AwakeFnc(Player_o *__this, const MethodInfo *method) {
     hook.getFunction<decltype(player$$AwakeFnc)>()(__this, method);
     auto photonView = __this->fields.photonView;
     if (!photonView || photonView->fields._AmOwner_k__BackingField)
-        self->player = __this;
+        self->playerPtr = __this;
 }
 
 static void ghostAI$$AwakeFnc(GhostAI_o *__this, const MethodInfo *method) {
@@ -17,7 +17,7 @@ static void ghostAI$$AwakeFnc(GhostAI_o *__this, const MethodInfo *method) {
     auto& hook = self->ghostAI$$AwakeHook;
     GameHookRelease GHR(hook);
     hook.getFunction<decltype(ghostAI$$AwakeFnc)>()(__this, method);
-    self->ghost = __this;
+    self->ghostPtr = __this;
 }
 
 static void gameController$$AwakeFnc(GameController_o *__this,
@@ -26,7 +26,7 @@ static void gameController$$AwakeFnc(GameController_o *__this,
     auto& hook = self->gameController$$AwakeHook;
     GameHookRelease GHR(hook);
     hook.getFunction<decltype(gameController$$AwakeFnc)>()(__this, method);
-    self->gameController = __this;
+    self->gameControllerPtr = __this;
 }
 
 GlobalInstanceManager::GlobalInstanceManager()
@@ -39,6 +39,24 @@ GlobalInstanceManager::GlobalInstanceManager()
       gameController$$AwakeHook(GameHook::safeCreateOrPanic(
           globalInstanceManagerInfo, Il2Cpp::GameController::Awake_getPtr(),
           reinterpret_cast<void *>(gameController$$AwakeFnc))) {}
+
+#define RETURN_PTR_IF_VALID(v)                                                 \
+    if (v == nullptr)                                                          \
+        return nullptr;                                                        \
+    if (!Il2Cpp::UnityEngine::Object::IsNativeObjectAlive(                     \
+            reinterpret_cast<UnityEngine_Object_o *>(v)))                      \
+        return v = nullptr;                                                    \
+    return v
+
+Player_o *GlobalInstanceManager::getPlayer() { RETURN_PTR_IF_VALID(playerPtr); }
+
+GhostAI_o *GlobalInstanceManager::getGhostAI() {
+    RETURN_PTR_IF_VALID(ghostPtr);
+}
+
+GameController_o *GlobalInstanceManager::getGameController() {
+    RETURN_PTR_IF_VALID(gameControllerPtr);
+}
 
 ModInfo globalInstanceManagerInfo{
     "Global Instance Manager", true,

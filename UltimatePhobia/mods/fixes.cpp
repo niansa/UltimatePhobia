@@ -50,7 +50,7 @@ void Fixes::sceneFix() {
 
 void Fixes::playerFix() {
     if (auto player =
-            globalInstanceManagerInfo.get<GlobalInstanceManager>()->player)
+            globalInstanceManagerInfo.get<GlobalInstanceManager>()->getPlayer())
         fixPlayerController(player);
 }
 

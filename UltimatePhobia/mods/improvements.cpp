@@ -32,7 +32,7 @@ painKillers$$NetworkedUseFnc(PainKillers_o *__this,
     const auto gim = globalInstanceManagerInfo.get<GlobalInstanceManager>();
     auto hook = self->hooks.get(Il2Cpp::GhostAI::ChangeState_getPtr());
 
-    if (!gim->gameController) {
+    if (!gim->getGameController()) {
         g.logger->error("Game controller not initialized on pain killer use");
         return;
     }
