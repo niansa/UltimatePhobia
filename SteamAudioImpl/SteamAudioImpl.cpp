@@ -223,12 +223,12 @@ STEAMAUDIOIMPL_EXPORT void onLoad() {
 }
 
 STEAMAUDIOIMPL_EXPORT void onUnload() {
+    FFI logInfo("Unloading miniaudio..."_cs);
+    ma_device_uninit(&GlobalState::maDevice);
+
     FFI logInfo("Unloading Steam Audio..."_cs);
     PhononPlayback::env.reset();
     iplContextRelease(&GlobalState::phononCtx);
-
-    FFI logInfo("Unloading miniaudio..."_cs);
-    ma_device_uninit(&GlobalState::maDevice);
 
     FFI unhook(getMethodCached<"void UnityEngine_AudioSource__Play (UnityEngine_AudioSource_o* "
                                "__this, const MethodInfo* method);">());
@@ -250,6 +250,9 @@ STEAMAUDIOIMPL_EXPORT void onUnload() {
                                "(UnityEngine_AudioSource_o* "
                                "__this, bool stopOneShots, const MethodInfo* "
                                "method);">());
+
+    // FFI unhook(getMethodCached<"UnityEngine.AudioSource$$set_volume">());
+    FFI unhook(getMethodCached<"UnityEngine.AudioSource$$set_clip">());
 }
 
 STEAMAUDIOIMPL_EXPORT void onUiUpdate() {
