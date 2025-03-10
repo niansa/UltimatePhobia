@@ -15,12 +15,8 @@ namespace {
 ModInfo *currentMod;
 }
 
-FFIMod::FFIMod(const std::filesystem::path& base, std::string_view identifier,
-               ModInfo *modInfo, unsigned memSize)
-    : modInfo(modInfo) {
-    const auto getPath = [&](const char *extension) {
-        return base / fmt::format("{}.{}", identifier, extension);
-    };
+FFIMod::FFIMod(const std::filesystem::path& base, std::string_view identifier, ModInfo *modInfo, unsigned memSize) : modInfo(modInfo) {
+    const auto getPath = [&](const char *extension) { return base / fmt::format("{}.{}", identifier, extension); };
 
     const auto wasmPath = getPath("wasm"), dllPath = getPath("dll");
 
@@ -50,8 +46,7 @@ ModInfo *FFIMod::getCurrent() { return currentMod; }
 
 void FFIMod::setCurrent(ModInfo *mod) { currentMod = mod; }
 
-ModInfo *createModInfo(const std::filesystem::path& base,
-                       std::string_view identifier) {
+ModInfo *createModInfo(const std::filesystem::path& base, std::string_view identifier) {
     // Make sure JSON and WASM files both exist
     const auto jsonPath = base / fmt::format("{}.json", identifier);
     (void)std::filesystem::file_size(jsonPath);
@@ -69,19 +64,15 @@ ModInfo *createModInfo(const std::filesystem::path& base,
 
     // Create mod info
     auto modInfoPtr = std::make_shared<ModInfo *>();
-    auto fres = new ModInfo{
-        std::string(json["name"].get_string().value()), false,
-        [base, modInfoPtr, memSize,
-         identifier = std::string(identifier)]() -> std::unique_ptr<Mod> {
-            try {
-                return std::make_unique<FFIMod>(base, identifier, *modInfoPtr,
-                                                memSize);
-            } catch (const std::exception& e) {
-                g.logger->error("Failed to load FFI module '{}': {}",
-                                identifier, e.what());
-                return nullptr;
-            }
-        }};
+    auto fres = new ModInfo{std::string(json["name"].get_string().value()), false,
+                            [base, modInfoPtr, memSize, identifier = std::string(identifier)]() -> std::unique_ptr<Mod> {
+                                try {
+                                    return std::make_unique<FFIMod>(base, identifier, *modInfoPtr, memSize);
+                                } catch (const std::exception& e) {
+                                    g.logger->error("Failed to load FFI module '{}': {}", identifier, e.what());
+                                    return nullptr;
+                                }
+                            }};
     *modInfoPtr = fres;
     return fres;
 }

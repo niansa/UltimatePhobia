@@ -81,8 +81,7 @@ UP_API ObjectHandle getImageCorlib();
  * @param name Name of class to load
  * @return Class handle
  */
-UP_API ObjectHandle getClassFromName(ObjectHandle image, const char *namespaze,
-                                     const char *name);
+UP_API ObjectHandle getClassFromName(ObjectHandle image, const char *namespaze, const char *name);
 /**
  * @brief Gets array class from class
  * @param elementClass Element type
@@ -104,8 +103,7 @@ UP_API ObjectHandle createArray(ObjectHandle elementClass, int32_t length);
  * @param length Amount of bytes to copy
  * @param to Buffer to copy bytes into
  */
-UP_API void copyArrayBytes(ObjectHandle array, int32_t offset, int32_t length,
-                           void *to);
+UP_API void copyArrayBytes(ObjectHandle array, int32_t offset, int32_t length, void *to);
 
 /**
  * @brief Create a garbage collection handle
@@ -288,8 +286,7 @@ UP_API WIBool ImGuiButton(const char *label);
 UP_API void ImGuiSeparator();
 UP_API void ImGuiSeparatorText(const char *label);
 
-UP_API void abort(const char *message, const char *filename, int lineNumber,
-                  int columnNumber);
+UP_API void abort(const char *message, const char *filename, int lineNumber, int columnNumber);
 
 #if !defined(FFI_EXT) || defined(FFI_USES_FTABLE)
 #ifndef FFI_EXT
@@ -303,8 +300,7 @@ struct Imports
 #else
 #define _FFI_FTABLE_DEFAULT_ASSIGN(name)
 #endif
-#define _FFI_FTABLE_BIND(name)                                                 \
-    decltype(name) *name _FFI_FTABLE_DEFAULT_ASSIGN(name)
+#define _FFI_FTABLE_BIND(name) decltype(name) *name _FFI_FTABLE_DEFAULT_ASSIGN(name)
     _FFI_FTABLE_BIND(dropObject);
     _FFI_FTABLE_BIND(isValidObject);
     _FFI_FTABLE_BIND(getNull);
@@ -381,9 +377,7 @@ template <size_t N> struct StringLiteral {
     operator const char *() const { return value; }
 };
 
-FFIInterface::ObjectHandle createCsString() {
-    return FFI_USE_FTABLE toCsStringWithLength(nullptr, 0);
-}
+FFIInterface::ObjectHandle createCsString() { return FFI_USE_FTABLE toCsStringWithLength(nullptr, 0); }
 
 void addArg(int32_t v) { FFI_USE_FTABLE addArgI32(v); }
 void addArg(int64_t v) { FFI_USE_FTABLE addArgI64(v); }
@@ -395,25 +389,12 @@ void addArg(decltype(nullptr)) { FFI_USE_FTABLE addArgNull(); }
 
 template <typename T> T getArg(int idx) = delete;
 template <> void getArg<void>(int idx) {}
-template <> int32_t getArg<int32_t>(int idx) {
-    return FFI_USE_FTABLE getValueI32(idx);
-}
-template <> int64_t getArg<int64_t>(int idx) {
-    return FFI_USE_FTABLE getValueI64(idx);
-}
-template <> bool getArg<bool>(int idx) {
-    return (FFI_USE_FTABLE getValueI32(idx)) & 0xff;
-}
-template <> float getArg<float>(int idx) {
-    return FFI_USE_FTABLE getValueFloat(idx);
-}
-template <> double getArg<double>(int idx) {
-    return FFI_USE_FTABLE getValueDouble(idx);
-}
-template <>
-FFIInterface::ObjectHandle getArg<FFIInterface::ObjectHandle>(int idx) {
-    return FFI_USE_FTABLE getValueObject(idx);
-}
+template <> int32_t getArg<int32_t>(int idx) { return FFI_USE_FTABLE getValueI32(idx); }
+template <> int64_t getArg<int64_t>(int idx) { return FFI_USE_FTABLE getValueI64(idx); }
+template <> bool getArg<bool>(int idx) { return (FFI_USE_FTABLE getValueI32(idx)) & 0xff; }
+template <> float getArg<float>(int idx) { return FFI_USE_FTABLE getValueFloat(idx); }
+template <> double getArg<double>(int idx) { return FFI_USE_FTABLE getValueDouble(idx); }
+template <> FFIInterface::ObjectHandle getArg<FFIInterface::ObjectHandle>(int idx) { return FFI_USE_FTABLE getValueObject(idx); }
 
 template <typename T> T getReturnValue() { return getArg<T>(-1); }
 template <typename T> void setReturnValue(T v) {
@@ -422,47 +403,35 @@ template <typename T> void setReturnValue(T v) {
 }
 
 inline void addArgs() {}
-template <typename Arg0, typename... Args>
-void addArgs(Arg0 arg0, Args... args) {
+template <typename Arg0, typename... Args> void addArgs(Arg0 arg0, Args... args) {
     addArg(arg0);
     addArgs(args...);
 }
 
-template <unsigned maxlen = 64>
-const char *getCString(FFIInterface::ObjectHandle str) {
+template <unsigned maxlen = 64> const char *getCString(FFIInterface::ObjectHandle str) {
     static char buf[maxlen];
     FFI_USE_FTABLE toCString(str, buf, maxlen);
     return buf;
 }
 
-FFIInterface::MethodHandle getMethod(const char *identifier) {
-    return FFI_USE_FTABLE getMethodByIdentifier(identifier);
-}
-FFIInterface::MethodHandle getMethod(int64_t address) {
-    return FFI_USE_FTABLE getMethodByAddress(address);
-}
+FFIInterface::MethodHandle getMethod(const char *identifier) { return FFI_USE_FTABLE getMethodByIdentifier(identifier); }
+FFIInterface::MethodHandle getMethod(int64_t address) { return FFI_USE_FTABLE getMethodByAddress(address); }
 
-template <StringLiteral identifier>
-FFIInterface::MethodHandle getMethodCached() {
-    static FFIInterface::MethodHandle fres =
-        FFI_USE_FTABLE getMethodByIdentifier(identifier);
+template <StringLiteral identifier> FFIInterface::MethodHandle getMethodCached() {
+    static FFIInterface::MethodHandle fres = FFI_USE_FTABLE getMethodByIdentifier(identifier);
     return fres;
 }
 
 bool call_error;
-template <StringLiteral identifier, typename returnT = void, typename... Args>
-returnT call(Args... args) {
+template <StringLiteral identifier, typename returnT = void, typename... Args> returnT call(Args... args) {
     FFI_USE_FTABLE clearArgs();
     addArgs(args...);
-    call_error = !FFI_USE_FTABLE call(getMethodCached<identifier>(),
-                                      FFIInterface::unknownArgCount);
+    call_error = !FFI_USE_FTABLE call(getMethodCached<identifier>(), FFIInterface::unknownArgCount);
     return getReturnValue<returnT>();
 }
 
 namespace Literals {
-inline FFIInterface::ObjectHandle operator"" _cs(const char *str, size_t len) {
-    return FFI_USE_FTABLE toCsStringWithLength(str, len);
-}
+inline FFIInterface::ObjectHandle operator"" _cs(const char *str, size_t len) { return FFI_USE_FTABLE toCsStringWithLength(str, len); }
 } // namespace Literals
 } // namespace
 } // namespace Helpers

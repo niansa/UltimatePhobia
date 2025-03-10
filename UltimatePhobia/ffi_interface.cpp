@@ -44,51 +44,27 @@ void dropObject(ObjectHandle id) {
     if (id > 0)
         objects.erase(id);
 }
-int isValidObject(ObjectHandle id) {
-    return id == 0 || objects.find(id) != objects.end();
-}
-int64_t getObjectAddress(ObjectHandle id) {
-    return reinterpret_cast<uintptr_t>(getObject(id));
-}
+int isValidObject(ObjectHandle id) { return id == 0 || objects.find(id) != objects.end(); }
+int64_t getObjectAddress(ObjectHandle id) { return reinterpret_cast<uintptr_t>(getObject(id)); }
 ObjectHandle getNull() { return 0; }
 
-ObjectHandle toCsString(const char *str) {
-    return addObject(Il2Cpp::CppInterop::ToCsString(str));
-}
-ObjectHandle toCsStringWithLength(const char *str, int length) {
-    return addObject(
-        Il2Cpp::CppInterop::ToCsString({str, static_cast<size_t>(length)}));
-}
-void toCString(ObjectHandle str, char *buf, int maxlen) {
-    Il2Cpp::CppInterop::ToCString(
-        reinterpret_cast<System_String_o *>(getObject(str)), buf, maxlen);
-}
+ObjectHandle toCsString(const char *str) { return addObject(Il2Cpp::CppInterop::ToCsString(str)); }
+ObjectHandle toCsStringWithLength(const char *str, int length) { return addObject(Il2Cpp::CppInterop::ToCsString({str, static_cast<size_t>(length)})); }
+void toCString(ObjectHandle str, char *buf, int maxlen) { Il2Cpp::CppInterop::ToCString(reinterpret_cast<System_String_o *>(getObject(str)), buf, maxlen); }
 
-ObjectHandle getImageCorlib() {
-    return addObject(const_cast<void *>(
-        reinterpret_cast<const void *>(Il2Cpp::API::il2cpp_get_corlib())));
-}
-ObjectHandle getClassFromName(ObjectHandle image, const char *namespaze,
-                              const char *name) {
+ObjectHandle getImageCorlib() { return addObject(const_cast<void *>(reinterpret_cast<const void *>(Il2Cpp::API::il2cpp_get_corlib()))); }
+ObjectHandle getClassFromName(ObjectHandle image, const char *namespaze, const char *name) {
     return addObject(
-        reinterpret_cast<void *>(Il2Cpp::API::il2cpp_class_from_name(
-            reinterpret_cast<Il2Cpp::API::Il2CppImage *>(getObject(image)),
-            namespaze, name)));
+        reinterpret_cast<void *>(Il2Cpp::API::il2cpp_class_from_name(reinterpret_cast<Il2Cpp::API::Il2CppImage *>(getObject(image)), namespaze, name)));
 }
 ObjectHandle getArrayFromClass(ObjectHandle elementClass, int32_t rank) {
     return addObject(
-        reinterpret_cast<void *>(Il2Cpp::API::il2cpp_array_class_get(
-            reinterpret_cast<Il2Cpp::API::Il2CppClass *>(
-                getObject(elementClass)),
-            rank)));
+        reinterpret_cast<void *>(Il2Cpp::API::il2cpp_array_class_get(reinterpret_cast<Il2Cpp::API::Il2CppClass *>(getObject(elementClass)), rank)));
 }
 ObjectHandle createArray(ObjectHandle elementClass, int32_t length) {
-    return addObject(reinterpret_cast<void *>(Il2Cpp::API::il2cpp_array_new(
-        reinterpret_cast<Il2Cpp::API::Il2CppClass *>(getObject(elementClass)),
-        length)));
+    return addObject(reinterpret_cast<void *>(Il2Cpp::API::il2cpp_array_new(reinterpret_cast<Il2Cpp::API::Il2CppClass *>(getObject(elementClass)), length)));
 }
-void copyArrayBytes(ObjectHandle array, int32_t offset, int32_t length,
-                    void *to) {
+void copyArrayBytes(ObjectHandle array, int32_t offset, int32_t length, void *to) {
     auto csArray = reinterpret_cast<System_Byte_array *>(getObject(array));
     memcpy(to, csArray->m_Items + offset, length);
 }
@@ -97,18 +73,14 @@ GCHandle gcCreateHandle(ObjectHandle object, int pinned) {
     auto ptr = getObject(object);
     if (ptr == nullptr)
         return -1;
-    return Il2Cpp::API::il2cpp_gchandle_new(
-        reinterpret_cast<Il2CppObject *>(ptr), pinned);
+    return Il2Cpp::API::il2cpp_gchandle_new(reinterpret_cast<Il2CppObject *>(ptr), pinned);
 }
-void gcDeleteHandle(GCHandle handle) {
-    Il2Cpp::API::il2cpp_gchandle_free(handle);
-}
+void gcDeleteHandle(GCHandle handle) { Il2Cpp::API::il2cpp_gchandle_free(handle); }
 
 namespace {
 void log(spdlog::level::level_enum level, ObjectHandle message) {
     g.logger->log(level, "[{} (FFI)] {}", FFILoader::FFIMod::getCurrent()->name,
-                  Il2Cpp::CppInterop::ToCppString(
-                      reinterpret_cast<System_String_o *>(getObject(message))));
+                  Il2Cpp::CppInterop::ToCppString(reinterpret_cast<System_String_o *>(getObject(message))));
 }
 } // namespace
 void logTrace(ObjectHandle message) { log(spdlog::level::trace, message); }
@@ -116,34 +88,25 @@ void logDebug(ObjectHandle message) { log(spdlog::level::debug, message); }
 void logInfo(ObjectHandle message) { log(spdlog::level::info, message); }
 void logWarn(ObjectHandle message) { log(spdlog::level::warn, message); }
 void logError(ObjectHandle message) { log(spdlog::level::err, message); }
-void logCritical(ObjectHandle message) {
-    log(spdlog::level::critical, message);
-}
+void logCritical(ObjectHandle message) { log(spdlog::level::critical, message); }
 
 namespace Dynamic = Il2Cpp::Dynamic;
-MethodHandle getMethodByIdentifier(const char *identifier) {
-    return Dynamic::getMethod(identifier, true).index;
-}
-MethodHandle getMethodByAddress(int64_t addr) {
-    return Dynamic::getMethod(reinterpret_cast<void *>(addr), true).index;
-}
+MethodHandle getMethodByIdentifier(const char *identifier) { return Dynamic::getMethod(identifier, true).index; }
+MethodHandle getMethodByAddress(int64_t addr) { return Dynamic::getMethod(reinterpret_cast<void *>(addr), true).index; }
 ObjectHandle getMethodName(MethodHandle index) {
     if (index < 0)
         return 0;
-    return addObject(
-        Il2Cpp::CppInterop::ToCsString(Dynamic::getMethod(index).name));
+    return addObject(Il2Cpp::CppInterop::ToCsString(Dynamic::getMethod(index).name));
 }
 ObjectHandle getMethodSignature(MethodHandle index) {
     if (index < 0)
         return 0;
-    return addObject(
-        Il2Cpp::CppInterop::ToCsString(Dynamic::getMethod(index).signature));
+    return addObject(Il2Cpp::CppInterop::ToCsString(Dynamic::getMethod(index).signature));
 }
 int64_t getMethodAddresss(MethodHandle index) {
     if (index < 0)
         return 0;
-    return reinterpret_cast<uintptr_t>(
-        Dynamic::getMethod(index).getFullAddress());
+    return reinterpret_cast<uintptr_t>(Dynamic::getMethod(index).getFullAddress());
 }
 
 namespace {
@@ -161,14 +124,8 @@ void *getValue(int index) {
 } // namespace
 void addArgI32(int32_t v) { call_args.push_back(reinterpret_cast<void *>(v)); }
 void addArgI64(int64_t v) { call_args.push_back(reinterpret_cast<void *>(v)); }
-void addArgFloat(float v) {
-    call_args.push_back(
-        reinterpret_cast<void *>(*reinterpret_cast<uint32_t *>(&v)));
-}
-void addArgDouble(double v) {
-    call_args.push_back(
-        reinterpret_cast<void *>(*reinterpret_cast<uint64_t *>(&v)));
-}
+void addArgFloat(float v) { call_args.push_back(reinterpret_cast<void *>(*reinterpret_cast<uint32_t *>(&v))); }
+void addArgDouble(double v) { call_args.push_back(reinterpret_cast<void *>(*reinterpret_cast<uint64_t *>(&v))); }
 void addArgObject(ObjectHandle v) { call_args.push_back(getObject(v)); }
 void addArgNull() { call_args.push_back(nullptr); }
 void clearArgs() { call_args.clear(); }
@@ -184,12 +141,8 @@ WIBool moveArg(int index) {
     call_args.pop_back();
     return true;
 }
-int32_t getValueI32(int index) {
-    return reinterpret_cast<uintptr_t>(getValue(index));
-}
-int64_t getValueI64(int index) {
-    return reinterpret_cast<uintptr_t>(getValue(index));
-}
+int32_t getValueI32(int index) { return reinterpret_cast<uintptr_t>(getValue(index)); }
+int64_t getValueI64(int index) { return reinterpret_cast<uintptr_t>(getValue(index)); }
 float getValueFloat(int index) {
     void *value = getValue(index);
     return *reinterpret_cast<float *>(&value);
@@ -199,14 +152,9 @@ double getValueDouble(int index) {
     return *reinterpret_cast<double *>(&value);
 }
 ObjectHandle getValueObject(int index) { return addObject(getValue(index)); }
-ObjectHandle getCallError() {
-    return addObject(Il2Cpp::CppInterop::ToCsString(call_error));
-}
+ObjectHandle getCallError() { return addObject(Il2Cpp::CppInterop::ToCsString(call_error)); }
 namespace {
-void logBadCall() {
-    g.logger->warn("WebAssembly interface failed to call function: {}",
-                   call_error);
-}
+void logBadCall() { g.logger->warn("WebAssembly interface failed to call function: {}", call_error); }
 } // namespace
 WIBool call(MethodHandle index, int argCount) {
     // Handle unknown argument count
@@ -215,9 +163,7 @@ WIBool call(MethodHandle index, int argCount) {
 
     // Make sure argCount matches argument count
     else if (argCount != call_args.size()) {
-        call_error =
-            fmt::format("Mismatched added ({}) vs. passed ({}) arg count",
-                        call_args.size(), argCount);
+        call_error = fmt::format("Mismatched added ({}) vs. passed ({}) arg count", call_args.size(), argCount);
         logBadCall();
         return false;
     }
@@ -233,9 +179,7 @@ WIBool call(MethodHandle index, int argCount) {
     // Check argument count
     const auto actualArgCount = method.getArgCount();
     if (argCount != actualArgCount) {
-        call_error =
-            fmt::format("Mismatched passed ({}) vs. actual ({}) arg count",
-                        argCount, actualArgCount);
+        call_error = fmt::format("Mismatched passed ({}) vs. actual ({}) arg count", argCount, actualArgCount);
         logBadCall();
         return false;
     }
@@ -256,38 +200,28 @@ WIBool call(MethodHandle index, int argCount) {
             return_value = method.getFunction<void *(void *)>()(args[0]);
             break;
         case 2:
-            return_value =
-                method.getFunction<void *(void *, void *)>()(args[0], args[1]);
+            return_value = method.getFunction<void *(void *, void *)>()(args[0], args[1]);
             break;
         case 3:
-            return_value = method.getFunction<void *(void *, void *, void *)>()(
-                args[0], args[1], args[2]);
+            return_value = method.getFunction<void *(void *, void *, void *)>()(args[0], args[1], args[2]);
             break;
         case 4:
-            return_value =
-                method.getFunction<void *(void *, void *, void *, void *)>()(
-                    args[0], args[1], args[2], args[3]);
+            return_value = method.getFunction<void *(void *, void *, void *, void *)>()(args[0], args[1], args[2], args[3]);
             break;
         case 5:
-            return_value = method.getFunction<void *(void *, void *, void *,
-                                                     void *, void *)>()(
-                args[0], args[1], args[2], args[3], args[4]);
+            return_value = method.getFunction<void *(void *, void *, void *, void *, void *)>()(args[0], args[1], args[2], args[3], args[4]);
             break;
         case 6:
-            return_value = method.getFunction<void *(void *, void *, void *,
-                                                     void *, void *, void *)>()(
-                args[0], args[1], args[2], args[3], args[4], args[5]);
+            return_value = method.getFunction<void *(void *, void *, void *, void *, void *, void *)>()(args[0], args[1], args[2], args[3], args[4], args[5]);
             break;
         default: {
-            call_error = fmt::format(
-                "Too many arguments ({}) (max. 6 supported)", argCount);
+            call_error = fmt::format("Too many arguments ({}) (max. 6 supported)", argCount);
             logBadCall();
             return false; // No need to clean up so not using fres here
         }
         }
     } catch (const std::exception& e) {
-        call_error =
-            fmt::format("Method has thrown an exception: {}", e.what());
+        call_error = fmt::format("Method has thrown an exception: {}", e.what());
         logBadCall();
         fres = false;
     } catch (...) {
@@ -348,21 +282,16 @@ void *ffiHook(void *a, void *b, void *c, void *d, void *e, void *f) noexcept {
     // Call hook callback
     try {
         GameHookRelease GHR(*hooks.at(currentHookMethod).hook);
-        hookInfo.modInfo->get<FFILoader::FFIMod>()->simpleCall(
-            hookInfo.callback.c_str());
+        hookInfo.modInfo->get<FFILoader::FFIMod>()->simpleCall(hookInfo.callback.c_str());
         return return_value;
     } catch (const std::exception& e) {
-        g.logger->error(
-            "Exception while executing FFI GameHook callback '{}': {}",
-            hookInfo.callback, e.what());
+        g.logger->error("Exception while executing FFI GameHook callback '{}': {}", hookInfo.callback, e.what());
         return nullptr;
     } catch (const ModPanic& e) {
         g.logger->error("FFI Mod '{}' has panicked: {}", e.where(), e.what());
         return nullptr;
     } catch (...) {
-        g.logger->error(
-            "Unknown exception while executing FFI GameHook callback '{}'!",
-            hookInfo.callback);
+        g.logger->error("Unknown exception while executing FFI GameHook callback '{}'!", hookInfo.callback);
         return nullptr;
     }
 }
@@ -377,41 +306,27 @@ WIBool hook(MethodHandle method, const char *callback) {
                        "arguments (which is unsupported)");
         return false;
     }
-    auto hook = GameHook::safeCreate(
-        methodInfo.getFullAddress(),
-        reinterpret_cast<void *>(hookTrampoline_ffiHook), true);
+    auto hook = GameHook::safeCreate(methodInfo.getFullAddress(), reinterpret_cast<void *>(hookTrampoline_ffiHook), true);
     if (!hook.has_value())
         return false;
-    return hooks
-        .emplace(method,
-                 FFIGameHookInfo{std::make_shared<GameHook>(std::move(*hook)),
-                                 FFILoader::FFIMod::getCurrent(), callback})
-        .second;
+    return hooks.emplace(method, FFIGameHookInfo{std::make_shared<GameHook>(std::move(*hook)), FFILoader::FFIMod::getCurrent(), callback}).second;
 }
 WIBool unhook(MethodHandle method) { return hooks.erase(method); }
 MethodHandle getOriginal() { return currentHookMethod; }
 
 void ImGuiBegin(const char *name) { ImGui::Begin(name); }
 void ImGuiEnd() { ImGui::End(); }
-void ImGuiText(ObjectHandle text) {
-    ImGui::TextUnformatted(
-        Il2Cpp::CppInterop::ToCppString(
-            reinterpret_cast<System_String_o *>(getObject(text)))
-            .c_str());
-}
+void ImGuiText(ObjectHandle text) { ImGui::TextUnformatted(Il2Cpp::CppInterop::ToCppString(reinterpret_cast<System_String_o *>(getObject(text))).c_str()); }
 void ImGuiCheckbox(const char *label, bool *v) { ImGui::Checkbox(label, v); }
 WIBool ImGuiButton(const char *label) { return ImGui::Button(label); }
 void ImGuiSeparator() { ImGui::Separator(); }
 void ImGuiSeparatorText(const char *label) { ImGui::SeparatorText(label); }
 
-void abort(const char *message, const char *filename, int lineNumber,
-           int columnNumber) {
+void abort(const char *message, const char *filename, int lineNumber, int columnNumber) {
     auto modInfo = FFILoader::FFIMod::getCurrent();
-    const auto msg =
-        fmt::format("WebAssembly module {} has called abort()!\n - Message: "
-                    "{}\n - Filename: {}\n - Line: {}\n - Column: {}",
-                    modInfo->name, message ? message : "none",
-                    filename ? filename : "unknown", lineNumber, columnNumber);
+    const auto msg = fmt::format("WebAssembly module {} has called abort()!\n - Message: "
+                                 "{}\n - Filename: {}\n - Line: {}\n - Column: {}",
+                                 modInfo->name, message ? message : "none", filename ? filename : "unknown", lineNumber, columnNumber);
     g.logger->critical(msg);
     throw ModPanic(*modInfo, msg);
 }

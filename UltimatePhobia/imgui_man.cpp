@@ -7,15 +7,11 @@
 #include <d3d11.h>
 
 // Forward declare message handler from imgui_impl_win32.cpp
-extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd,
-                                                             UINT msg,
-                                                             WPARAM wParam,
-                                                             LPARAM lParam);
+extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
 
 namespace ImGuiMan {
 namespace {
-constexpr ImVec4 clear_color = ImVec4(0.1372549019607843f, 0.1215686274509804f,
-                                      0.1254901960784314f, 1.00f); // #231f20
+constexpr ImVec4 clear_color = ImVec4(0.1372549019607843f, 0.1215686274509804f, 0.1254901960784314f, 1.00f); // #231f20
 
 ID3D11Device *pd3dDevice = nullptr;
 ID3D11DeviceContext *pd3dDeviceContext = nullptr;
@@ -39,22 +35,9 @@ void init() {
 
     // Create application window
     // ImGui_ImplWin32_EnableDpiAwareness();
-    wc = {sizeof(wc),
-          CS_CLASSDC,
-          WndProc,
-          0L,
-          0L,
-          GetModuleHandle(nullptr),
-          nullptr,
-          nullptr,
-          nullptr,
-          nullptr,
-          L"ImGui Example",
-          nullptr};
+    wc = {sizeof(wc), CS_CLASSDC, WndProc, 0L, 0L, GetModuleHandle(nullptr), nullptr, nullptr, nullptr, nullptr, L"ImGui Example", nullptr};
     ::RegisterClassExW(&wc);
-    hwnd = ::CreateWindowW(wc.lpszClassName, L"UltimatePhasmo",
-                           WS_OVERLAPPEDWINDOW, 100, 100, 1280, 800, nullptr,
-                           nullptr, wc.hInstance, nullptr);
+    hwnd = ::CreateWindowW(wc.lpszClassName, L"UltimatePhasmo", WS_OVERLAPPEDWINDOW, 100, 100, 1280, 800, nullptr, nullptr, wc.hInstance, nullptr);
 
     // Initialize Direct3D
     if (!CreateDeviceD3D(hwnd)) {
@@ -73,10 +56,8 @@ void init() {
     ImGui::CreateContext();
     ImGuiIO& io = ImGui::GetIO();
     (void)io;
-    io.ConfigFlags |=
-        ImGuiConfigFlags_NavEnableKeyboard; // Enable Keyboard Controls
-    io.ConfigFlags |=
-        ImGuiConfigFlags_NavEnableGamepad; // Enable Gamepad Controls
+    io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard; // Enable Keyboard Controls
+    io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;  // Enable Gamepad Controls
 
     // Setup Dear ImGui style
     ImGui::StyleColorsDark();
@@ -109,8 +90,7 @@ bool pre_update() {
     }
 
     // Handle window being minimized or screen locked
-    if (swapChainOccluded &&
-        pSwapChain->Present(0, DXGI_PRESENT_TEST) == DXGI_STATUS_OCCLUDED) {
+    if (swapChainOccluded && pSwapChain->Present(0, DXGI_PRESENT_TEST) == DXGI_STATUS_OCCLUDED) {
         return false;
     }
     swapChainOccluded = false;
@@ -118,8 +98,7 @@ bool pre_update() {
     // Handle window resize (we don't resize directly in the WM_SIZE handler)
     if (resizeWidth != 0 && resizeHeight != 0) {
         CleanupRenderTarget();
-        pSwapChain->ResizeBuffers(0, resizeWidth, resizeHeight,
-                                  DXGI_FORMAT_UNKNOWN, 0);
+        pSwapChain->ResizeBuffers(0, resizeWidth, resizeHeight, DXGI_FORMAT_UNKNOWN, 0);
         resizeWidth = resizeHeight = 0;
         CreateRenderTarget();
     }
@@ -134,12 +113,9 @@ bool pre_update() {
 void post_update() {
     // Rendering
     ImGui::Render();
-    const float clear_color_with_alpha[4] = {
-        clear_color.x * clear_color.w, clear_color.y * clear_color.w,
-        clear_color.z * clear_color.w, clear_color.w};
+    const float clear_color_with_alpha[4] = {clear_color.x * clear_color.w, clear_color.y * clear_color.w, clear_color.z * clear_color.w, clear_color.w};
     pd3dDeviceContext->OMSetRenderTargets(1, &mainRenderTargetView, nullptr);
-    pd3dDeviceContext->ClearRenderTargetView(mainRenderTargetView,
-                                             clear_color_with_alpha);
+    pd3dDeviceContext->ClearRenderTargetView(mainRenderTargetView, clear_color_with_alpha);
     ImGui_ImplDX11_RenderDrawData(ImGui::GetDrawData());
 
     // Present
@@ -173,16 +149,12 @@ bool CreateDeviceD3D(HWND hWnd) {
         D3D_FEATURE_LEVEL_11_0,
         D3D_FEATURE_LEVEL_10_0,
     };
-    HRESULT res = D3D11CreateDeviceAndSwapChain(
-        nullptr, D3D_DRIVER_TYPE_HARDWARE, nullptr, createDeviceFlags,
-        featureLevelArray, 2, D3D11_SDK_VERSION, &sd, &pSwapChain, &pd3dDevice,
-        &featureLevel, &pd3dDeviceContext);
+    HRESULT res = D3D11CreateDeviceAndSwapChain(nullptr, D3D_DRIVER_TYPE_HARDWARE, nullptr, createDeviceFlags, featureLevelArray, 2, D3D11_SDK_VERSION, &sd,
+                                                &pSwapChain, &pd3dDevice, &featureLevel, &pd3dDeviceContext);
     if (res == DXGI_ERROR_UNSUPPORTED) // Try high-performance WARP software
                                        // driver if hardware is not available.
-        res = D3D11CreateDeviceAndSwapChain(
-            nullptr, D3D_DRIVER_TYPE_WARP, nullptr, createDeviceFlags,
-            featureLevelArray, 2, D3D11_SDK_VERSION, &sd, &pSwapChain,
-            &pd3dDevice, &featureLevel, &pd3dDeviceContext);
+        res = D3D11CreateDeviceAndSwapChain(nullptr, D3D_DRIVER_TYPE_WARP, nullptr, createDeviceFlags, featureLevelArray, 2, D3D11_SDK_VERSION, &sd,
+                                            &pSwapChain, &pd3dDevice, &featureLevel, &pd3dDeviceContext);
     if (res != S_OK)
         return false;
 
@@ -209,8 +181,7 @@ void CleanupDeviceD3D() {
 void CreateRenderTarget() {
     ID3D11Texture2D *pBackBuffer;
     pSwapChain->GetBuffer(0, IID_PPV_ARGS(&pBackBuffer));
-    pd3dDevice->CreateRenderTargetView(pBackBuffer, nullptr,
-                                       &mainRenderTargetView);
+    pd3dDevice->CreateRenderTargetView(pBackBuffer, nullptr, &mainRenderTargetView);
     pBackBuffer->Release();
 }
 

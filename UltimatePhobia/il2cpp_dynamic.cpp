@@ -35,8 +35,7 @@ void init() {
         g.logger->info("Processing script.json file for dynamic reflection...");
         methods.clear();
         static simdjson::ondemand::parser parser;
-        static auto json =
-            simdjson::padded_string::load(scriptJsonPath.string());
+        static auto json = simdjson::padded_string::load(scriptJsonPath.string());
         const auto time_start = high_resolution_clock::now();
         auto scriptJson = parser.iterate(json);
         // Get functions
@@ -54,10 +53,7 @@ void init() {
                 ++errors;
             }
         }
-        const auto time_taken =
-            std::chrono::duration_cast<std::chrono::milliseconds>(
-                high_resolution_clock::now() - time_start)
-                .count();
+        const auto time_taken = std::chrono::duration_cast<std::chrono::milliseconds>(high_resolution_clock::now() - time_start).count();
 
         // Log out function count
         if (errors) {
@@ -65,14 +61,10 @@ void init() {
                            "from script.json file",
                            methods.size(), errors);
         } else {
-            g.logger->info("Processed {} methods from script.json file",
-                           methods.size());
+            g.logger->info("Processed {} methods from script.json file", methods.size());
         }
-        g.logger->info("Processing script.json took {} ms ({} MB/s)",
-                       time_taken,
-                       unsigned((double(scriptJsonSize) * 0.000001) /
-                                    (double(time_taken) * 0.001) +
-                                0.5));
+        g.logger->info("Processing script.json took {} ms ({} MB/s)", time_taken,
+                       unsigned((double(scriptJsonSize) * 0.000001) / (double(time_taken) * 0.001) + 0.5));
 
         // Validate some pointers
         bool valid = true;
@@ -80,15 +72,12 @@ void init() {
             if (getMethod(name).getFullAddress() != ptr)
                 valid = false;
         };
-        validate(
-            "void UnityEngine_Application__Quit (const MethodInfo* method);",
-            Il2Cpp::UnityEngine::Application::Quit_getPtr());
+        validate("void UnityEngine_Application__Quit (const MethodInfo* method);", Il2Cpp::UnityEngine::Application::Quit_getPtr());
         validate("Player$$Update", Il2Cpp::Player::Update_getPtr());
         validate("GhostAI$$Appear", Il2Cpp::GhostAI::Appear_getPtr());
         if (!valid)
-            g.logger->warn(
-                "Loaded script.json file doesn't match script.json "
-                "UltimatePhobia was compiled with! Expect serious issues.");
+            g.logger->warn("Loaded script.json file doesn't match script.json "
+                           "UltimatePhobia was compiled with! Expect serious issues.");
     }).detach();
 }
 

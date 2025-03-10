@@ -26,6 +26,5 @@ void getBaseAddr(const std::function<void()>& callback) {
     finalCallback = callback;
     DetoursTransaction DT;
     trueLoadLibraryW = LoadLibraryW;
-    DetourAttach(&reinterpret_cast<PVOID&>(trueLoadLibraryW),
-                 reinterpret_cast<void *>(detourLoadLibraryW));
+    DetourAttach(&reinterpret_cast<PVOID&>(trueLoadLibraryW), reinterpret_cast<void *>(detourLoadLibraryW));
 }

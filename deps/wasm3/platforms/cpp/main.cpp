@@ -5,33 +5,25 @@
 #include "wasm3_cpp.h"
 #include "wasm/test_prog.wasm.h"
 
-int sum(int a, int b)
-{
-    return a + b;
-}
+int sum(int a, int b) { return a + b; }
 
-void * ext_memcpy (void* dst, const void* arg, int32_t size)
-{
-    return memcpy(dst, arg, (size_t) size);
-}
+void *ext_memcpy(void *dst, const void *arg, int32_t size) { return memcpy(dst, arg, (size_t)size); }
 
-int main(void)
-{
+int main(void) {
     std::cout << "Loading WebAssembly..." << std::endl;
 
     /* Wasm module can be loaded from a file */
     try {
         wasm3::wasm_environment env;
         wasm3::wasm_runtime runtime = env.new_runtime(1024);
-        const char* file_name = "wasm/test_prog.wasm";
+        const char *file_name = "wasm/test_prog.wasm";
         std::ifstream wasm_file(file_name, std::ios::binary | std::ios::in);
         if (!wasm_file.is_open()) {
             throw std::runtime_error("Failed to open wasm file");
         }
         wasm3::wasm_module mod = env.parse_module(wasm_file);
         runtime.load(mod);
-    }
-    catch(std::runtime_error &e) {
+    } catch (std::runtime_error& e) {
         std::cerr << "WASM3 error: " << e.what() << std::endl;
         return 1;
     }
@@ -79,8 +71,7 @@ int main(void)
             value = counter_get_fn.call<int32_t>();
             std::cout << "counter after adding value: " << value << std::endl;
         }
-    }
-    catch(wasm3::error &e) {
+    } catch (wasm3::error& e) {
         std::cerr << "WASM3 error: " << e.what() << std::endl;
         return 1;
     }

@@ -11,10 +11,9 @@ namespace {
 ObjectHandle buffer = createCsString();
 
 void append_buffer(ObjectHandle str) {
-    ObjectHandle new_buffer =
-        call<"System_String_o* System_String__Concat (System_String_o* str0, "
-             "System_String_o* str1, const MethodInfo* method);",
-             ObjectHandle>(buffer, str, nullptr);
+    ObjectHandle new_buffer = call<"System_String_o* System_String__Concat (System_String_o* str0, "
+                                   "System_String_o* str1, const MethodInfo* method);",
+                                   ObjectHandle>(buffer, str, nullptr);
     dropObject(buffer);
     dropObject(str);
     buffer = new_buffer;

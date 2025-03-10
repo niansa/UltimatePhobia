@@ -13,8 +13,7 @@ bool originalState = true;
 } // namespace
 
 void useBoxSoonIfNeeded() {
-    printf("Countdown: %i\nOriginal state: %s\n", useBoxCountDown,
-           originalState ? "true" : "false");
+    printf("Countdown: %i\nOriginal state: %s\n", useBoxCountDown, originalState ? "true" : "false");
     if (!originalState) {
         logInfo("Retriggering fuse box soon..."_cs);
         useBoxCountDown = 200;
@@ -27,15 +26,12 @@ WASM_EXPORT("onLoad")
 void onLoad() {
     logInfo("Hello from WASM module!"_cs);
     puts("Hello from WASM puts!\nThis is a multi-line test...");
-    printf(
-        "Hello from WASM printf at %p!\nThis is another multi-line test...\n",
-        printf);
+    printf("Hello from WASM printf at %p!\nThis is another multi-line test...\n", printf);
     call<"void UnityEngine_Debug__Log (Il2CppObject* message, const "
          "MethodInfo* method);">("Hello world from WASM module!"_cs, nullptr);
 
     hook(getMethodCached<"FuseBox$$UseNetworked">(), "onFuseBoxUseNetworked");
-    hook(getMethodCached<"Photon.Pun.PhotonNetwork$$CreateRoom">(),
-         "onCreateRoom");
+    hook(getMethodCached<"Photon.Pun.PhotonNetwork$$CreateRoom">(), "onCreateRoom");
 }
 WASM_EXPORT("onUnload")
 void onUnload() {
@@ -85,8 +81,7 @@ void onCreateRoom() {
 
     // Call origin function
     call(getOriginal(), unknownArgCount);
-    printf("Room created with replacement name instead of \"%s\"!\n",
-           getCString(originalName));
+    printf("Room created with replacement name instead of \"%s\"!\n", getCString(originalName));
 
     dropObject(originalName);
 }

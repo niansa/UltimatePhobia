@@ -14,8 +14,7 @@ class Tracer final : public Mod {
     bool logAutoScroll = true;
     std::map<std::string_view, std::unique_ptr<GameHook>> hooks;
 
-    void HookButton(std::string_view signature,
-                    bool isDefinitelyHooked = false);
+    void HookButton(std::string_view signature, bool isDefinitelyHooked = false);
 
 public:
     void uiUpdate() override;

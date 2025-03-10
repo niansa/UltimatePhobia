@@ -20,8 +20,7 @@ static void ghostAI$$AwakeFnc(GhostAI_o *__this, const MethodInfo *method) {
     self->ghostPtr = __this;
 }
 
-static void gameController$$AwakeFnc(GameController_o *__this,
-                                     const MethodInfo *method) {
+static void gameController$$AwakeFnc(GameController_o *__this, const MethodInfo *method) {
     const auto self = globalInstanceManagerInfo.get<GlobalInstanceManager>();
     auto& hook = self->gameController$$AwakeHook;
     GameHookRelease GHR(hook);
@@ -30,34 +29,22 @@ static void gameController$$AwakeFnc(GameController_o *__this,
 }
 
 GlobalInstanceManager::GlobalInstanceManager()
-    : player$$AwakeHook(GameHook::safeCreateOrPanic(
-          globalInstanceManagerInfo, Il2Cpp::Player::Awake_getPtr(),
-          reinterpret_cast<void *>(player$$AwakeFnc))),
-      ghostAI$$AwakeHook(GameHook::safeCreateOrPanic(
-          globalInstanceManagerInfo, Il2Cpp::GhostAI::Awake_getPtr(),
-          reinterpret_cast<void *>(ghostAI$$AwakeFnc))),
-      gameController$$AwakeHook(GameHook::safeCreateOrPanic(
-          globalInstanceManagerInfo, Il2Cpp::GameController::Awake_getPtr(),
-          reinterpret_cast<void *>(gameController$$AwakeFnc))) {}
+    : player$$AwakeHook(GameHook::safeCreateOrPanic(globalInstanceManagerInfo, Il2Cpp::Player::Awake_getPtr(), reinterpret_cast<void *>(player$$AwakeFnc))),
+      ghostAI$$AwakeHook(GameHook::safeCreateOrPanic(globalInstanceManagerInfo, Il2Cpp::GhostAI::Awake_getPtr(), reinterpret_cast<void *>(ghostAI$$AwakeFnc))),
+      gameController$$AwakeHook(
+          GameHook::safeCreateOrPanic(globalInstanceManagerInfo, Il2Cpp::GameController::Awake_getPtr(), reinterpret_cast<void *>(gameController$$AwakeFnc))) {}
 
-#define RETURN_PTR_IF_VALID(v)                                                 \
-    if (v == nullptr)                                                          \
-        return nullptr;                                                        \
-    if (!Il2Cpp::UnityEngine::Object::IsNativeObjectAlive(                     \
-            reinterpret_cast<UnityEngine_Object_o *>(v)))                      \
-        return v = nullptr;                                                    \
+#define RETURN_PTR_IF_VALID(v)                                                                                                                                 \
+    if (v == nullptr)                                                                                                                                          \
+        return nullptr;                                                                                                                                        \
+    if (!Il2Cpp::UnityEngine::Object::IsNativeObjectAlive(reinterpret_cast<UnityEngine_Object_o *>(v)))                                                        \
+        return v = nullptr;                                                                                                                                    \
     return v
 
 Player_o *GlobalInstanceManager::getPlayer() { RETURN_PTR_IF_VALID(playerPtr); }
 
-GhostAI_o *GlobalInstanceManager::getGhostAI() {
-    RETURN_PTR_IF_VALID(ghostPtr);
-}
+GhostAI_o *GlobalInstanceManager::getGhostAI() { RETURN_PTR_IF_VALID(ghostPtr); }
 
-GameController_o *GlobalInstanceManager::getGameController() {
-    RETURN_PTR_IF_VALID(gameControllerPtr);
-}
+GameController_o *GlobalInstanceManager::getGameController() { RETURN_PTR_IF_VALID(gameControllerPtr); }
 
-ModInfo globalInstanceManagerInfo{
-    "Global Instance Manager", true,
-    []() { return std::make_unique<GlobalInstanceManager>(); }};
+ModInfo globalInstanceManagerInfo{"Global Instance Manager", true, []() { return std::make_unique<GlobalInstanceManager>(); }};

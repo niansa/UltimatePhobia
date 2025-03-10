@@ -14,20 +14,15 @@ System_Type_o *GetType(std::string_view name) {
 }
 
 System_Type_o *GetType(std::string_view name, std::string_view assemblyName) {
-    return GetType(fmt::format(
-        "{}, {}, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null", name,
-        assemblyName));
+    return GetType(fmt::format("{}, {}, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null", name, assemblyName));
 }
 
-void *CreateInstance(System_Type_o *type) {
-    return System::Activator::CreateInstance(type);
-}
+void *CreateInstance(System_Type_o *type) { return System::Activator::CreateInstance(type); }
 } // namespace
 
 namespace Il2Cpp::UnityEngine {
 UnityEngine_GameObject_o *GameObject::New(std::string_view name) {
-    auto fres = reinterpret_cast<UnityEngine_GameObject_o *>(CreateInstance(
-        GetType("UnityEngine.GameObject", "UnityEngine.CoreModule")));
+    auto fres = reinterpret_cast<UnityEngine_GameObject_o *>(CreateInstance(GetType("UnityEngine.GameObject", "UnityEngine.CoreModule")));
     _ctor(fres, CppInterop::ToCsString(name));
     return fres;
 }
@@ -35,22 +30,15 @@ UnityEngine_GameObject_o *GameObject::New(std::string_view name) {
 void GameObject::RecursiveDestroy(UnityEngine_GameObject_o *__this) {
     auto transform = get_transform(__this);
     while (Transform::get_childCount(transform) > 0)
-        RecursiveDestroy(Component::get_gameObject(
-            reinterpret_cast<UnityEngine_Component_o *>(
-                (Transform::GetChild(transform, 0)))));
+        RecursiveDestroy(Component::get_gameObject(reinterpret_cast<UnityEngine_Component_o *>((Transform::GetChild(transform, 0)))));
     Object::Destroy(reinterpret_cast<UnityEngine_Object_o *>(__this));
 }
 
-UnityEngine_Component_o *
-GameObject::AddComponent(UnityEngine_GameObject_o *__this,
-                         std::string_view name, std::string_view assemblyName) {
+UnityEngine_Component_o *GameObject::AddComponent(UnityEngine_GameObject_o *__this, std::string_view name, std::string_view assemblyName) {
     return AddComponent(__this, GetType(name, assemblyName));
 }
 
-UnityEngine_GameObject_o *
-GameObject::get_parent(UnityEngine_GameObject_o *__this) {
-    return Component::get_gameObject(
-        reinterpret_cast<UnityEngine_Component_o *>(
-            (Transform::get_parent(get_transform(__this)))));
+UnityEngine_GameObject_o *GameObject::get_parent(UnityEngine_GameObject_o *__this) {
+    return Component::get_gameObject(reinterpret_cast<UnityEngine_Component_o *>((Transform::get_parent(get_transform(__this)))));
 }
 } // namespace Il2Cpp::UnityEngine

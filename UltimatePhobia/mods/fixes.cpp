@@ -16,26 +16,19 @@ static inline void fixDestroy(std::string_view name) {
 
 static inline void fixPlayerController(Player_o *player) {
     if (player->fields.characterController)
-        Il2Cpp::UnityEngine::CharacterController::set_detectCollisions(
-            player->fields.characterController, false);
+        Il2Cpp::UnityEngine::CharacterController::set_detectCollisions(player->fields.characterController, false);
 }
 
-static bool
-photonNetwork$$ConnectToBestCloudServerFnc(const MethodInfo *method) {
+static bool photonNetwork$$ConnectToBestCloudServerFnc(const MethodInfo *method) {
     // TODO: Use last region instead
     return Il2Cpp::Photon::Pun::PhotonNetwork::ConnectToRegion("EU"_cs);
 }
 
 Fixes::Fixes()
-    : photonNetwork$$ConnectToBestCloudServerHook(GameHook::safeCreateOrPanic(
-          fixesInfo,
-          Il2Cpp::Photon::Pun::PhotonNetwork::ConnectToBestCloudServer_getPtr(),
-          reinterpret_cast<void *>(
-              photonNetwork$$ConnectToBestCloudServerFnc))) {}
+    : photonNetwork$$ConnectToBestCloudServerHook(GameHook::safeCreateOrPanic(fixesInfo, Il2Cpp::Photon::Pun::PhotonNetwork::ConnectToBestCloudServer_getPtr(),
+                                                                              reinterpret_cast<void *>(photonNetwork$$ConnectToBestCloudServerFnc))) {}
 
-bool Fixes::isSceneFixed() {
-    return fixMark == GameObject::Find("UP_fixes_fixMark"_cs);
-}
+bool Fixes::isSceneFixed() { return fixMark == GameObject::Find("UP_fixes_fixMark"_cs); }
 
 void Fixes::markSceneFixed() { fixMark = GameObject::New("UP_fixes_fixMark"); }
 
@@ -49,8 +42,7 @@ void Fixes::sceneFix() {
 }
 
 void Fixes::playerFix() {
-    if (auto player =
-            globalInstanceManagerInfo.get<GlobalInstanceManager>()->getPlayer())
+    if (auto player = globalInstanceManagerInfo.get<GlobalInstanceManager>()->getPlayer())
         fixPlayerController(player);
 }
 

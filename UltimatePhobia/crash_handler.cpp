@@ -26,9 +26,7 @@ static void logStackTraceDetail(CONTEXT c) {
 
     unsigned frame_number = 0;
     while (frame_number < 32) {
-        if (!StackWalk64(IMAGE_FILE_MACHINE_AMD64, hProcess, hThread, &s, &c,
-                         nullptr, SymFunctionTableAccess64, SymGetModuleBase64,
-                         nullptr))
+        if (!StackWalk64(IMAGE_FILE_MACHINE_AMD64, hProcess, hThread, &s, &c, nullptr, SymFunctionTableAccess64, SymGetModuleBase64, nullptr))
             break;
 
         trace << std::setw(3) << "\n" << frame_number++ << "\t";

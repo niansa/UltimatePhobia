@@ -7,9 +7,7 @@
 #include <queue>
 
 class Cheats final : public Mod {
-    bool infiniteStamina = false, pauseGhost = false, invincibility = false,
-         autoUnlockDoors = false, keepItemsAfterDeath = false,
-         allowGrabWhenDead = false;
+    bool infiniteStamina = false, pauseGhost = false, invincibility = false, autoUnlockDoors = false, keepItemsAfterDeath = false, allowGrabWhenDead = false;
 
     void setGhostAIChangeStateHook();
 

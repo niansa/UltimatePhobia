@@ -13,13 +13,9 @@ struct Method {
 
     bool isValid() const { return address != 0; }
 
-    void *getFullAddress() const {
-        return reinterpret_cast<void *>(g.base + address);
-    }
+    void *getFullAddress() const { return reinterpret_cast<void *>(g.base + address); }
 
-    template <typename fncT> fncT *getFunction() const {
-        return reinterpret_cast<fncT *>(getFullAddress());
-    }
+    template <typename fncT> fncT *getFunction() const { return reinterpret_cast<fncT *>(getFullAddress()); }
 
     unsigned getArgCount() const { return typeSignature.size() - 1; }
 };

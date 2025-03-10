@@ -9,8 +9,7 @@
 #include <string_view>
 #include <windows.h>
 
-std::optional<GameHook> file$$ExistsHook, directory$$ExistsHook,
-    path$$GetFileNameHook;
+std::optional<GameHook> file$$ExistsHook, directory$$ExistsHook, path$$GetFileNameHook;
 
 static void fixPath(std::string& path) {
     for (char& c : path)
@@ -23,10 +22,8 @@ static bool maybeForbiddenFile(std::string path, bool dllSearch = false) {
     std::transform(path.begin(), path.end(), path.begin(), ::tolower);
 
     // Check blacklist
-    for (std::string_view term :
-         {".exe", ".dll", "melon", "bepin", "doorstop", "dotnet", "mono",
-          "coreclr", "bootstrap", "script.json", "up_log.txt", "up_log.txt",
-          "imgui.ini", "ultimatephobia.dll"}) {
+    for (std::string_view term : {".exe", ".dll", "melon", "bepin", "doorstop", "dotnet", "mono", "coreclr", "bootstrap", "script.json", "up_log.txt",
+                                  "up_log.txt", "imgui.ini", "ultimatephobia.dll"}) {
         if (dllSearch && term[0] == '.')
             continue;
         if (path.find(term) != path.npos) {
@@ -82,21 +79,14 @@ void disableAntiMod() {
     g.logger->info("Disabling mod detection...");
 
     using namespace Il2Cpp;
-    GameHook::safeCreate(file$$ExistsHook, System::IO::File::Exists_getPtr(),
-                         reinterpret_cast<void *>(hookTrampoline_tryCheckFnc),
-                         true);
+    GameHook::safeCreate(file$$ExistsHook, System::IO::File::Exists_getPtr(), reinterpret_cast<void *>(hookTrampoline_tryCheckFnc), true);
 
-    GameHook::safeCreate(
-        directory$$ExistsHook, System::IO::Directory::Exists_getPtr(),
-        reinterpret_cast<void *>(hookTrampoline_tryCheckFnc), true);
+    GameHook::safeCreate(directory$$ExistsHook, System::IO::Directory::Exists_getPtr(), reinterpret_cast<void *>(hookTrampoline_tryCheckFnc), true);
 
-    GameHook::safeCreate(
-        path$$GetFileNameHook, System::IO::Path::GetFileName_getPtr(),
-        reinterpret_cast<void *>(hookTrampoline_tryCheckFnc), true);
+    GameHook::safeCreate(path$$GetFileNameHook, System::IO::Path::GetFileName_getPtr(), reinterpret_cast<void *>(hookTrampoline_tryCheckFnc), true);
 
     DetoursTransaction DT;
-    DetourAttach(&reinterpret_cast<PVOID&>(getModuleHandleOrig),
-                 reinterpret_cast<void *>(getModuleHandleFnc));
+    DetourAttach(&reinterpret_cast<PVOID&>(getModuleHandleOrig), reinterpret_cast<void *>(getModuleHandleFnc));
 
     return;
 }

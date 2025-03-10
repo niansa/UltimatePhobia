@@ -51,16 +51,12 @@ typedef enum {
     IL2CPP_PROFILE_STATISTICAL = 1 << 15,
     IL2CPP_PROFILE_METHOD_EVENTS = 1 << 16,
     IL2CPP_PROFILE_MONITOR_EVENTS = 1 << 17,
-    IL2CPP_PROFILE_IOMAP_EVENTS =
-        1 << 18, /* this should likely be removed, too */
+    IL2CPP_PROFILE_IOMAP_EVENTS = 1 << 18, /* this should likely be removed, too */
     IL2CPP_PROFILE_GC_MOVES = 1 << 19,
     IL2CPP_PROFILE_FILEIO = 1 << 20
 } Il2CppProfileFlags;
 
-typedef enum {
-    IL2CPP_PROFILE_FILEIO_WRITE = 0,
-    IL2CPP_PROFILE_FILEIO_READ
-} Il2CppProfileFileIOKind;
+typedef enum { IL2CPP_PROFILE_FILEIO_WRITE = 0, IL2CPP_PROFILE_FILEIO_READ } Il2CppProfileFileIOKind;
 
 typedef enum {
     IL2CPP_GC_EVENT_START,
@@ -94,10 +90,7 @@ typedef enum {
     // IL2CPP_STAT_MAJOR_GC_TIME_USECS
 } Il2CppStat;
 
-typedef enum {
-    IL2CPP_UNHANDLED_POLICY_LEGACY,
-    IL2CPP_UNHANDLED_POLICY_CURRENT
-} Il2CppRuntimeUnhandledExceptionPolicy;
+typedef enum { IL2CPP_UNHANDLED_POLICY_LEGACY, IL2CPP_UNHANDLED_POLICY_CURRENT } Il2CppRuntimeUnhandledExceptionPolicy;
 
 typedef struct Il2CppStackFrameInfo {
     const MethodInfo *method;
@@ -131,8 +124,8 @@ typedef struct {
     int (*recv)(void *buf, int len);
 } Il2CppDebuggerTransport;
 
-#if !__SNC__ // SNC doesn't like the following define: "warning 1576: predefined
-             // meaning of __has_feature discarded"
+#if !__SNC__               // SNC doesn't like the following define: "warning 1576: predefined
+                           // meaning of __has_feature discarded"
 #ifndef __has_feature      // clang specific __has_feature check
 #define __has_feature(x) 0 // Compatibility with non-clang compilers.
 #endif
@@ -154,32 +147,21 @@ typedef char Il2CppNativeChar;
 #define IL2CPP_NATIVE_STRING(str) str
 #endif
 
-typedef void (*il2cpp_register_object_callback)(Il2CppObject **arr, int size,
-                                                void *userdata);
+typedef void (*il2cpp_register_object_callback)(Il2CppObject **arr, int size, void *userdata);
 typedef void (*il2cpp_WorldChangedCallback)();
-typedef void (*Il2CppFrameWalkFunc)(const Il2CppStackFrameInfo *info,
-                                    void *user_data);
+typedef void (*Il2CppFrameWalkFunc)(const Il2CppStackFrameInfo *info, void *user_data);
 typedef void (*Il2CppProfileFunc)(Il2CppProfiler *prof);
-typedef void (*Il2CppProfileMethodFunc)(Il2CppProfiler *prof,
-                                        const MethodInfo *method);
-typedef void (*Il2CppProfileAllocFunc)(Il2CppProfiler *prof, Il2CppObject *obj,
-                                       Il2CppClass *klass);
-typedef void (*Il2CppProfileGCFunc)(Il2CppProfiler *prof, Il2CppGCEvent event,
-                                    int generation);
-typedef void (*Il2CppProfileGCResizeFunc)(Il2CppProfiler *prof,
-                                          int64_t new_size);
-typedef void (*Il2CppProfileFileIOFunc)(Il2CppProfiler *prof,
-                                        Il2CppProfileFileIOKind kind,
-                                        int count);
-typedef void (*Il2CppProfileThreadFunc)(Il2CppProfiler *prof,
-                                        unsigned long tid);
+typedef void (*Il2CppProfileMethodFunc)(Il2CppProfiler *prof, const MethodInfo *method);
+typedef void (*Il2CppProfileAllocFunc)(Il2CppProfiler *prof, Il2CppObject *obj, Il2CppClass *klass);
+typedef void (*Il2CppProfileGCFunc)(Il2CppProfiler *prof, Il2CppGCEvent event, int generation);
+typedef void (*Il2CppProfileGCResizeFunc)(Il2CppProfiler *prof, int64_t new_size);
+typedef void (*Il2CppProfileFileIOFunc)(Il2CppProfiler *prof, Il2CppProfileFileIOKind kind, int count);
+typedef void (*Il2CppProfileThreadFunc)(Il2CppProfiler *prof, unsigned long tid);
 
-typedef const Il2CppNativeChar *(*Il2CppSetFindPlugInCallback)(
-    const Il2CppNativeChar *);
+typedef const Il2CppNativeChar *(*Il2CppSetFindPlugInCallback)(const Il2CppNativeChar *);
 typedef void (*Il2CppLogCallback)(const char *);
 
-typedef size_t (*Il2CppBacktraceFunc)(Il2CppMethodPointer *buffer,
-                                      size_t maxSize);
+typedef size_t (*Il2CppBacktraceFunc)(Il2CppMethodPointer *buffer, size_t maxSize);
 
 struct Il2CppManagedMemorySnapshot;
 

@@ -7,8 +7,7 @@
 #include <imgui.h>
 
 std::filesystem::path GoldbergEmuManager::getSettingsPath() {
-    return std::filesystem::path(getenv("USERPROFILE")) / "AppData" /
-           "Roaming" / "Goldberg SteamEmu Saves" / "settings";
+    return std::filesystem::path(getenv("USERPROFILE")) / "AppData" / "Roaming" / "Goldberg SteamEmu Saves" / "settings";
 }
 
 std::string GoldbergEmuManager::readFile(std::string_view name) {
@@ -17,13 +16,9 @@ std::string GoldbergEmuManager::readFile(std::string_view name) {
     return fres;
 }
 
-void GoldbergEmuManager::writeFile(std::string_view name,
-                                   std::string_view data) {
-    std::ofstream(settingsPath / name) << data << '\n';
-}
+void GoldbergEmuManager::writeFile(std::string_view name, std::string_view data) { std::ofstream(settingsPath / name) << data << '\n'; }
 
-void GoldbergEmuManager::copyStrToBuf(std::string_view str, char *buf,
-                                      size_t buf_len) {
+void GoldbergEmuManager::copyStrToBuf(std::string_view str, char *buf, size_t buf_len) {
     --buf_len; // Account for null terminator
     if (str.size() > buf_len)
         str = str.substr(0, buf_len);
@@ -33,8 +28,7 @@ void GoldbergEmuManager::copyStrToBuf(std::string_view str, char *buf,
 
 GoldbergEmuManager::GoldbergEmuManager() {
     settingsPath = getSettingsPath();
-    copyStrToBuf(readFile("account_name.txt"), accountName.data(),
-                 accountName.size());
+    copyStrToBuf(readFile("account_name.txt"), accountName.data(), accountName.size());
     copyStrToBuf(readFile("language.txt"), language.data(), language.size());
 
     if (!std::filesystem::exists(settingsPath))
@@ -52,10 +46,8 @@ void GoldbergEmuManager::uiUpdate() {
     End();
 }
 
-ModInfo goldbergEmuManagerInfo{
-    "Goldberg Emu Manager", false,
-    []() { return std::make_unique<GoldbergEmuManager>(); },
-    []() {
-        if (std::filesystem::exists(GoldbergEmuManager::getSettingsPath()))
-            goldbergEmuManagerInfo.load();
-    }};
+ModInfo goldbergEmuManagerInfo{"Goldberg Emu Manager", false, []() { return std::make_unique<GoldbergEmuManager>(); },
+                               []() {
+                                   if (std::filesystem::exists(GoldbergEmuManager::getSettingsPath()))
+                                       goldbergEmuManagerInfo.load();
+                               }};

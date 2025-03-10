@@ -16,9 +16,9 @@ void init() {
         return;
     }
 
-#define DO_API(r, n, p)                                                        \
-    n = reinterpret_cast<decltype(n)>(GetProcAddress(module, #n));             \
-    if (n == NULL)                                                             \
+#define DO_API(r, n, p)                                                                                                                                        \
+    n = reinterpret_cast<decltype(n)>(GetProcAddress(module, #n));                                                                                             \
+    if (n == NULL)                                                                                                                                             \
         g.logger->error("Failed to get '" #n "' function from il2cpp API");
 #include "il2cpp_api.inc"
 #undef DO_API
