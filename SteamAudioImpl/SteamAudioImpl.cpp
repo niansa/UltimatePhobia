@@ -217,6 +217,7 @@ struct Environment {
     IPLAudioSettings audioSettings;
     IPLHRTF hrtf = nullptr;
     IPLBinauralEffect binauralEffect = nullptr;
+    IPLDirectEffect directEffect = nullptr;
     BufferPool bufferPool;
 
     Environment(IPLint32 frameSize)
@@ -234,6 +235,14 @@ struct Environment {
             IPLBinauralEffectSettings effectSettings{.hrtf = hrtf};
             iplBinauralEffectCreate(phononCtx, &audioSettings, &effectSettings,
                                     &binauralEffect);
+        }
+
+        {
+            IPLDirectEffectSettings directEffectSettings{
+                .numChannels = FixedSettings::outputChannels};
+            iplDirectEffectCreate(
+                phononCtx, const_cast<IPLAudioSettings *>(&audioSettings),
+                &directEffectSettings, &directEffect);
         }
     }
 };
@@ -315,8 +324,29 @@ void dataCallback(ma_device *pDevice, float *pOutput, const float *pInput,
                                        &env->bufferPool.GetCurrentBuffer());
             }
 
+            // Apply direct effect without simulation
+            {
+                IPLDistanceAttenuationModel distanceAttenuationModel{
+                    IPL_DISTANCEATTENUATIONTYPE_DEFAULT};
+                IPLAirAbsorptionModel airAbsorptionModel{
+                    IPL_AIRABSORPTIONTYPE_DEFAULT};
+                IPLDirectEffectParams directEffectParams{
+                    .flags = static_cast<IPLDirectEffectFlags>(
+                        IPL_DIRECTEFFECTFLAGS_APPLYDISTANCEATTENUATION |
+                        IPL_DIRECTEFFECTFLAGS_APPLYAIRABSORPTION),
+                    .distanceAttenuation = iplDistanceAttenuationCalculate(
+                        phononCtx, playback.worldPosition, playerPos,
+                        &distanceAttenuationModel)};
+                iplAirAbsorptionCalculate(phononCtx, playback.worldPosition,
+                                          playerPos, &airAbsorptionModel,
+                                          directEffectParams.airAbsorption);
+                iplDirectEffectApply(env->directEffect, &directEffectParams,
+                                     &env->bufferPool.GetCurrentBuffer(),
+                                     &env->bufferPool.GetNextBuffer());
+            }
+
             // Mix into frame buffer
-            iplAudioBufferMix(phononCtx, &env->bufferPool.GetCurrentBuffer(),
+            iplAudioBufferMix(phononCtx, &env->bufferPool.GetNextBuffer(),
                               &frameBuffer);
 
             // Deallocate input buffer
@@ -385,6 +415,10 @@ STEAMAUDIOIMPL_EXPORT void onAudioSourcePlay() {
         audioClip = call<"UnityEngine.AudioSource$$get_clip", ObjectHandle>(
             audioSource, nullptr);
     }
+
+    // Stop here if we still don't have an audio clip
+    if (audioClip == ObjectHandle::Null)
+        return;
 
     // Get Steam Audio buffer from audio clip
     const IPLAudioBuffer audioBuffer =
@@ -491,14 +525,11 @@ STEAMAUDIOIMPL_EXPORT void onUnload() {
 }
 
 STEAMAUDIOIMPL_EXPORT void onUiUpdate() {
-    // Slowly clean up queue
-    std::scoped_lock L(playbackQueueMutex);
-    for (auto it = playbackQueue.begin(); it != playbackQueue.end(); ++it) {
-        if (it->hasReachedEnd()) {
-            playbackQueue.erase(it);
-            break;
-        }
-    }
+    // Display stats
+    FFI ImGuiBegin("Steam Audio");
+    FFI ImGuiText(FFI toCsString(
+        ("Active sources: " + std::to_string(playbackQueue.size())).c_str()));
+    FFI ImGuiEnd();
 
     // Get current camera transform
     ObjectHandle camera =
@@ -525,6 +556,15 @@ STEAMAUDIOIMPL_EXPORT void onUiUpdate() {
             FFI dropObject(cameraObject);
         }
         FFI dropObject(camera);
+    }
+
+    // Slowly clean up queue
+    std::scoped_lock L(playbackQueueMutex);
+    for (auto it = playbackQueue.begin(); it != playbackQueue.end(); ++it) {
+        if (it->hasReachedEnd()) {
+            playbackQueue.erase(it);
+            break;
+        }
     }
 
     // Update playback positions
