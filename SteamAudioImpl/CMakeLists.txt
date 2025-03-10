@@ -13,8 +13,15 @@ add_library(SteamAudioImpl SHARED
   SteamAudioImpl.hpp SteamAudioImpl.cpp
 
   miniaudio.c
+  environment.hpp environment.cpp
+  fixedsettings.hpp
+  bufferpool.hpp bufferpool.cpp
+  utils.hpp utils.cpp
+  phonontools.hpp
+  phonontools.cpp
+  playback.hpp playback.cpp
 )
 target_link_libraries(SteamAudioImpl PRIVATE phonon)
-target_compile_definitions(SteamAudioImpl PRIVATE STEAMAUDIOIMPL_LIBRARY FFI_EXT FFI_USES_FTABLE)
+target_compile_definitions(SteamAudioImpl PRIVATE STEAMAUDIOIMPL_LIBRARY FFI_EXT FFI_USES_FTABLE FFI=FFI_USE_FTABLE)
 target_include_directories(SteamAudioImpl PRIVATE ../UltimatePhobia/ffi)
 target_compile_options(SteamAudioImpl PUBLIC -fno-exceptions)
