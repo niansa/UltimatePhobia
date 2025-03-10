@@ -15,6 +15,7 @@ struct Playback {
     uint64_t delay;
     float volumeScale;
     float volume = 0.5f;
+    float spatialBlend = 1.0f;
     bool isOneShot;
     uint64_t playPosition = 0;
     IPLVector3 worldPosition{};
@@ -23,8 +24,7 @@ struct Playback {
     IPLBinauralEffect binauralEffect = nullptr;
     IPLDirectEffect directEffect = nullptr;
 
-    Playback(FFIInterface::ObjectHandle audioSource, IPLAudioBuffer audioBuffer,
-             uint64_t delay, float volumeScale, bool isOneShot);
+    Playback(FFIInterface::ObjectHandle audioSource, const IPLAudioBuffer& audioBuffer, uint64_t delay, float volumeScale, bool isOneShot);
     ~Playback();
     Playback(const Playback&) = delete;
     Playback(Playback&& o)
@@ -34,9 +34,9 @@ struct Playback {
         o.audioSource = FFIInterface::ObjectHandle::Invalid;
     }
 
-    bool hasReachedEnd() const {
-        return playPosition >= audioBuffer.numSamples;
-    }
+    IPLAudioBuffer& operator=(const IPLAudioBuffer& audioBuffer);
+
+    bool hasReachedEnd() const { return playPosition >= audioBuffer.numSamples; }
 };
 extern std::list<Playback> playbackQueue;
 extern std::mutex playbackQueueMutex;

@@ -44,5 +44,5 @@ public:
 extern std::optional<TransformUtils> transformUtils;
 
 IPLAudioBuffer audioBufferFromAudioClip(FFIInterface::ObjectHandle audioClip);
-bool updatePlayback(PhononPlayback::Playback& p);
+bool updatePlayback(PhononPlayback::Playback& p, bool initial);
 } // namespace PhononTools

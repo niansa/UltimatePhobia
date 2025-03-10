@@ -64,12 +64,13 @@ IPLAudioBuffer audioBufferFromAudioClip(FFIInterface::ObjectHandle audioClip) {
 
     return fres;
 }
-bool updatePlayback(PhononPlayback::Playback& p) {
+
+bool updatePlayback(PhononPlayback::Playback& p, bool initial) {
     // Make sure playback hasn't expired
-    if (p.hasReachedEnd() || p.audioSource == ObjectHandle::Null ||
-        !call<"UnityEngine.Object$$IsNativeObjectAlive", bool>(p.audioSource,
-                                                               nullptr))
+    if (p.hasReachedEnd() || p.audioSource == ObjectHandle::Null || !call<"UnityEngine.Object$$IsNativeObjectAlive", bool>(p.audioSource, nullptr)) {
+        FFI logDebug(FFI toCsString("Playback ended because native source object died!"));
         return false;
+    }
 
     // Update position
     {
@@ -88,11 +89,24 @@ bool updatePlayback(PhononPlayback::Playback& p) {
         }
     }
 
-    // Update other properties
-    p.volume = call<"UnityEngine.AudioSource$$get_volume", float>(p.audioSource,
-                                                                  nullptr);
-    if (p.volume < 0.0f || p.volume > 1.0f)
-        p.volume = 1.0f;
+    // Update initial properties
+    if (initial) {
+        p.volume = 1.0f; // call<"UnityEngine.AudioSource$$get_volume", float>(p.audioSource, nullptr);  TODO! Gives bogus values.
+        if (call<"UnityEngine.AudioSource$$get_spatialize", bool>(p.audioSource, nullptr))
+            p.spatialBlend = 1.0f; // call<"UnityEngine.AudioSource$$get_spatialBlend", float>(p.audioSource, nullptr);  TODO! Also giving bogus values???
+        else
+            p.spatialBlend = 0.0f;
+    }
+
+    // Loop if requested
+    if (p.hasReachedEnd()) {
+        if (call<"UnityEngine.AudioSource$$get_loop", bool>(p.audioSource, nullptr))
+            p.playPosition = 0;
+        else {
+            FFI logDebug(FFI toCsString("Non-looped playback ended!"));
+            return false;
+        }
+    }
 
     // We're all good
     return true;

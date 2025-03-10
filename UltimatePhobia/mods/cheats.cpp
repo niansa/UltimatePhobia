@@ -98,7 +98,8 @@ void Cheats::uiUpdate() {
     if (Button("Trigger interaction")) {
         GhostActivity::Interact(
             globalInstanceManagerInfo.get<GlobalInstanceManager>()
-                ->ghost->fields.ghostActivity);
+                ->getGhostAI()
+                ->fields.ghostActivity);
     }
 #endif
 
