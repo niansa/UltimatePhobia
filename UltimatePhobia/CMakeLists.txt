@@ -59,6 +59,8 @@ add_executable(UltimatePhobia WIN32 main.cpp icon.rc
     dll_ffi.hpp dll_ffi.cpp
     configure_persistentdatapath.hpp configure_persistentdatapath.cpp
     il2cpp_api.hpp il2cpp_api.cpp
+    anycall.hpp
+    generated/anycall.cpp
 )
 target_link_libraries(UltimatePhobia PRIVATE dbghelp commoncpp Detours spdlog imgui simdjson m3 wasm3_cpp)
 target_include_directories(UltimatePhobia PRIVATE . ../il2cpp_dump)

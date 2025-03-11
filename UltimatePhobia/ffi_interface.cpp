@@ -5,11 +5,14 @@
 #include "il2cpp_api.hpp"
 #include "game_hook.hpp"
 #include "ffi_loader.hpp"
+#include "anycall.hpp"
 #include "mods/base.hpp"
 
 #include <map>
 #include <exception>
 #include <imgui.h>
+
+using namespace AnyCall;
 
 namespace FFIInterface {
 namespace {
@@ -40,6 +43,7 @@ void *getObject(ObjectHandle id) {
     return res->second;
 }
 } // namespace
+
 void dropObject(ObjectHandle id) {
     if (id > 0)
         objects.erase(id);
@@ -122,13 +126,15 @@ void *getValue(int index) {
     return call_args[index];
 }
 } // namespace
-void addArgI32(int32_t v) { call_args.push_back(reinterpret_cast<void *>(v)); }
-void addArgI64(int64_t v) { call_args.push_back(reinterpret_cast<void *>(v)); }
-void addArgFloat(float v) { call_args.push_back(reinterpret_cast<void *>(*reinterpret_cast<uint32_t *>(&v))); }
-void addArgDouble(double v) { call_args.push_back(reinterpret_cast<void *>(*reinterpret_cast<uint64_t *>(&v))); }
+
+void addArgI32(int32_t v) { call_args.push_back(bit_cast<void *>(v)); }
+void addArgI64(int64_t v) { call_args.push_back(bit_cast<void *>(v)); }
+void addArgFloat(float v) { call_args.push_back(bit_cast<void *>(v)); }
+void addArgDouble(double v) { call_args.push_back(bit_cast<void *>(v)); }
 void addArgObject(ObjectHandle v) { call_args.push_back(getObject(v)); }
 void addArgNull() { call_args.push_back(nullptr); }
 void clearArgs() { call_args.clear(); }
+
 int getArgCount() { return call_args.size(); }
 WIBool moveArg(int index) {
     if (call_args.empty() || call_args.size() < index)
@@ -141,21 +147,24 @@ WIBool moveArg(int index) {
     call_args.pop_back();
     return true;
 }
-int32_t getValueI32(int index) { return reinterpret_cast<uintptr_t>(getValue(index)); }
-int64_t getValueI64(int index) { return reinterpret_cast<uintptr_t>(getValue(index)); }
+
+int32_t getValueI32(int index) { return bit_cast<int32_t>(getValue(index)); }
+int64_t getValueI64(int index) { return bit_cast<int64_t>(getValue(index)); }
 float getValueFloat(int index) {
     void *value = getValue(index);
-    return *reinterpret_cast<float *>(&value);
+    return bit_cast<float>(value);
 }
 double getValueDouble(int index) {
     void *value = getValue(index);
-    return *reinterpret_cast<double *>(&value);
+    return bit_cast<double>(value);
 }
 ObjectHandle getValueObject(int index) { return addObject(getValue(index)); }
 ObjectHandle getCallError() { return addObject(Il2Cpp::CppInterop::ToCsString(call_error)); }
+
 namespace {
 void logBadCall() { g.logger->warn("WebAssembly interface failed to call function: {}", call_error); }
 } // namespace
+
 WIBool call(MethodHandle index, int argCount) {
     // Handle unknown argument count
     if (argCount == unknownArgCount)
@@ -192,34 +201,7 @@ WIBool call(MethodHandle index, int argCount) {
     const auto args = std::move(std::exchange(call_args, {}));
     bool fres = true;
     try {
-        switch (argCount) {
-        case 0:
-            return_value = method.getFunction<void *()>()();
-            break;
-        case 1:
-            return_value = method.getFunction<void *(void *)>()(args[0]);
-            break;
-        case 2:
-            return_value = method.getFunction<void *(void *, void *)>()(args[0], args[1]);
-            break;
-        case 3:
-            return_value = method.getFunction<void *(void *, void *, void *)>()(args[0], args[1], args[2]);
-            break;
-        case 4:
-            return_value = method.getFunction<void *(void *, void *, void *, void *)>()(args[0], args[1], args[2], args[3]);
-            break;
-        case 5:
-            return_value = method.getFunction<void *(void *, void *, void *, void *, void *)>()(args[0], args[1], args[2], args[3], args[4]);
-            break;
-        case 6:
-            return_value = method.getFunction<void *(void *, void *, void *, void *, void *, void *)>()(args[0], args[1], args[2], args[3], args[4], args[5]);
-            break;
-        default: {
-            call_error = fmt::format("Too many arguments ({}) (max. 6 supported)", argCount);
-            logBadCall();
-            return false; // No need to clean up so not using fres here
-        }
-        }
+        return_value = reinterpret_cast<void *>(AnyCall::call(reinterpret_cast<const uintptr_t *>(args.data()), method.getFullAddress(), method.typeSignature));
     } catch (const std::exception& e) {
         call_error = fmt::format("Method has thrown an exception: {}", e.what());
         logBadCall();
