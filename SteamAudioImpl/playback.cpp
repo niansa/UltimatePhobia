@@ -4,15 +4,41 @@
 #include "fixedsettings.hpp"
 #include "utils.hpp"
 
+#include <algorithm>
+#include <cmath>
+#include <phonon.h>
+#include <ffi_interface.hpp>
+
 using namespace FFIInterface;
 
 namespace PhononPlayback {
 std::list<Playback> playbackQueue;
 std::mutex playbackQueueMutex;
 
-Playback::Playback(FFIInterface::ObjectHandle audioSource, const IPLAudioBuffer& audioBuffer, uint64_t delay, float volumeScale, bool isOneShot)
-    : audioSource(audioSource), audioBuffer(audioBuffer), delay(delay), volumeScale(volumeScale), isOneShot(isOneShot) {
-    audioSourceGc = FFI gcCreateHandle(audioSource, true);
+namespace Math {
+float distance(const IPLVector3& a, const IPLVector3& b) { return sqrt(pow(b.x - a.x, 2) + pow(b.y - a.y, 2) + pow(b.z - a.z, 2)); }
+
+float maxDistanceAttenuation(float distance, float maxDistance) {
+    if (maxDistance <= 0.0f) {
+        // Handle invalid parameters
+        return (distance <= 0.0f) ? 1.0f : 0.0f;
+    }
+
+    float normalizedDistance = distance / maxDistance;
+    normalizedDistance = std::clamp(normalizedDistance, 0.0f, 1.0f);
+
+    // Square the normalized distance to make falloff increase with distance
+    float exponent = -1.0f * normalizedDistance * normalizedDistance;
+    float numerator = expf(exponent) - expf(-1.0f);
+    float denominator = 1.0f - expf(-1.0f);
+
+    return numerator / denominator;
+}
+} // namespace Math
+
+Playback::Playback(FFIInterface::ObjectHandle audioSourceObject, const IPLAudioBuffer& audioBuffer, uint64_t delay, float volumeScale, bool isOneShot)
+    : audioSourceObject(audioSourceObject), audioBuffer(audioBuffer), delay(delay), volumeScale(volumeScale), isOneShot(isOneShot) {
+    audioSourceObjectGc = FFI gcCreateHandle(audioSourceObject, true);
 
     {
         IPLBinauralEffectSettings effectSettings{.hrtf = env->hrtf};
@@ -25,20 +51,47 @@ Playback::Playback(FFIInterface::ObjectHandle audioSource, const IPLAudioBuffer&
     }
 }
 Playback::~Playback() {
-    if (audioSource == ObjectHandle::Invalid || audioSource == ObjectHandle::Null)
+    if (audioSourceObject == ObjectHandle::Null)
         return;
     iplAudioBufferFree(GlobalState::phononCtx, &audioBuffer);
     iplBinauralEffectRelease(&binauralEffect);
     iplDirectEffectRelease(&directEffect);
 
-    FFI dropObject(audioSource);
-    FFI gcDeleteHandle(audioSourceGc);
+    FFI dropObject(audioSourceObject);
+    FFI gcDeleteHandle(audioSourceObjectGc);
+
+    if (cachedAudioSource != FFIInterface::ObjectHandle::Null) {
+        FFI dropObject(cachedAudioSource);
+        FFI gcDeleteHandle(cachedAudioSourceGc);
+    }
 }
 
 IPLAudioBuffer& Playback::operator=(const IPLAudioBuffer& audioBuffer) {
     iplAudioBufferFree(GlobalState::phononCtx, &this->audioBuffer);
     playPosition = 0;
     return this->audioBuffer = audioBuffer;
+}
+
+ObjectHandle Playback::getAudioSource() {
+    using namespace FFIInterface;
+    using namespace Helpers;
+
+    if (cachedAudioSource != ObjectHandle::Null && call<"UnityEngine.Object$$IsNativeObjectAlive", bool>(cachedAudioSource, nullptr))
+        return cachedAudioSource;
+
+    if (!call<"UnityEngine.Object$$IsNativeObjectAlive", bool>(audioSourceObject, nullptr))
+        return ObjectHandle::Null;
+
+    if (cachedAudioSource != ObjectHandle::Null) {
+        FFI dropObject(cachedAudioSource);
+        FFI gcDeleteHandle(cachedAudioSourceGc);
+    }
+
+    cachedAudioSource = call<"UnityEngine.GameObject$$GetComponentByName", ObjectHandle>(audioSourceObject, FFI toCsString("AudioSource"), nullptr);
+    if (cachedAudioSource != ObjectHandle::Null)
+        cachedAudioSourceGc = FFI gcCreateHandle(cachedAudioSource, true);
+
+    return cachedAudioSource;
 }
 
 void dataCallback(ma_device *pDevice, float *pOutput, const float *pInput, ma_uint32 sampleCount) {
@@ -79,12 +132,12 @@ void dataCallback(ma_device *pDevice, float *pOutput, const float *pInput, ma_ui
             if (status != IPL_STATUS_SUCCESS)
                 FFI logError(Utils::createErrorMessage("create input snippet buffer", status));
 
-            // Copy audio data while applying volume scale
+            // Copy audio data while applying volume
+            const float volume = playback.volume <= 1.0f ? std::min<float>(playback.volume * playback.volumeScale, 1.0f) * 4.0f : 0.0f;
             for (unsigned channel = 0; channel != inputBuffer.numChannels; channel++) {
                 for (unsigned sample = 0; sample != inputBuffer.numSamples; ++sample) {
                     if (sample < availableSamples)
-                        inputBuffer.data[channel][sample] =
-                            playback.audioBuffer.data[channel][playback.playPosition + sample] * (playback.volume * playback.volumeScale);
+                        inputBuffer.data[channel][sample] = playback.audioBuffer.data[channel][playback.playPosition + sample] * volume;
                     else
                         inputBuffer.data[channel][sample] = 0.0f;
                 }
@@ -116,6 +169,9 @@ void dataCallback(ma_device *pDevice, float *pOutput, const float *pInput, ma_ui
                 }
             }
 
+            // Calculate distance
+            const float distance = Math::distance(GlobalState::playerPos, playback.worldPosition);
+
             // Apply direct effect without simulation
             {
                 IPLDistanceAttenuationModel distanceAttenuationModel{IPL_DISTANCEATTENUATIONTYPE_DEFAULT};
@@ -123,7 +179,8 @@ void dataCallback(ma_device *pDevice, float *pOutput, const float *pInput, ma_ui
                 IPLDirectEffectParams directEffectParams{
                     .flags = static_cast<IPLDirectEffectFlags>(IPL_DIRECTEFFECTFLAGS_APPLYDISTANCEATTENUATION | IPL_DIRECTEFFECTFLAGS_APPLYAIRABSORPTION),
                     .distanceAttenuation =
-                        iplDistanceAttenuationCalculate(GlobalState::phononCtx, playback.worldPosition, GlobalState::playerPos, &distanceAttenuationModel)};
+                        iplDistanceAttenuationCalculate(GlobalState::phononCtx, playback.worldPosition, GlobalState::playerPos, &distanceAttenuationModel) *
+                        Math::maxDistanceAttenuation(distance, playback.maxDistance)};
                 iplAirAbsorptionCalculate(GlobalState::phononCtx, playback.worldPosition, GlobalState::playerPos, &airAbsorptionModel,
                                           directEffectParams.airAbsorption);
                 iplDirectEffectApply(playback.directEffect, &directEffectParams, &env->bufferPool.GetCurrentBuffer(), &env->bufferPool.GetNextBuffer());

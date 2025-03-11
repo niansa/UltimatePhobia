@@ -10,12 +10,15 @@ typedef struct ma_device ma_device;
 
 namespace PhononPlayback {
 struct Playback {
-    FFIInterface::ObjectHandle audioSource;
-    FFIInterface::GCHandle audioSourceGc;
+    FFIInterface::ObjectHandle audioSourceObject;
+    FFIInterface::ObjectHandle cachedAudioSource = FFIInterface::ObjectHandle::Null;
+    FFIInterface::GCHandle audioSourceObjectGc;
+    FFIInterface::GCHandle cachedAudioSourceGc;
     uint64_t delay;
     float volumeScale;
     float volume = 0.5f;
     float spatialBlend = 1.0f;
+    float maxDistance = 1000.0f;
     bool isOneShot;
     uint64_t playPosition = 0;
     IPLVector3 worldPosition{};
@@ -24,17 +27,18 @@ struct Playback {
     IPLBinauralEffect binauralEffect = nullptr;
     IPLDirectEffect directEffect = nullptr;
 
-    Playback(FFIInterface::ObjectHandle audioSource, const IPLAudioBuffer& audioBuffer, uint64_t delay, float volumeScale, bool isOneShot);
+    Playback(FFIInterface::ObjectHandle audioSourceObject, const IPLAudioBuffer& audioBuffer, uint64_t delay, float volumeScale, bool isOneShot);
     ~Playback();
     Playback(const Playback&) = delete;
     Playback(Playback&& o)
-        : audioSource(o.audioSource), audioSourceGc(o.audioSourceGc),
-          audioBuffer(o.audioBuffer), delay(o.delay),
+        : audioSourceObject(o.audioSourceObject), audioSourceObjectGc(o.audioSourceObjectGc), audioBuffer(o.audioBuffer), delay(o.delay),
           volumeScale(o.volumeScale), playPosition(o.playPosition) {
-        o.audioSource = FFIInterface::ObjectHandle::Invalid;
+        o.audioSourceObject = FFIInterface::ObjectHandle::Invalid;
     }
 
     IPLAudioBuffer& operator=(const IPLAudioBuffer& audioBuffer);
+
+    FFIInterface::ObjectHandle getAudioSource();
 
     bool hasReachedEnd() const { return playPosition >= audioBuffer.numSamples; }
 };

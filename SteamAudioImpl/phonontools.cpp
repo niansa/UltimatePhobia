@@ -66,41 +66,37 @@ IPLAudioBuffer audioBufferFromAudioClip(FFIInterface::ObjectHandle audioClip) {
 }
 
 bool updatePlayback(PhononPlayback::Playback& p, bool initial) {
+    // Get audio source
+    const ObjectHandle audioSource = p.getAudioSource();
+
     // Make sure playback hasn't expired
-    if (p.hasReachedEnd() || p.audioSource == ObjectHandle::Null || !call<"UnityEngine.Object$$IsNativeObjectAlive", bool>(p.audioSource, nullptr)) {
+    if (audioSource == ObjectHandle::Null || !call<"UnityEngine.Object$$IsNativeObjectAlive", bool>(audioSource, nullptr)) {
         FFI logDebug(FFI toCsString("Playback ended because native source object died!"));
         return false;
     }
 
     // Update position
     {
-        ObjectHandle sourceObject =
-            call<"UnityEngine.Component$$get_gameObject", ObjectHandle>(
-                p.audioSource, nullptr);
-        if (sourceObject != ObjectHandle::Null) {
-            ObjectHandle sourceTransform =
-                call<"UnityEngine.GameObject$$get_transform", ObjectHandle>(
-                    sourceObject, nullptr);
-            if (sourceTransform != ObjectHandle::Null) {
-                p.worldPosition = transformUtils->get_position(sourceTransform);
-                FFI dropObject(sourceTransform);
-            }
-            FFI dropObject(sourceObject);
+        ObjectHandle sourceTransform = call<"UnityEngine.GameObject$$get_transform", ObjectHandle>(p.audioSourceObject, nullptr);
+        if (sourceTransform != ObjectHandle::Null) {
+            p.worldPosition = transformUtils->get_position(sourceTransform);
+            FFI dropObject(sourceTransform);
         }
     }
 
     // Update initial properties
     if (initial) {
-        p.volume = 1.0f; // call<"UnityEngine.AudioSource$$get_volume", float>(p.audioSource, nullptr);  TODO! Gives bogus values.
-        if (call<"UnityEngine.AudioSource$$get_spatialize", bool>(p.audioSource, nullptr))
-            p.spatialBlend = 1.0f; // call<"UnityEngine.AudioSource$$get_spatialBlend", float>(p.audioSource, nullptr);  TODO! Also giving bogus values???
+        p.volume = call<"UnityEngine.AudioSource$$get_volume", float>(audioSource, nullptr);
+        if (call<"UnityEngine.AudioSource$$get_spatialize", bool>(audioSource, nullptr))
+            p.spatialBlend = call<"UnityEngine.AudioSource$$get_spatialBlend", float>(audioSource, nullptr);
         else
             p.spatialBlend = 0.0f;
+        p.maxDistance = call<"UnityEngine.AudioSource$$get_maxDistance", float>(audioSource, nullptr);
     }
 
     // Loop if requested
     if (p.hasReachedEnd()) {
-        if (call<"UnityEngine.AudioSource$$get_loop", bool>(p.audioSource, nullptr))
+        if (call<"UnityEngine.AudioSource$$get_loop", bool>(audioSource, nullptr))
             p.playPosition = 0;
         else {
             FFI logDebug(FFI toCsString("Non-looped playback ended!"));

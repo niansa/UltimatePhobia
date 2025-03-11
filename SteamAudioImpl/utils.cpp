@@ -9,8 +9,8 @@ using namespace FFIInterface;
 namespace Utils {
 namespace {
 ObjectHandle createErrorMessage_(const char *what, auto why) {
-    std::ostringstream fress("Failed to ");
-    fress << what << "! Error was: " << errorToMessage(why);
+    std::ostringstream fress;
+    fress << "Failed to " << what << "! Error was: " << errorToMessage(why);
     const std::string fres = fress.str();
     return FFI toCsStringWithLength(fres.data(), fres.size());
 }
