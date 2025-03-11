@@ -36,9 +36,9 @@ float maxDistanceAttenuation(float distance, float maxDistance) {
 }
 } // namespace Math
 
-Playback::Playback(FFIInterface::ObjectHandle audioSourceObject, const IPLAudioBuffer& audioBuffer, uint64_t delay, float volumeScale, bool isOneShot)
-    : audioSourceObject(audioSourceObject), audioBuffer(audioBuffer), delay(delay), volumeScale(volumeScale), isOneShot(isOneShot) {
-    audioSourceObjectGc = FFI gcCreateHandle(audioSourceObject, true);
+Playback::Playback(FFIInterface::ObjectHandle audioSource, const IPLAudioBuffer& audioBuffer, uint64_t delay, float volumeScale, bool isOneShot)
+    : audioSource(audioSource), audioBuffer(audioBuffer), delay(delay), volumeScale(volumeScale), isOneShot(isOneShot) {
+    audioSourceGc = FFI gcCreateHandle(audioSource, true);
 
     {
         IPLBinauralEffectSettings effectSettings{.hrtf = env->hrtf};
@@ -51,47 +51,20 @@ Playback::Playback(FFIInterface::ObjectHandle audioSourceObject, const IPLAudioB
     }
 }
 Playback::~Playback() {
-    if (audioSourceObject == ObjectHandle::Null)
+    if (audioSource == ObjectHandle::Null)
         return;
     iplAudioBufferFree(GlobalState::phononCtx, &audioBuffer);
     iplBinauralEffectRelease(&binauralEffect);
     iplDirectEffectRelease(&directEffect);
 
-    FFI dropObject(audioSourceObject);
-    FFI gcDeleteHandle(audioSourceObjectGc);
-
-    if (cachedAudioSource != FFIInterface::ObjectHandle::Null) {
-        FFI dropObject(cachedAudioSource);
-        FFI gcDeleteHandle(cachedAudioSourceGc);
-    }
+    FFI dropObject(audioSource);
+    FFI gcDeleteHandle(audioSourceGc);
 }
 
 IPLAudioBuffer& Playback::operator=(const IPLAudioBuffer& audioBuffer) {
     iplAudioBufferFree(GlobalState::phononCtx, &this->audioBuffer);
     playPosition = 0;
     return this->audioBuffer = audioBuffer;
-}
-
-ObjectHandle Playback::getAudioSource() {
-    using namespace FFIInterface;
-    using namespace Helpers;
-
-    if (cachedAudioSource != ObjectHandle::Null && call<"UnityEngine.Object$$IsNativeObjectAlive", bool>(cachedAudioSource, nullptr))
-        return cachedAudioSource;
-
-    if (!call<"UnityEngine.Object$$IsNativeObjectAlive", bool>(audioSourceObject, nullptr))
-        return ObjectHandle::Null;
-
-    if (cachedAudioSource != ObjectHandle::Null) {
-        FFI dropObject(cachedAudioSource);
-        FFI gcDeleteHandle(cachedAudioSourceGc);
-    }
-
-    cachedAudioSource = call<"UnityEngine.GameObject$$GetComponentByName", ObjectHandle>(audioSourceObject, FFI toCsString("AudioSource"), nullptr);
-    if (cachedAudioSource != ObjectHandle::Null)
-        cachedAudioSourceGc = FFI gcCreateHandle(cachedAudioSource, true);
-
-    return cachedAudioSource;
 }
 
 void dataCallback(ma_device *pDevice, float *pOutput, const float *pInput, ma_uint32 sampleCount) {
@@ -136,10 +109,17 @@ void dataCallback(ma_device *pDevice, float *pOutput, const float *pInput, ma_ui
             const float volume = playback.volume <= 1.0f ? std::min<float>(playback.volume * playback.volumeScale, 1.0f) * 4.0f : 0.0f;
             for (unsigned channel = 0; channel != inputBuffer.numChannels; channel++) {
                 for (unsigned sample = 0; sample != inputBuffer.numSamples; ++sample) {
-                    if (sample < availableSamples)
-                        inputBuffer.data[channel][sample] = playback.audioBuffer.data[channel][playback.playPosition + sample] * volume;
-                    else
-                        inputBuffer.data[channel][sample] = 0.0f;
+                    const auto position = playback.playPosition + sample;
+                    float value;
+                    if (sample < availableSamples) {
+                        value = playback.audioBuffer.data[channel][position];
+                    } else {
+                        if (!playback.loop)
+                            value = 0.0f;
+                        else
+                            value = playback.audioBuffer.data[channel][position % playback.audioBuffer.numSamples];
+                    }
+                    inputBuffer.data[channel][sample] = value * volume;
                 }
             }
 

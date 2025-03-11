@@ -66,18 +66,15 @@ IPLAudioBuffer audioBufferFromAudioClip(FFIInterface::ObjectHandle audioClip) {
 }
 
 bool updatePlayback(PhononPlayback::Playback& p, bool initial) {
-    // Get audio source
-    const ObjectHandle audioSource = p.getAudioSource();
-
     // Make sure playback hasn't expired
-    if (audioSource == ObjectHandle::Null || !call<"UnityEngine.Object$$IsNativeObjectAlive", bool>(audioSource, nullptr)) {
+    if (p.audioSource == ObjectHandle::Null || !call<"UnityEngine.Object$$IsNativeObjectAlive", bool>(p.audioSource, nullptr)) {
         FFI logDebug(FFI toCsString("Playback ended because native source object died!"));
         return false;
     }
 
     // Update position
     {
-        ObjectHandle sourceTransform = call<"UnityEngine.GameObject$$get_transform", ObjectHandle>(p.audioSourceObject, nullptr);
+        ObjectHandle sourceTransform = call<"UnityEngine.Component$$get_transform", ObjectHandle>(p.audioSource, nullptr);
         if (sourceTransform != ObjectHandle::Null) {
             p.worldPosition = transformUtils->get_position(sourceTransform);
             FFI dropObject(sourceTransform);
@@ -86,18 +83,19 @@ bool updatePlayback(PhononPlayback::Playback& p, bool initial) {
 
     // Update initial properties
     if (initial) {
-        p.volume = call<"UnityEngine.AudioSource$$get_volume", float>(audioSource, nullptr);
-        if (call<"UnityEngine.AudioSource$$get_spatialize", bool>(audioSource, nullptr))
-            p.spatialBlend = call<"UnityEngine.AudioSource$$get_spatialBlend", float>(audioSource, nullptr);
+        p.volume = call<"UnityEngine.AudioSource$$get_volume", float>(p.audioSource, nullptr);
+        if (call<"UnityEngine.AudioSource$$get_spatialize", bool>(p.audioSource, nullptr))
+            p.spatialBlend = call<"UnityEngine.AudioSource$$get_spatialBlend", float>(p.audioSource, nullptr);
         else
             p.spatialBlend = 0.0f;
-        p.maxDistance = call<"UnityEngine.AudioSource$$get_maxDistance", float>(audioSource, nullptr);
+        p.maxDistance = call<"UnityEngine.AudioSource$$get_maxDistance", float>(p.audioSource, nullptr);
+        p.loop = call<"UnityEngine.AudioSource$$get_loop", bool>(p.audioSource, nullptr);
     }
 
     // Loop if requested
     if (p.hasReachedEnd()) {
-        if (call<"UnityEngine.AudioSource$$get_loop", bool>(audioSource, nullptr))
-            p.playPosition = 0;
+        if (p.loop)
+            p.playPosition = p.playPosition % p.audioBuffer.numSamples;
         else {
             FFI logDebug(FFI toCsString("Non-looped playback ended!"));
             return false;
