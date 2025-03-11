@@ -111,14 +111,12 @@ void dataCallback(ma_device *pDevice, float *pOutput, const float *pInput, ma_ui
                 for (unsigned sample = 0; sample != inputBuffer.numSamples; ++sample) {
                     const auto position = playback.playPosition + sample;
                     float value;
-                    if (sample < availableSamples) {
+                    if (playback.loop)
+                        value = playback.audioBuffer.data[channel][position % playback.audioBuffer.numSamples];
+                    if (sample < availableSamples)
                         value = playback.audioBuffer.data[channel][position];
-                    } else {
-                        if (!playback.loop)
-                            value = 0.0f;
-                        else
-                            value = playback.audioBuffer.data[channel][position % playback.audioBuffer.numSamples];
-                    }
+                    else
+                        value = 0.0f;
                     inputBuffer.data[channel][sample] = value * volume;
                 }
             }
@@ -175,6 +173,10 @@ void dataCallback(ma_device *pDevice, float *pOutput, const float *pInput, ma_ui
 
             // Increment play position
             playback.playPosition += sampleCount;
+
+            // Wrap position over if looping
+            if (playback.loop && playback.hasReachedEnd())
+                playback.playPosition = playback.playPosition % playback.audioBuffer.numSamples;
         }
     }
 

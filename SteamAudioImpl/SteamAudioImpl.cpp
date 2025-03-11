@@ -9,6 +9,7 @@
 
 #include <string>
 #include <optional>
+#include <cmath>
 #include <ffi_interface.hpp>
 #include <phonon.h>
 
@@ -148,7 +149,7 @@ STEAMAUDIOIMPL_EXPORT void onAudioSourceSetVolume() {
 
     // Get audio source and new volume
     const ObjectHandle audioSource = FFI getValueObject(0);
-    const float newVolume = FFI getValueFloat(1);
+    const float newVolume = std::fabs(FFI getValueFloat(1));
 
     // Call original function
     FFI call(FFI getOriginal(), 3);

@@ -4,6 +4,7 @@
 #include "playback.hpp"
 
 #include <vector>
+#include <cmath>
 #include <ffi_interface.hpp>
 
 using namespace FFIInterface;
@@ -72,6 +73,10 @@ bool updatePlayback(PhononPlayback::Playback& p, bool initial) {
         return false;
     }
 
+    // Make sure playback hasn't ended
+    if (p.hasReachedEnd())
+        return false;
+
     // Update position
     {
         ObjectHandle sourceTransform = call<"UnityEngine.Component$$get_transform", ObjectHandle>(p.audioSource, nullptr);
@@ -83,23 +88,13 @@ bool updatePlayback(PhononPlayback::Playback& p, bool initial) {
 
     // Update initial properties
     if (initial) {
-        p.volume = call<"UnityEngine.AudioSource$$get_volume", float>(p.audioSource, nullptr);
+        p.volume = std::fabs(call<"UnityEngine.AudioSource$$get_volume", float>(p.audioSource, nullptr));
         if (call<"UnityEngine.AudioSource$$get_spatialize", bool>(p.audioSource, nullptr))
             p.spatialBlend = call<"UnityEngine.AudioSource$$get_spatialBlend", float>(p.audioSource, nullptr);
         else
             p.spatialBlend = 0.0f;
         p.maxDistance = call<"UnityEngine.AudioSource$$get_maxDistance", float>(p.audioSource, nullptr);
         p.loop = call<"UnityEngine.AudioSource$$get_loop", bool>(p.audioSource, nullptr);
-    }
-
-    // Loop if requested
-    if (p.hasReachedEnd()) {
-        if (p.loop)
-            p.playPosition = p.playPosition % p.audioBuffer.numSamples;
-        else {
-            FFI logDebug(FFI toCsString("Non-looped playback ended!"));
-            return false;
-        }
     }
 
     // We're all good
