@@ -39,6 +39,12 @@ IPLVector3 get_up(FFIInterface::ObjectHandle transform) {
         reinterpret_cast<void *>(FFI getMethodAddresss(Helpers::getMethodCached<"UnityEngine.Transform$$get_up">())));
     return Transform$$get_up(FFI getObjectAddress(transform), 0);
 }
+IPLMatrix4x4 get_localToWorldMatrix(FFIInterface::ObjectHandle transform) {
+    static const IPLMatrix4x4 (*Transform$$get_localToWorldMatrix)(uintptr_t __this, uintptr_t method) =
+        reinterpret_cast<decltype(Transform$$get_localToWorldMatrix)>(
+            reinterpret_cast<void *>(FFI getMethodAddresss(Helpers::getMethodCached<"UnityEngine.Transform$$get_localToWorldMatrix">())));
+    return Transform$$get_localToWorldMatrix(FFI getObjectAddress(transform), 0);
+}
 } // namespace TransformUtils
 
 IPLAudioBuffer audioBufferFromAudioClip(FFIInterface::ObjectHandle audioClip) {
@@ -94,7 +100,7 @@ IPLAudioBuffer audioBufferFromAudioClip(FFIInterface::ObjectHandle audioClip) {
     return fres;
 }
 
-IPLStaticMesh staticMeshfromMesh(IPLScene scene, FFIInterface::ObjectHandle mesh) {
+IPLStaticMesh staticMeshFromMesh(IPLScene scene, FFIInterface::ObjectHandle mesh) {
     // Get vertices
     const auto verticeArray = call<"UnityEngine.Mesh$$get_vertices", ObjectHandle>(mesh, nullptr);
     if (call_error)
@@ -114,10 +120,6 @@ IPLStaticMesh staticMeshfromMesh(IPLScene scene, FFIInterface::ObjectHandle mesh
     std::vector<IPLTriangle> triangles(call<"System.Array$$get_Length", int32_t>(triangleArray, nullptr) / 3);
     FFI copyArrayBytes(triangleArray, 0, triangles.size() * sizeof(IPLTriangle), triangles.data());
     FFI dropObject(triangleArray);
-
-    // Rotate triangles counter-clockwise
-    for (IPLTriangle& triangle : triangles)
-        std::swap(triangle.indices[0], triangle.indices[2]);
 
     // Get materials (TODO: Just a dummy for now)
     std::vector<IPLint32> materials(triangles.size(), Materials::Brick);
