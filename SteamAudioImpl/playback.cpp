@@ -1,6 +1,7 @@
 #include "playback.hpp"
 #include "SteamAudioImpl.hpp"
 #include "playback_environment.hpp"
+#include "simulation_environment.hpp"
 #include "fixedsettings.hpp"
 #include "utils.hpp"
 
@@ -49,6 +50,14 @@ Playback::Playback(FFIInterface::ObjectHandle audioSource, const IPLAudioBuffer&
         IPLDirectEffectSettings directEffectSettings{.numChannels = FixedSettings::outputChannels};
         iplDirectEffectCreate(GlobalState::phononCtx, const_cast<IPLAudioSettings *>(&env->audioSettings), &directEffectSettings, &directEffect);
     }
+
+    if (PhononSimulation::env.has_value()) {
+        FFI logInfo(FFI toCsString("Adding simulator source..."));
+        using PhononSimulation::env;
+        IPLSourceSettings sourceSettings{.flags = IPL_SIMULATIONFLAGS_DIRECT};
+        iplSourceCreate(env->getSimulator(), &sourceSettings, &source);
+        iplSourceAdd(source, env->getSimulator());
+    }
 }
 Playback::~Playback() {
     if (audioSource == ObjectHandle::Null)
@@ -56,6 +65,14 @@ Playback::~Playback() {
     iplAudioBufferFree(GlobalState::phononCtx, &audioBuffer);
     iplBinauralEffectRelease(&binauralEffect);
     iplDirectEffectRelease(&directEffect);
+    if (source) {
+        FFI logInfo(FFI toCsString("Removing simulator source..."));
+        if (PhononSimulation::env.has_value()) {
+            using PhononSimulation::env;
+            iplSourceRemove(source, env->getSimulator());
+        }
+        iplSourceRelease(&source);
+    }
 
     FFI dropObject(audioSource);
     FFI gcDeleteHandle(audioSourceGc);
@@ -125,8 +142,8 @@ void dataCallback(ma_device *pDevice, float *pOutput, const float *pInput, ma_ui
                 // Apply binaural effect
                 IPLBinauralEffectParams effectParams{
                     .interpolation = IPL_HRTFINTERPOLATION_BILINEAR, .spatialBlend = playback.spatialBlend, .hrtf = env->hrtf, .peakDelays = nullptr};
-                effectParams.direction = iplCalculateRelativeDirection(GlobalState::phononCtx, playback.worldPosition, GlobalState::playerPos,
-                                                                       GlobalState::playerAhead, GlobalState::playerUp);
+                effectParams.direction = iplCalculateRelativeDirection(GlobalState::phononCtx, playback.worldPosition, GlobalState::playerCoord.origin,
+                                                                       GlobalState::playerCoord.ahead, GlobalState::playerCoord.up);
                 effectParams.direction.x = -effectParams.direction.x;
                 iplBinauralEffectApply(playback.binauralEffect, &effectParams, &inputBuffer, &env->bufferPool.GetCurrentBuffer());
             } else {
@@ -148,7 +165,7 @@ void dataCallback(ma_device *pDevice, float *pOutput, const float *pInput, ma_ui
             }
 
             // Calculate distance
-            const float distance = Math::distance(GlobalState::playerPos, playback.worldPosition);
+            const float distance = Math::distance(GlobalState::playerCoord.origin, playback.worldPosition);
 
             // Apply direct effect without simulation
             {
@@ -156,10 +173,10 @@ void dataCallback(ma_device *pDevice, float *pOutput, const float *pInput, ma_ui
                 IPLAirAbsorptionModel airAbsorptionModel{IPL_AIRABSORPTIONTYPE_DEFAULT};
                 IPLDirectEffectParams directEffectParams{
                     .flags = static_cast<IPLDirectEffectFlags>(IPL_DIRECTEFFECTFLAGS_APPLYDISTANCEATTENUATION | IPL_DIRECTEFFECTFLAGS_APPLYAIRABSORPTION),
-                    .distanceAttenuation =
-                        iplDistanceAttenuationCalculate(GlobalState::phononCtx, playback.worldPosition, GlobalState::playerPos, &distanceAttenuationModel) *
-                        Math::maxDistanceAttenuation(distance, playback.maxDistance)};
-                iplAirAbsorptionCalculate(GlobalState::phononCtx, playback.worldPosition, GlobalState::playerPos, &airAbsorptionModel,
+                    .distanceAttenuation = iplDistanceAttenuationCalculate(GlobalState::phononCtx, playback.worldPosition, GlobalState::playerCoord.origin,
+                                                                           &distanceAttenuationModel) *
+                                           Math::maxDistanceAttenuation(distance, playback.maxDistance)};
+                iplAirAbsorptionCalculate(GlobalState::phononCtx, playback.worldPosition, GlobalState::playerCoord.origin, &airAbsorptionModel,
                                           directEffectParams.airAbsorption);
                 iplDirectEffectApply(playback.directEffect, &directEffectParams, &env->bufferPool.GetCurrentBuffer(), &env->bufferPool.GetNextBuffer());
                 env->bufferPool.SwitchToNextBuffer();

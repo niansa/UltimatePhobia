@@ -2,8 +2,11 @@
 #include "SteamAudioImpl.hpp"
 #include "utils.hpp"
 #include "playback.hpp"
+#include "simulation_environment.hpp"
+#include "fixedsettings.hpp"
 
 #include <vector>
+#include <cstring>
 #include <cmath>
 #include <ffi_interface.hpp>
 
@@ -38,6 +41,11 @@ IPLVector3 get_up(FFIInterface::ObjectHandle transform) {
     static const IPLVector3 (*Transform$$get_up)(uintptr_t __this, uintptr_t method) = reinterpret_cast<decltype(Transform$$get_up)>(
         reinterpret_cast<void *>(FFI getMethodAddresss(Helpers::getMethodCached<"UnityEngine.Transform$$get_up">())));
     return Transform$$get_up(FFI getObjectAddress(transform), 0);
+}
+IPLVector3 get_right(FFIInterface::ObjectHandle transform) {
+    static const IPLVector3 (*Transform$$get_right)(uintptr_t __this, uintptr_t method) = reinterpret_cast<decltype(Transform$$get_right)>(
+        reinterpret_cast<void *>(FFI getMethodAddresss(Helpers::getMethodCached<"UnityEngine.Transform$$get_right">())));
+    return Transform$$get_right(FFI getObjectAddress(transform), 0);
 }
 IPLMatrix4x4 get_localToWorldMatrix(FFIInterface::ObjectHandle transform) {
     static const IPLMatrix4x4 (*Transform$$get_localToWorldMatrix)(uintptr_t __this, uintptr_t method) =
@@ -156,11 +164,13 @@ bool updatePlayback(PhononPlayback::Playback& p, bool initial) {
         return false;
 
     // Update position
-    {
-        ObjectHandle sourceTransform = call<"UnityEngine.Component$$get_transform", ObjectHandle>(p.audioSource, nullptr);
-        if (sourceTransform != ObjectHandle::Null) {
-            p.worldPosition = TransformUtils::get_position(sourceTransform);
-            FFI dropObject(sourceTransform);
+    bool positionChanged = initial;
+    ObjectHandle sourceTransform = call<"UnityEngine.Component$$get_transform", ObjectHandle>(p.audioSource, nullptr);
+    if (sourceTransform != ObjectHandle::Null) {
+        const auto newPosition = TransformUtils::get_position(sourceTransform);
+        if (std::memcmp(&p.worldPosition, &newPosition, sizeof(newPosition)) != 0) {
+            p.worldPosition = newPosition;
+            positionChanged = true;
         }
     }
 
@@ -175,7 +185,31 @@ bool updatePlayback(PhononPlayback::Playback& p, bool initial) {
         p.loop = call<"UnityEngine.AudioSource$$get_loop", bool>(p.audioSource, nullptr);
     }
 
+    // Update simulation inputs
+    if (positionChanged && p.source && PhononSimulation::env.has_value()) {
+        FFI logInfo(FFI toCsString("Updating simulation inputs..."));
+        IPLSimulationInputs inputs{
+            .flags = FixedSettings::simulationFlags,
+            .directFlags = static_cast<IPLDirectSimulationFlags>(IPL_DIRECTSIMULATIONFLAGS_DISTANCEATTENUATION | IPL_DIRECTSIMULATIONFLAGS_AIRABSORPTION |
+                                                                 IPL_DIRECTSIMULATIONFLAGS_OCCLUSION | IPL_DIRECTSIMULATIONFLAGS_TRANSMISSION),
+            .source = {.right = TransformUtils::get_right(sourceTransform),
+                       .up = TransformUtils::get_up(sourceTransform),
+                       .ahead = TransformUtils::get_forward(sourceTransform),
+                       .origin = p.worldPosition},
+            .directivity = {.dipoleWeight = 1.0f},
+            .occlusionType = IPL_OCCLUSIONTYPE_RAYCAST,
+            .occlusionRadius = 0.25f,
+            .numOcclusionSamples = 8,
+            .reverbScale = {1.0f, 1.0f, 1.0f},
+            .hybridReverbTransitionTime = 1.0f,
+            .hybridReverbOverlapPercent = 0.25f,
+            .numTransmissionRays = 16};
+        iplSourceSetInputs(p.source, FixedSettings::simulationFlags, &inputs);
+        PhononSimulation::env->markSimulatorDirty();
+    }
+
     // We're all good
+    FFI dropObject(sourceTransform);
     return true;
 }
 } // namespace PhononTools

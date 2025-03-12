@@ -25,6 +25,7 @@ struct Playback {
     IPLAudioBuffer audioBuffer;
     IPLBinauralEffect binauralEffect = nullptr;
     IPLDirectEffect directEffect = nullptr;
+    IPLSource source = nullptr;
 
     Playback(FFIInterface::ObjectHandle audioSource, const IPLAudioBuffer& audioBuffer, uint64_t delay, float volumeScale, bool isOneShot);
     ~Playback();

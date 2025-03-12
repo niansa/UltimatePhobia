@@ -2,10 +2,12 @@
 #include "SteamAudioImpl.hpp"
 #include "phonontools.hpp"
 #include "utils.hpp"
+#include "fixedsettings.hpp"
 
 #include <string>
 #include <vector>
 #include <map>
+#include <mutex>
 #include <cstring>
 #include <phonon.h>
 #include <ffi_interface.hpp>
@@ -50,17 +52,17 @@ struct Environment::Impl {
     std::map<ObjectHandle, GCHandle> gcHandles;
     std::map<ObjectHandle, SubScene> meshes;
 
+    std::mutex simulatorMutex;
+    bool simulatorDirty = true;
+
     Impl() {
         IPLSceneSettings sceneSettings{IPL_SCENETYPE_DEFAULT};
         auto status = iplSceneCreate(GlobalState::phononCtx, &sceneSettings, &scene);
         if (status != IPL_STATUS_SUCCESS)
             FFI logError(Utils::createErrorMessage("create scene", status));
 
-        IPLSimulationSettings simulationSettings{};
-        simulationSettings.flags = static_cast<IPLSimulationFlags>(IPL_SIMULATIONFLAGS_DIRECT);
-        simulationSettings.sceneType = IPL_SCENETYPE_DEFAULT;
+        IPLSimulationSettings simulationSettings{.flags = FixedSettings::simulationFlags, .sceneType = IPL_SCENETYPE_DEFAULT};
 
-        IPLSimulator simulator = nullptr;
         iplSimulatorCreate(GlobalState::phononCtx, &simulationSettings, &simulator);
         iplSimulatorSetScene(simulator, scene);
         iplSimulatorCommit(simulator);
@@ -71,7 +73,11 @@ struct Environment::Impl {
 };
 
 Environment::Environment() { i = new Impl; }
-Environment::~Environment() { delete i; }
+Environment::~Environment() {
+    i->simulatorMutex.lock();
+    i->simulatorMutex.unlock();
+    delete i;
+}
 
 void Environment::updateScene() {
     using namespace Literals;
@@ -203,5 +209,23 @@ void Environment::updateScene() {
 }
 
 IPLScene Environment::getScene() { return i->scene; }
+IPLSimulator Environment::getSimulator() { return i->simulator; }
 unsigned int Environment::getMeshCount() { return i->meshes.size(); }
+std::mutex& Environment::getSimulatorMutex() { return i->simulatorMutex; }
+
+void Environment::markSimulatorDirty() { i->simulatorDirty = true; }
+void Environment::undirtySimulator() {
+    if (i->simulatorDirty)
+        iplSimulatorCommit(i->simulator);
+    i->simulatorDirty = false;
+}
+
+bool Environment::getSimulationOutputs(IPLSource source, IPLSimulationOutputs& outputs) {
+    if (!i->simulatorMutex.try_lock())
+        return false;
+    outputs = IPLSimulationOutputs{};
+    iplSourceGetOutputs(source, FixedSettings::simulationFlags, &outputs);
+    i->simulatorMutex.unlock();
+    return true;
+}
 } // namespace PhononSimulation

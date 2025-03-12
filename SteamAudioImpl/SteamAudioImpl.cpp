@@ -25,7 +25,7 @@ namespace GlobalState {
 IPLContext phononCtx;
 ma_device maDevice;
 
-IPLVector3 playerPos, playerAhead, playerUp;
+IPLCoordinateSpace3 playerCoord;
 } // namespace GlobalState
 
 namespace Interface {
@@ -326,9 +326,10 @@ STEAMAUDIOIMPL_EXPORT void onUiUpdate() {
 
             if (cameraTransform != ObjectHandle::Null) {
                 // Update player position and direction
-                GlobalState::playerPos = PhononTools::TransformUtils::get_position(cameraTransform);
-                GlobalState::playerAhead = PhononTools::TransformUtils::get_forward(cameraTransform);
-                GlobalState::playerUp = PhononTools::TransformUtils::get_up(cameraTransform);
+                GlobalState::playerCoord = {.right = PhononTools::TransformUtils::get_right(cameraTransform),
+                                            .up = PhononTools::TransformUtils::get_up(cameraTransform),
+                                            .ahead = PhononTools::TransformUtils::get_forward(cameraTransform),
+                                            .origin = PhononTools::TransformUtils::get_position(cameraTransform)};
                 FFI dropObject(cameraTransform);
             }
             FFI dropObject(cameraObject);

@@ -16,5 +16,5 @@ namespace GlobalState {
 extern IPLContext phononCtx;
 extern ma_device maDevice;
 
-extern IPLVector3 playerPos, playerAhead, playerUp;
+extern IPLCoordinateSpace3 playerCoord;
 } // namespace GlobalState

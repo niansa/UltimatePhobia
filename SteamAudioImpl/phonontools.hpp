@@ -16,6 +16,7 @@ namespace TransformUtils {
 IPLVector3 get_position(FFIInterface::ObjectHandle transform);
 IPLVector3 get_forward(FFIInterface::ObjectHandle transform);
 IPLVector3 get_up(FFIInterface::ObjectHandle transform);
+IPLVector3 get_right(FFIInterface::ObjectHandle transform);
 IPLMatrix4x4 get_localToWorldMatrix(FFIInterface::ObjectHandle transform);
 } // namespace TransformUtils
 
