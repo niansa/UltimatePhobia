@@ -162,7 +162,10 @@ ObjectHandle getValueObject(int index) { return addObject(getValue(index)); }
 ObjectHandle getCallError() { return addObject(Il2Cpp::CppInterop::ToCsString(call_error)); }
 
 namespace {
-void logBadCall() { g.logger->warn("WebAssembly interface failed to call function: {}", call_error); }
+void logBadCall(MethodHandle index) {
+    const auto& method = Il2Cpp::Dynamic::getMethod(index);
+    g.logger->warn("WebAssembly interface failed to call function '{}': {}", method.isValid() ? method.signature : "<invalid>", call_error);
+}
 } // namespace
 
 WIBool call(MethodHandle index, int argCount) {
@@ -173,7 +176,7 @@ WIBool call(MethodHandle index, int argCount) {
     // Make sure argCount matches argument count
     else if (argCount != call_args.size()) {
         call_error = fmt::format("Mismatched added ({}) vs. passed ({}) arg count", call_args.size(), argCount);
-        logBadCall();
+        logBadCall(index);
         return false;
     }
 
@@ -181,7 +184,7 @@ WIBool call(MethodHandle index, int argCount) {
     const auto method = Dynamic::getMethod(index);
     if (!method.isValid()) {
         call_error = fmt::format("Bad method index ({})", index);
-        logBadCall();
+        logBadCall(index);
         return false;
     }
 
@@ -189,7 +192,7 @@ WIBool call(MethodHandle index, int argCount) {
     const auto actualArgCount = method.getArgCount();
     if (argCount != actualArgCount) {
         call_error = fmt::format("Mismatched passed ({}) vs. actual ({}) arg count", argCount, actualArgCount);
-        logBadCall();
+        logBadCall(index);
         return false;
     }
 
@@ -204,11 +207,11 @@ WIBool call(MethodHandle index, int argCount) {
         return_value = reinterpret_cast<void *>(AnyCall::call(reinterpret_cast<const uintptr_t *>(args.data()), method.getFullAddress(), method.typeSignature));
     } catch (const std::exception& e) {
         call_error = fmt::format("Method has thrown an exception: {}", e.what());
-        logBadCall();
+        logBadCall(index);
         fres = false;
     } catch (...) {
         call_error = "Method has thrown an unknown exception";
-        logBadCall();
+        logBadCall(index);
         fres = false;
     }
 
