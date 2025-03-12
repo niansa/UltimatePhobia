@@ -1,6 +1,6 @@
 #include "playback.hpp"
 #include "SteamAudioImpl.hpp"
-#include "environment.hpp"
+#include "playback_environment.hpp"
 #include "fixedsettings.hpp"
 #include "utils.hpp"
 

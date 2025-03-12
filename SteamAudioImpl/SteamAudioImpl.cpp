@@ -1,8 +1,10 @@
 #include "SteamAudioImpl.hpp"
-#include "environment.hpp"
+#include "playback_environment.hpp"
 #include "playback.hpp"
+#include "simulation_environment.hpp"
+#include "simulation.hpp"
 #include "phonontools.hpp"
-#include "environment.hpp"
+#include "playback_environment.hpp"
 #include "utils.hpp"
 #include "fixedsettings.hpp"
 #include "miniaudio.h"
@@ -246,8 +248,6 @@ STEAMAUDIOIMPL_EXPORT void onLoad() {
         ma_device_start(&GlobalState::maDevice);
     }
 
-    PhononTools::transformUtils.emplace();
-
     FFI hook(getMethodCached<"void UnityEngine_AudioSource__Play (UnityEngine_AudioSource_o* __this, const MethodInfo* method);">(), "onAudioSourcePlay");
     FFI hook(getMethodCached<
                  "void UnityEngine_AudioSource__PlayOneShot (UnityEngine_AudioSource_o* __this, UnityEngine_AudioClip_o* clip, const MethodInfo* method);">(),
@@ -276,6 +276,7 @@ STEAMAUDIOIMPL_EXPORT void onUnload() {
 
     FFI logInfo("Unloading Steam Audio..."_cs);
     PhononPlayback::env.reset();
+    PhononSimulation::env.reset();
     iplContextRelease(&GlobalState::phononCtx);
 
     FFI unhook(getMethodCached<"void UnityEngine_AudioSource__Play (UnityEngine_AudioSource_o* "
@@ -308,9 +309,13 @@ STEAMAUDIOIMPL_EXPORT void onUnload() {
 STEAMAUDIOIMPL_EXPORT void onUiUpdate() {
     using namespace PhononPlayback;
 
-    // Display stats
+    // Display settings
     FFI ImGuiBegin("Steam Audio");
-    FFI ImGuiText(FFI toCsString(("Active sources: " + std::to_string(playbackQueue.size())).c_str()));
+    static bool enableSimulation = false;
+    FFI ImGuiCheckbox("Enable reflection simulation", &enableSimulation);
+    static bool showStats = true;
+    FFI ImGuiCheckbox("Show stats", &showStats);
+    FFI ImGuiEnd();
 
     // Get current camera position and direction
     ObjectHandle camera = call<"UnityEngine.Camera$$get_current", ObjectHandle>(nullptr);
@@ -321,9 +326,9 @@ STEAMAUDIOIMPL_EXPORT void onUiUpdate() {
 
             if (cameraTransform != ObjectHandle::Null) {
                 // Update player position and direction
-                GlobalState::playerPos = PhononTools::transformUtils->get_position(cameraTransform);
-                GlobalState::playerAhead = PhononTools::transformUtils->get_forward(cameraTransform);
-                GlobalState::playerUp = PhononTools::transformUtils->get_up(cameraTransform);
+                GlobalState::playerPos = PhononTools::TransformUtils::get_position(cameraTransform);
+                GlobalState::playerAhead = PhononTools::TransformUtils::get_forward(cameraTransform);
+                GlobalState::playerUp = PhononTools::TransformUtils::get_up(cameraTransform);
                 FFI dropObject(cameraTransform);
             }
             FFI dropObject(cameraObject);
@@ -331,25 +336,41 @@ STEAMAUDIOIMPL_EXPORT void onUiUpdate() {
         FFI dropObject(camera);
     }
 
-    // Update playbacks
+    // Run simulation
+    if (enableSimulation)
+        PhononSimulation::run();
+
+    // Display basic stats
+    if (showStats) {
+        FFI ImGuiBegin("Steam Audio Stats");
+        FFI ImGuiText(FFI toCsString(("Active sources: " + std::to_string(playbackQueue.size())).c_str()));
+        if (enableSimulation)
+            FFI ImGuiText(FFI toCsString(("Scene meshes: " + std::to_string(PhononSimulation::env->getMeshCount())).c_str()));
+    }
+
+    // Update playbacks and display stats
     std::scoped_lock L(playbackQueueMutex);
     for (auto playback = playbackQueue.begin(); playback != playbackQueue.end(); ++playback) {
         if (PhononTools::updatePlayback(*playback, false)) {
-            FFI ImGuiSeparator();
-            FFI ImGuiText(FFI toCsString(("Position: " + std::to_string(playback->playPosition)).c_str()));
-            FFI ImGuiText(FFI toCsString(("Length: " + std::to_string(playback->audioBuffer.numSamples)).c_str()));
-            FFI ImGuiText(FFI toCsString(("Volume: " + std::to_string(playback->volume)).c_str()));
-            FFI ImGuiText(FFI toCsString(("Volume Scale: " + std::to_string(playback->volumeScale)).c_str()));
-            FFI ImGuiText(FFI toCsString(("Spatial blend: " + std::to_string(playback->spatialBlend)).c_str()));
-            FFI ImGuiText(FFI toCsString(("Max distance: " + std::to_string(playback->maxDistance)).c_str()));
-            FFI ImGuiText(FFI toCsString(
-                ("Loop: " + std::string(call<"UnityEngine.AudioSource$$get_loop", bool>(playback->audioSource, nullptr) ? "yes" : "no")).c_str()));
+            if (showStats) {
+                FFI ImGuiSeparator();
+                FFI ImGuiText(FFI toCsString(("Position: " + std::to_string(playback->playPosition)).c_str()));
+                FFI ImGuiText(FFI toCsString(("Length: " + std::to_string(playback->audioBuffer.numSamples)).c_str()));
+                FFI ImGuiText(FFI toCsString(("Volume: " + std::to_string(playback->volume)).c_str()));
+                FFI ImGuiText(FFI toCsString(("Volume Scale: " + std::to_string(playback->volumeScale)).c_str()));
+                FFI ImGuiText(FFI toCsString(("Spatial blend: " + std::to_string(playback->spatialBlend)).c_str()));
+                FFI ImGuiText(FFI toCsString(("Max distance: " + std::to_string(playback->maxDistance)).c_str()));
+                FFI ImGuiText(FFI toCsString(
+                    ("Loop: " + std::string(call<"UnityEngine.AudioSource$$get_loop", bool>(playback->audioSource, nullptr) ? "yes" : "no")).c_str()));
+            }
         } else {
             playbackQueue.erase(playback);
             break;
         }
     }
 
-    FFI ImGuiEnd();
+    if (showStats) {
+        FFI ImGuiEnd();
+    }
 }
 } // namespace Interface

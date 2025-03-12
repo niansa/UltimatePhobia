@@ -10,8 +10,36 @@
 using namespace FFIInterface;
 using namespace Helpers;
 
+namespace {
+namespace Materials {
+static IPLMaterial presets[11] = {{0.10f, 0.20f, 0.30f, 0.05f, 0.100f, 0.050f, 0.030f}, {0.03f, 0.04f, 0.07f, 0.05f, 0.015f, 0.015f, 0.015f},
+                                  {0.05f, 0.07f, 0.08f, 0.05f, 0.015f, 0.002f, 0.001f}, {0.01f, 0.02f, 0.02f, 0.05f, 0.060f, 0.044f, 0.011f},
+                                  {0.60f, 0.70f, 0.80f, 0.05f, 0.031f, 0.012f, 0.008f}, {0.24f, 0.69f, 0.73f, 0.05f, 0.020f, 0.005f, 0.003f},
+                                  {0.06f, 0.03f, 0.02f, 0.05f, 0.060f, 0.044f, 0.011f}, {0.12f, 0.06f, 0.04f, 0.05f, 0.056f, 0.056f, 0.004f},
+                                  {0.11f, 0.07f, 0.06f, 0.05f, 0.070f, 0.014f, 0.005f}, {0.20f, 0.07f, 0.06f, 0.05f, 0.200f, 0.025f, 0.010f},
+                                  {0.13f, 0.20f, 0.24f, 0.05f, 0.015f, 0.002f, 0.001f}};
+enum { Generic, Brick, Concrete, Ceramic, Gravel, Carpet, Glass, Plaster, Wood, Metal, Rock };
+} // namespace Materials
+} // namespace
+
 namespace PhononTools {
-std::optional<TransformUtils> transformUtils;
+namespace TransformUtils {
+IPLVector3 get_position(FFIInterface::ObjectHandle transform) {
+    static const IPLVector3 (*Transform$$get_position)(uintptr_t __this, uintptr_t method) = reinterpret_cast<decltype(Transform$$get_position)>(
+        reinterpret_cast<void *>(FFI getMethodAddresss(Helpers::getMethodCached<"UnityEngine.Transform$$get_position">())));
+    return Transform$$get_position(FFI getObjectAddress(transform), 0);
+}
+IPLVector3 get_forward(FFIInterface::ObjectHandle transform) {
+    static const IPLVector3 (*Transform$$get_forward)(uintptr_t __this, uintptr_t method) = reinterpret_cast<decltype(Transform$$get_forward)>(
+        reinterpret_cast<void *>(FFI getMethodAddresss(Helpers::getMethodCached<"UnityEngine.Transform$$get_forward">())));
+    return Transform$$get_forward(FFI getObjectAddress(transform), 0);
+}
+IPLVector3 get_up(FFIInterface::ObjectHandle transform) {
+    static const IPLVector3 (*Transform$$get_up)(uintptr_t __this, uintptr_t method) = reinterpret_cast<decltype(Transform$$get_up)>(
+        reinterpret_cast<void *>(FFI getMethodAddresss(Helpers::getMethodCached<"UnityEngine.Transform$$get_up">())));
+    return Transform$$get_up(FFI getObjectAddress(transform), 0);
+}
+} // namespace TransformUtils
 
 IPLAudioBuffer audioBufferFromAudioClip(FFIInterface::ObjectHandle audioClip) {
     IPLAudioBuffer fres;
@@ -66,9 +94,57 @@ IPLAudioBuffer audioBufferFromAudioClip(FFIInterface::ObjectHandle audioClip) {
     return fres;
 }
 
+IPLStaticMesh staticMeshfromMesh(IPLScene scene, FFIInterface::ObjectHandle mesh) {
+    // Get vertices
+    const auto verticeArray = call<"UnityEngine.Mesh$$get_vertices", ObjectHandle>(mesh, nullptr);
+    if (call_error)
+        return nullptr;
+    if (verticeArray == ObjectHandle::Null)
+        return nullptr;
+    std::vector<IPLVector3> vertices(call<"System.Array$$get_Length", int32_t>(verticeArray, nullptr));
+    FFI copyArrayBytes(verticeArray, 0, vertices.size() * sizeof(IPLVector3), vertices.data());
+    FFI dropObject(verticeArray);
+
+    // Get triangles
+    const auto triangleArray = call<"UnityEngine.Mesh$$get_triangles", ObjectHandle>(mesh, nullptr);
+    if (call_error)
+        return nullptr;
+    if (triangleArray == ObjectHandle::Null)
+        return nullptr;
+    std::vector<IPLTriangle> triangles(call<"System.Array$$get_Length", int32_t>(triangleArray, nullptr) / 3);
+    FFI copyArrayBytes(triangleArray, 0, triangles.size() * sizeof(IPLTriangle), triangles.data());
+    FFI dropObject(triangleArray);
+
+    // Rotate triangles counter-clockwise
+    for (IPLTriangle& triangle : triangles)
+        std::swap(triangle.indices[0], triangle.indices[2]);
+
+    // Get materials (TODO: Just a dummy for now)
+    std::vector<IPLint32> materials(triangles.size(), Materials::Brick);
+
+    // Create settings
+    IPLStaticMeshSettings staticMeshSettings{};
+    staticMeshSettings.numVertices = vertices.size();
+    staticMeshSettings.numTriangles = triangles.size();
+    staticMeshSettings.numMaterials = 1;
+    staticMeshSettings.vertices = vertices.data();
+    staticMeshSettings.triangles = triangles.data();
+    staticMeshSettings.materialIndices = materials.data();
+    staticMeshSettings.materials = Materials::presets;
+
+    // Create final static mesh
+    IPLStaticMesh fres;
+    const auto status = iplStaticMeshCreate(scene, &staticMeshSettings, &fres);
+    if (status != IPL_STATUS_SUCCESS) {
+        FFI logError(Utils::createErrorMessage("create static mesh from Unity mesh", status));
+        return nullptr;
+    }
+    return fres;
+}
+
 bool updatePlayback(PhononPlayback::Playback& p, bool initial) {
     // Make sure playback hasn't expired
-    if (p.audioSource == ObjectHandle::Null || !call<"UnityEngine.Object$$IsNativeObjectAlive", bool>(p.audioSource, nullptr)) {
+    if (p.audioSource == ObjectHandle::Null || !call<"UnityEngine.Object$$IsNativeObjectAlive", bool>(p.audioSource, nullptr) || call_error) {
         FFI logDebug(FFI toCsString("Playback ended because native source object died!"));
         return false;
     }
@@ -81,7 +157,7 @@ bool updatePlayback(PhononPlayback::Playback& p, bool initial) {
     {
         ObjectHandle sourceTransform = call<"UnityEngine.Component$$get_transform", ObjectHandle>(p.audioSource, nullptr);
         if (sourceTransform != ObjectHandle::Null) {
-            p.worldPosition = transformUtils->get_position(sourceTransform);
+            p.worldPosition = TransformUtils::get_position(sourceTransform);
             FFI dropObject(sourceTransform);
         }
     }
