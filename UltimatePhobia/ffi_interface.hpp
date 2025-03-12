@@ -30,6 +30,10 @@ using GCHandle = int;
 using WIBool = int;
 constexpr int unknownArgCount = 0x6D616E63;
 
+#ifdef FFI_USES_FTABLE
+namespace Signatures {
+#endif
+
 /**
  * @brief Invalidates given handle to C# object allowing it to be garbage
  * collected
@@ -288,6 +292,10 @@ UP_API void ImGuiSeparatorText(const char *label);
 
 UP_API void abort(const char *message, const char *filename, int lineNumber, int columnNumber);
 
+#ifdef FFI_USES_FTABLE
+}
+#endif
+
 #if !defined(FFI_EXT) || defined(FFI_USES_FTABLE)
 #ifndef FFI_EXT
 struct Exports
@@ -297,10 +305,12 @@ struct Imports
 {
 #ifndef FFI_EXT
 #define _FFI_FTABLE_DEFAULT_ASSIGN(name) = FFIInterface::name
+#define _FFI_ACCESS_NAME(name) decltype(name)
 #else
 #define _FFI_FTABLE_DEFAULT_ASSIGN(name)
+#define _FFI_ACCESS_NAME(name) decltype(Signatures::name)
 #endif
-#define _FFI_FTABLE_BIND(name) decltype(name) *name _FFI_FTABLE_DEFAULT_ASSIGN(name)
+#define _FFI_FTABLE_BIND(name) _FFI_ACCESS_NAME(name) * name _FFI_FTABLE_DEFAULT_ASSIGN(name)
     _FFI_FTABLE_BIND(dropObject);
     _FFI_FTABLE_BIND(isValidObject);
     _FFI_FTABLE_BIND(getNull);
@@ -355,7 +365,6 @@ struct Imports
     _FFI_FTABLE_BIND(gcDeleteHandle);
 };
 #endif
-} // namespace FFIInterface
 
 #ifndef FFI_USES_FTABLE
 #define FFI_USE_FTABLE FFIInterface::
@@ -436,3 +445,4 @@ inline FFIInterface::ObjectHandle operator"" _cs(const char *str, size_t len) { 
 } // namespace
 } // namespace Helpers
 #endif
+} // namespace FFIInterface
