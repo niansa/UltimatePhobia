@@ -1,4 +1,8 @@
+from sys import argv
+from sys import exit
 import itertools
+import json
+
 
 template_top = """#include "../anycall.hpp"
 
@@ -14,26 +18,19 @@ template_bottom = """
 } // namespace AnyCall
 """
 
-max_args = 6
-types = {'v': "void", 'i': "uintptr_t", 'f': "float", 'd': "double"}
+max_args = 5
+types = {'v': "void", 'i': "uintptr_t", 'j': "uintptr_t", 'f': "float", 'd': "double"}
+
+
+if len(argv) < 2:
+    print(f"Usage: {argv[0]} <script.json file>")
+    exit(1)
+
+script_json = argv[1]
+
 
 file = open("generated/anycall.cpp", "w")
 file.write(template_top)
-
-def generate_signatures():
-    first_chars = []
-    for char, _ in types.items():
-        first_chars.append(char)
-    other_chars = first_chars[1:]
-
-    for length in range(1, 8):
-        if length == 1:
-            for c in first_chars:
-                yield c
-        else:
-            for first in first_chars:
-                for rest in itertools.product(other_chars, repeat=length-1):
-                    yield first + ''.join(rest)
 
 def generate_cast(char):
     return f"bit_cast<{types[char]}>"
@@ -53,7 +50,19 @@ def generate_arg_types(signature):
         fres.append(types[signature[index]])
     return ", ".join(fres)
 
-for signature in generate_signatures():
+
+print("Loading script.json...")
+script = json.load(open(script_json, "r"))
+
+print("Collecting signatures...")
+signatures = {}
+for method in script["ScriptMethod"]:
+    signatures[method["TypeSignature"]] = None
+
+del script
+
+print("Generating callers...")
+for signature, _ in signatures.items():
     file.write(f"\n    if (signature == \"{signature}\")\n        ")
     return_type = types[signature[0]]
     call = f"reinterpret_cast<{return_type} (*)({generate_arg_types(signature)})>(fnc)({generate_args(signature)})"

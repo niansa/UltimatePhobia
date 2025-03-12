@@ -5,7 +5,7 @@ import json
 
 if len(argv) < 4:
     print(f"Usage: {argv[0]} <script.json file> <output dir> <WASM mode?> [filter list]")
-    exit(0)
+    exit(1)
 
 
 script_json = argv[1]
