@@ -164,7 +164,7 @@ ObjectHandle getCallError() { return addObject(Il2Cpp::CppInterop::ToCsString(ca
 namespace {
 void logBadCall(MethodHandle index) {
     const auto& method = Il2Cpp::Dynamic::getMethod(index);
-    g.logger->warn("WebAssembly interface failed to call function '{}': {}", method.isValid() ? method.signature : "<invalid>", call_error);
+    g.logger->warn("FFI` interface failed to call function '{}': {}", method.isValid() ? method.signature : "<invalid>", call_error);
 }
 } // namespace
 
@@ -309,7 +309,7 @@ void ImGuiSeparatorText(const char *label) { ImGui::SeparatorText(label); }
 
 void abort(const char *message, const char *filename, int lineNumber, int columnNumber) {
     auto modInfo = FFILoader::FFIMod::getCurrent();
-    const auto msg = fmt::format("WebAssembly module {} has called abort()!\n - Message: "
+    const auto msg = fmt::format("FFI module {} has called abort()!\n - Message: "
                                  "{}\n - Filename: {}\n - Line: {}\n - Column: {}",
                                  modInfo->name, message ? message : "none", filename ? filename : "unknown", lineNumber, columnNumber);
     g.logger->critical(msg);

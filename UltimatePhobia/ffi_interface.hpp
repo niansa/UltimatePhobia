@@ -1,7 +1,13 @@
 #pragma once
 
+#ifndef FFI_NOSTL
+#include <tuple>
+#include <cstdint>
+#include <cstddef>
+#else
 #include <stdint.h>
 #include <stddef.h>
+#endif
 
 #ifndef FFI_EXT
 #if defined(WASM)
@@ -292,6 +298,68 @@ UP_API void ImGuiSeparatorText(const char *label);
 
 UP_API void abort(const char *message, const char *filename, int lineNumber, int columnNumber);
 
+#define FFI_FUNCTION_LIST                                                                                                                                      \
+    FFI_FUNCTION_LIST_ENTRY(dropObject)                                                                                                                        \
+    FFI_FUNCTION_LIST_ENTRY(isValidObject)                                                                                                                     \
+    FFI_FUNCTION_LIST_ENTRY(getNull)                                                                                                                           \
+    FFI_FUNCTION_LIST_ENTRY(toCsString)                                                                                                                        \
+    FFI_FUNCTION_LIST_ENTRY(toCsStringWithLength)                                                                                                              \
+    FFI_FUNCTION_LIST_ENTRY(toCString)                                                                                                                         \
+    FFI_FUNCTION_LIST_ENTRY(logTrace)                                                                                                                          \
+    FFI_FUNCTION_LIST_ENTRY(logDebug)                                                                                                                          \
+    FFI_FUNCTION_LIST_ENTRY(logInfo)                                                                                                                           \
+    FFI_FUNCTION_LIST_ENTRY(logWarn)                                                                                                                           \
+    FFI_FUNCTION_LIST_ENTRY(logError)                                                                                                                          \
+    FFI_FUNCTION_LIST_ENTRY(logCritical)                                                                                                                       \
+    FFI_FUNCTION_LIST_ENTRY(getMethodByIdentifier)                                                                                                             \
+    FFI_FUNCTION_LIST_ENTRY(getMethodByAddress)                                                                                                                \
+    FFI_FUNCTION_LIST_ENTRY(getMethodName)                                                                                                                     \
+    FFI_FUNCTION_LIST_ENTRY(getMethodSignature)                                                                                                                \
+    FFI_FUNCTION_LIST_ENTRY(addArgI32)                                                                                                                         \
+    FFI_FUNCTION_LIST_ENTRY(addArgI64)                                                                                                                         \
+    FFI_FUNCTION_LIST_ENTRY(addArgFloat)                                                                                                                       \
+    FFI_FUNCTION_LIST_ENTRY(addArgDouble)                                                                                                                      \
+    FFI_FUNCTION_LIST_ENTRY(addArgObject)                                                                                                                      \
+    FFI_FUNCTION_LIST_ENTRY(addArgNull)                                                                                                                        \
+    FFI_FUNCTION_LIST_ENTRY(clearArgs)                                                                                                                         \
+    FFI_FUNCTION_LIST_ENTRY(getArgCount)                                                                                                                       \
+    FFI_FUNCTION_LIST_ENTRY(moveArg)                                                                                                                           \
+    FFI_FUNCTION_LIST_ENTRY(getValueI32)                                                                                                                       \
+    FFI_FUNCTION_LIST_ENTRY(getValueI64)                                                                                                                       \
+    FFI_FUNCTION_LIST_ENTRY(getValueFloat)                                                                                                                     \
+    FFI_FUNCTION_LIST_ENTRY(getValueDouble)                                                                                                                    \
+    FFI_FUNCTION_LIST_ENTRY(getValueObject)                                                                                                                    \
+    FFI_FUNCTION_LIST_ENTRY(getCallError)                                                                                                                      \
+    FFI_FUNCTION_LIST_ENTRY(call)                                                                                                                              \
+    FFI_FUNCTION_LIST_ENTRY(hook)                                                                                                                              \
+    FFI_FUNCTION_LIST_ENTRY(unhook)                                                                                                                            \
+    FFI_FUNCTION_LIST_ENTRY(getOriginal)                                                                                                                       \
+    FFI_FUNCTION_LIST_ENTRY(ImGuiBegin)                                                                                                                        \
+    FFI_FUNCTION_LIST_ENTRY(ImGuiEnd)                                                                                                                          \
+    FFI_FUNCTION_LIST_ENTRY(ImGuiText)                                                                                                                         \
+    FFI_FUNCTION_LIST_ENTRY(ImGuiCheckbox)                                                                                                                     \
+    FFI_FUNCTION_LIST_ENTRY(ImGuiButton)                                                                                                                       \
+    FFI_FUNCTION_LIST_ENTRY(ImGuiSeparator)                                                                                                                    \
+    FFI_FUNCTION_LIST_ENTRY(ImGuiSeparatorText)                                                                                                                \
+    FFI_FUNCTION_LIST_ENTRY(abort)                                                                                                                             \
+    FFI_FUNCTION_LIST_ENTRY(getImageCorlib)                                                                                                                    \
+    FFI_FUNCTION_LIST_ENTRY(getClassFromName)                                                                                                                  \
+    FFI_FUNCTION_LIST_ENTRY(getArrayFromClass)                                                                                                                 \
+    FFI_FUNCTION_LIST_ENTRY(createArray)                                                                                                                       \
+    FFI_FUNCTION_LIST_ENTRY(copyArrayBytes)                                                                                                                    \
+    FFI_FUNCTION_LIST_ENTRY(getMethodAddresss)                                                                                                                 \
+    FFI_FUNCTION_LIST_ENTRY(getObjectAddress)                                                                                                                  \
+    FFI_FUNCTION_LIST_ENTRY(gcCreateHandle)                                                                                                                    \
+    FFI_FUNCTION_LIST_ENTRY(gcDeleteHandle)
+
+#ifndef FFI_NOSTL
+constexpr static std::tuple functions = {
+#define FFI_FUNCTION_LIST_ENTRY(fnc) fnc,
+    FFI_FUNCTION_LIST
+#undef FFI_FUNCTION_LIST_ENTRY
+};
+#endif
+
 #ifdef FFI_USES_FTABLE
 }
 #endif
@@ -310,59 +378,9 @@ struct Imports
 #define _FFI_FTABLE_DEFAULT_ASSIGN(name)
 #define _FFI_ACCESS_NAME(name) decltype(Signatures::name)
 #endif
-#define _FFI_FTABLE_BIND(name) _FFI_ACCESS_NAME(name) * name _FFI_FTABLE_DEFAULT_ASSIGN(name)
-    _FFI_FTABLE_BIND(dropObject);
-    _FFI_FTABLE_BIND(isValidObject);
-    _FFI_FTABLE_BIND(getNull);
-    _FFI_FTABLE_BIND(toCsString);
-    _FFI_FTABLE_BIND(toCsStringWithLength);
-    _FFI_FTABLE_BIND(toCString);
-    _FFI_FTABLE_BIND(logTrace);
-    _FFI_FTABLE_BIND(logDebug);
-    _FFI_FTABLE_BIND(logInfo);
-    _FFI_FTABLE_BIND(logWarn);
-    _FFI_FTABLE_BIND(logError);
-    _FFI_FTABLE_BIND(logCritical);
-    _FFI_FTABLE_BIND(getMethodByIdentifier);
-    _FFI_FTABLE_BIND(getMethodByAddress);
-    _FFI_FTABLE_BIND(getMethodName);
-    _FFI_FTABLE_BIND(getMethodSignature);
-    _FFI_FTABLE_BIND(addArgI32);
-    _FFI_FTABLE_BIND(addArgI64);
-    _FFI_FTABLE_BIND(addArgFloat);
-    _FFI_FTABLE_BIND(addArgDouble);
-    _FFI_FTABLE_BIND(addArgObject);
-    _FFI_FTABLE_BIND(addArgNull);
-    _FFI_FTABLE_BIND(clearArgs);
-    _FFI_FTABLE_BIND(getArgCount);
-    _FFI_FTABLE_BIND(moveArg);
-    _FFI_FTABLE_BIND(getValueI32);
-    _FFI_FTABLE_BIND(getValueI64);
-    _FFI_FTABLE_BIND(getValueFloat);
-    _FFI_FTABLE_BIND(getValueDouble);
-    _FFI_FTABLE_BIND(getValueObject);
-    _FFI_FTABLE_BIND(getCallError);
-    _FFI_FTABLE_BIND(call);
-    _FFI_FTABLE_BIND(hook);
-    _FFI_FTABLE_BIND(unhook);
-    _FFI_FTABLE_BIND(getOriginal);
-    _FFI_FTABLE_BIND(ImGuiBegin);
-    _FFI_FTABLE_BIND(ImGuiEnd);
-    _FFI_FTABLE_BIND(ImGuiText);
-    _FFI_FTABLE_BIND(ImGuiCheckbox);
-    _FFI_FTABLE_BIND(ImGuiButton);
-    _FFI_FTABLE_BIND(ImGuiSeparator);
-    _FFI_FTABLE_BIND(ImGuiSeparatorText);
-    _FFI_FTABLE_BIND(abort);
-    _FFI_FTABLE_BIND(getImageCorlib);
-    _FFI_FTABLE_BIND(getClassFromName);
-    _FFI_FTABLE_BIND(getArrayFromClass);
-    _FFI_FTABLE_BIND(createArray);
-    _FFI_FTABLE_BIND(copyArrayBytes);
-    _FFI_FTABLE_BIND(getMethodAddresss);
-    _FFI_FTABLE_BIND(getObjectAddress);
-    _FFI_FTABLE_BIND(gcCreateHandle);
-    _FFI_FTABLE_BIND(gcDeleteHandle);
+#define FFI_FUNCTION_LIST_ENTRY(name) _FFI_ACCESS_NAME(name) * name _FFI_FTABLE_DEFAULT_ASSIGN(name);
+    FFI_FUNCTION_LIST
+#undef FFI_FUNCTION_LIST_ENTRY
 };
 #endif
 

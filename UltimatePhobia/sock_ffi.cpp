@@ -1,7 +1,6 @@
 #include "sock_ffi.hpp"
 #include "global_state.hpp"
 #include "ffi_interface.hpp"
-#include "misc_utils.hpp"
 
 #include <string>
 #include <stdexcept>
@@ -17,11 +16,13 @@ SockFFI::SockFFI(const std::filesystem::path& modPath) : path(modPath.string()) 
     listenSocket = INVALID_SOCKET;
     int result = 0;
     SOCKADDR_UN serverSocket = {0};
-    WSADATA wsaData = {0};
 
     // Initialize Winsock
-    result = WSAStartup(MAKEWORD(2, 2), &wsaData);
-    if (result != 0)
+    static const auto wsaResult = []() {
+        WSADATA wsaData = {0};
+        return WSAStartup(MAKEWORD(2, 2), &wsaData);
+    }();
+    if (wsaResult != 0)
         throw std::runtime_error("[SockFFI] WSAStartup failed with error: " + std::to_string(result));
 
     // Create a AF_UNIX stream server socket.
@@ -62,7 +63,6 @@ SockFFI::~SockFFI() {
 
     // Analogous to `unlink`
     DeleteFileA(path.c_str());
-    WSACleanup();
 }
 
 void SockFFI::sendData(const void *buf, size_t len) {
@@ -71,7 +71,7 @@ void SockFFI::sendData(const void *buf, size_t len) {
         throw std::runtime_error("[SockFFI] send failed with error: " + std::to_string(WSAGetLastError()));
 }
 void SockFFI::sendString(std::string_view str) {
-    sendValue<uint16_t>(str.size());
+    sendValue<uint16_t, 2>(str.size());
     sendData(str.data(), str.size());
 }
 
@@ -85,19 +85,33 @@ void SockFFI::receiveData(void *buf, size_t len) {
 }
 
 std::string SockFFI::receiveString() {
-    std::string fres(static_cast<size_t>(receiveValue<uint16_t>()), '\0');
+    std::string fres(static_cast<size_t>(receiveValue<uint16_t, 2>()), '\0');
     receiveData(fres.data(), fres.size());
     return fres;
 }
 
 void SockFFI::simpleCall(const char *name) {
+    sendValue<bool, 1>(false); // New function should be executed
     sendString(name);
-    if (!receiveValue<bool>()) {
-        g.logger->error("[SockFFI] Failed to call function {} in {} as it wasn't found", name, path);
+    if (!receiveValue<bool, 1>()) {
+        g.logger->error("[SockFFI] Failed to call function {} in {} as it wasn't available", name, path);
         return;
     }
 
-    //... communicate back and forth...
+    for (;;) {
+        // Get called function index
+        const auto fncIdx = receiveValue<uint8_t, 1>();
+
+        // Stop if function indicates exit
+        if (fncIdx == 0)
+            break;
+
+        // Call specified function
+        uint8_t curFncIdx = 0;
+        std::apply([this, &curFncIdx, fncIdx](auto... args) { ((doRpcCall(args, ++curFncIdx, fncIdx)), ...); }, FFIInterface::functions);
+        if (curFncIdx != std::tuple_size<decltype(FFIInterface::functions)>::value + 1)
+            g.logger->warn("[SockFFI] Not all FFI functions were considered for calling");
+    }
 
     g.logger->flush();
 }
