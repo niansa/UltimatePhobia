@@ -352,14 +352,6 @@ UP_API void abort(const char *message, const char *filename, int lineNumber, int
     FFI_FUNCTION_LIST_ENTRY(gcCreateHandle)                                                                                                                    \
     FFI_FUNCTION_LIST_ENTRY(gcDeleteHandle)
 
-#ifndef FFI_NOSTL
-constexpr static std::tuple functions = {
-#define FFI_FUNCTION_LIST_ENTRY(fnc) fnc,
-    FFI_FUNCTION_LIST
-#undef FFI_FUNCTION_LIST_ENTRY
-};
-#endif
-
 #ifdef FFI_USES_FTABLE
 }
 #endif
@@ -388,6 +380,14 @@ struct Imports
 #define FFI_USE_FTABLE FFIInterface::
 #else
 #define FFI_USE_FTABLE (FFI_FTABLE).
+#endif
+
+#ifndef FFI_NOSTL
+const static std::tuple functions = {
+#define FFI_FUNCTION_LIST_ENTRY(fnc) &FFI_USE_FTABLE fnc,
+    FFI_FUNCTION_LIST
+#undef FFI_FUNCTION_LIST_ENTRY
+};
 #endif
 
 #ifdef FFI_EXT
