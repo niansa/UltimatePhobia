@@ -44,11 +44,15 @@ SockFFI::SockFFI(const std::filesystem::path& modPath) : path(modPath.string()) 
         throw std::runtime_error("[SockFFI] list failed with error: " + std::to_string(WSAGetLastError()));
 
     g.logger->info("[SockFFI] Accepting connections on: '{}'", path);
+    g.logger->flush();
+
     // Accept a connection.
     clientSocket = accept(listenSocket, NULL, NULL);
     if (clientSocket == INVALID_SOCKET)
         throw std::runtime_error("[SockFFI] accept failed with error: " + std::to_string(WSAGetLastError()));
+
     g.logger->info("[SockFFI] Accepted a connection.");
+    g.logger->flush();
 }
 
 SockFFI::~SockFFI() {

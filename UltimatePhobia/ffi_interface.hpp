@@ -2,6 +2,7 @@
 
 #ifndef FFI_NOSTL
 #include <tuple>
+#include <type_traits>
 #include <cstdint>
 #include <cstddef>
 #else
@@ -9,10 +10,8 @@
 #include <stddef.h>
 #endif
 
-#ifndef FFI_EXT
-#if defined(WASM)
+#if !defined(FFI_EXT) && defined(WASM)
 #define FFI_EXT
-#endif
 #endif
 
 #ifndef UP_API
@@ -299,58 +298,67 @@ UP_API void ImGuiSeparatorText(const char *label);
 UP_API void abort(const char *message, const char *filename, int lineNumber, int columnNumber);
 
 #define FFI_FUNCTION_LIST                                                                                                                                      \
-    FFI_FUNCTION_LIST_ENTRY(dropObject)                                                                                                                        \
-    FFI_FUNCTION_LIST_ENTRY(isValidObject)                                                                                                                     \
-    FFI_FUNCTION_LIST_ENTRY(getNull)                                                                                                                           \
-    FFI_FUNCTION_LIST_ENTRY(toCsString)                                                                                                                        \
-    FFI_FUNCTION_LIST_ENTRY(toCsStringWithLength)                                                                                                              \
-    FFI_FUNCTION_LIST_ENTRY(toCString)                                                                                                                         \
-    FFI_FUNCTION_LIST_ENTRY(logTrace)                                                                                                                          \
-    FFI_FUNCTION_LIST_ENTRY(logDebug)                                                                                                                          \
-    FFI_FUNCTION_LIST_ENTRY(logInfo)                                                                                                                           \
-    FFI_FUNCTION_LIST_ENTRY(logWarn)                                                                                                                           \
-    FFI_FUNCTION_LIST_ENTRY(logError)                                                                                                                          \
-    FFI_FUNCTION_LIST_ENTRY(logCritical)                                                                                                                       \
-    FFI_FUNCTION_LIST_ENTRY(getMethodByIdentifier)                                                                                                             \
-    FFI_FUNCTION_LIST_ENTRY(getMethodByAddress)                                                                                                                \
-    FFI_FUNCTION_LIST_ENTRY(getMethodName)                                                                                                                     \
-    FFI_FUNCTION_LIST_ENTRY(getMethodSignature)                                                                                                                \
-    FFI_FUNCTION_LIST_ENTRY(addArgI32)                                                                                                                         \
-    FFI_FUNCTION_LIST_ENTRY(addArgI64)                                                                                                                         \
-    FFI_FUNCTION_LIST_ENTRY(addArgFloat)                                                                                                                       \
-    FFI_FUNCTION_LIST_ENTRY(addArgDouble)                                                                                                                      \
-    FFI_FUNCTION_LIST_ENTRY(addArgObject)                                                                                                                      \
-    FFI_FUNCTION_LIST_ENTRY(addArgNull)                                                                                                                        \
-    FFI_FUNCTION_LIST_ENTRY(clearArgs)                                                                                                                         \
-    FFI_FUNCTION_LIST_ENTRY(getArgCount)                                                                                                                       \
-    FFI_FUNCTION_LIST_ENTRY(moveArg)                                                                                                                           \
-    FFI_FUNCTION_LIST_ENTRY(getValueI32)                                                                                                                       \
-    FFI_FUNCTION_LIST_ENTRY(getValueI64)                                                                                                                       \
-    FFI_FUNCTION_LIST_ENTRY(getValueFloat)                                                                                                                     \
-    FFI_FUNCTION_LIST_ENTRY(getValueDouble)                                                                                                                    \
-    FFI_FUNCTION_LIST_ENTRY(getValueObject)                                                                                                                    \
-    FFI_FUNCTION_LIST_ENTRY(getCallError)                                                                                                                      \
-    FFI_FUNCTION_LIST_ENTRY(call)                                                                                                                              \
-    FFI_FUNCTION_LIST_ENTRY(hook)                                                                                                                              \
-    FFI_FUNCTION_LIST_ENTRY(unhook)                                                                                                                            \
-    FFI_FUNCTION_LIST_ENTRY(getOriginal)                                                                                                                       \
-    FFI_FUNCTION_LIST_ENTRY(ImGuiBegin)                                                                                                                        \
-    FFI_FUNCTION_LIST_ENTRY(ImGuiEnd)                                                                                                                          \
-    FFI_FUNCTION_LIST_ENTRY(ImGuiText)                                                                                                                         \
-    FFI_FUNCTION_LIST_ENTRY(ImGuiCheckbox)                                                                                                                     \
-    FFI_FUNCTION_LIST_ENTRY(ImGuiButton)                                                                                                                       \
-    FFI_FUNCTION_LIST_ENTRY(ImGuiSeparator)                                                                                                                    \
-    FFI_FUNCTION_LIST_ENTRY(ImGuiSeparatorText)                                                                                                                \
-    FFI_FUNCTION_LIST_ENTRY(abort)                                                                                                                             \
-    FFI_FUNCTION_LIST_ENTRY(getImageCorlib)                                                                                                                    \
-    FFI_FUNCTION_LIST_ENTRY(getClassFromName)                                                                                                                  \
-    FFI_FUNCTION_LIST_ENTRY(getArrayFromClass)                                                                                                                 \
-    FFI_FUNCTION_LIST_ENTRY(createArray)                                                                                                                       \
-    FFI_FUNCTION_LIST_ENTRY(copyArrayBytes)                                                                                                                    \
-    FFI_FUNCTION_LIST_ENTRY(getMethodAddresss)                                                                                                                 \
-    FFI_FUNCTION_LIST_ENTRY(getObjectAddress)                                                                                                                  \
-    FFI_FUNCTION_LIST_ENTRY(gcCreateHandle)                                                                                                                    \
-    FFI_FUNCTION_LIST_ENTRY(gcDeleteHandle)
+    FFI_FUNCTION_LIST_ENTRY(void, dropObject, (ObjectHandle a), a)                                                                                             \
+    FFI_FUNCTION_LIST_ENTRY(WIBool, isValidObject, (ObjectHandle a), a)                                                                                        \
+    FFI_FUNCTION_LIST_ENTRY(ObjectHandle, getNull, (), )                                                                                                       \
+    FFI_FUNCTION_LIST_ENTRY(ObjectHandle, toCsString, (const char *str), str)                                                                                  \
+    FFI_FUNCTION_LIST_ENTRY(ObjectHandle, toCsStringWithLength, (const char *str, int length), str, length)                                                    \
+    FFI_FUNCTION_LIST_ENTRY(void, toCString, (ObjectHandle str, char *buf, int maxlen), str, buf, maxlen)                                                      \
+    FFI_FUNCTION_LIST_ENTRY(void, logTrace, (ObjectHandle message), message)                                                                                   \
+    FFI_FUNCTION_LIST_ENTRY(void, logDebug, (ObjectHandle message), message)                                                                                   \
+    FFI_FUNCTION_LIST_ENTRY(void, logInfo, (ObjectHandle message), message)                                                                                    \
+    FFI_FUNCTION_LIST_ENTRY(void, logWarn, (ObjectHandle message), message)                                                                                    \
+    FFI_FUNCTION_LIST_ENTRY(void, logError, (ObjectHandle message), message)                                                                                   \
+    FFI_FUNCTION_LIST_ENTRY(void, logCritical, (ObjectHandle message), message)                                                                                \
+    FFI_FUNCTION_LIST_ENTRY(MethodHandle, getMethodByIdentifier, (const char *identifier), identifier)                                                         \
+    FFI_FUNCTION_LIST_ENTRY(MethodHandle, getMethodByAddress, (int64_t addr), addr)                                                                            \
+    FFI_FUNCTION_LIST_ENTRY(ObjectHandle, getMethodName, (MethodHandle a), a)                                                                                  \
+    FFI_FUNCTION_LIST_ENTRY(ObjectHandle, getMethodSignature, (MethodHandle a), a)                                                                             \
+    FFI_FUNCTION_LIST_ENTRY(void, addArgI32, (int32_t v), v)                                                                                                   \
+    FFI_FUNCTION_LIST_ENTRY(void, addArgI64, (int64_t v), v)                                                                                                   \
+    FFI_FUNCTION_LIST_ENTRY(void, addArgFloat, (float v), v)                                                                                                   \
+    FFI_FUNCTION_LIST_ENTRY(void, addArgDouble, (double v), v)                                                                                                 \
+    FFI_FUNCTION_LIST_ENTRY(void, addArgObject, (ObjectHandle v), v)                                                                                           \
+    FFI_FUNCTION_LIST_ENTRY(void, addArgNull, (), )                                                                                                            \
+    FFI_FUNCTION_LIST_ENTRY(void, clearArgs, (), )                                                                                                             \
+    FFI_FUNCTION_LIST_ENTRY(int, getArgCount, (), )                                                                                                            \
+    FFI_FUNCTION_LIST_ENTRY(WIBool, moveArg, (int index), index)                                                                                               \
+    FFI_FUNCTION_LIST_ENTRY(int32_t, getValueI32, (int index), index)                                                                                          \
+    FFI_FUNCTION_LIST_ENTRY(int64_t, getValueI64, (int index), index)                                                                                          \
+    FFI_FUNCTION_LIST_ENTRY(float, getValueFloat, (int index), index)                                                                                          \
+    FFI_FUNCTION_LIST_ENTRY(double, getValueDouble, (int index), index)                                                                                        \
+    FFI_FUNCTION_LIST_ENTRY(ObjectHandle, getValueObject, (int index), index)                                                                                  \
+    FFI_FUNCTION_LIST_ENTRY(ObjectHandle, getCallError, (), )                                                                                                  \
+    FFI_FUNCTION_LIST_ENTRY(WIBool, call, (MethodHandle a, int argCount), a, argCount)                                                                         \
+    FFI_FUNCTION_LIST_ENTRY(WIBool, hook, (MethodHandle a, const char *callback), a, callback)                                                                 \
+    FFI_FUNCTION_LIST_ENTRY(WIBool, unhook, (MethodHandle a), a)                                                                                               \
+    FFI_FUNCTION_LIST_ENTRY(MethodHandle, getOriginal, (), )                                                                                                   \
+    FFI_FUNCTION_LIST_ENTRY(void, ImGuiBegin, (const char *name), name)                                                                                        \
+    FFI_FUNCTION_LIST_ENTRY(void, ImGuiEnd, (), )                                                                                                              \
+    FFI_FUNCTION_LIST_ENTRY(void, ImGuiText, (ObjectHandle text), text)                                                                                        \
+    FFI_FUNCTION_LIST_ENTRY(void, ImGuiCheckbox, (const char *label, bool *v), label, v)                                                                       \
+    FFI_FUNCTION_LIST_ENTRY(WIBool, ImGuiButton, (const char *label), label)                                                                                   \
+    FFI_FUNCTION_LIST_ENTRY(void, ImGuiSeparator, (), )                                                                                                        \
+    FFI_FUNCTION_LIST_ENTRY(void, ImGuiSeparatorText, (const char *label), label)                                                                              \
+    FFI_FUNCTION_LIST_ENTRY(void, abort, (const char *message, const char *filename, int lineNumber, int columnNumber), message, filename, lineNumber,         \
+                            columnNumber)                                                                                                                      \
+    FFI_FUNCTION_LIST_ENTRY(ObjectHandle, getImageCorlib, (), )                                                                                                \
+    FFI_FUNCTION_LIST_ENTRY(ObjectHandle, getClassFromName, (ObjectHandle image, const char *namespaze, const char *name), image, namespaze, name)             \
+    FFI_FUNCTION_LIST_ENTRY(ObjectHandle, getArrayFromClass, (ObjectHandle elementClass, int32_t rank), elementClass, rank)                                    \
+    FFI_FUNCTION_LIST_ENTRY(ObjectHandle, createArray, (ObjectHandle elementClass, int32_t length), elementClass, length)                                      \
+    FFI_FUNCTION_LIST_ENTRY(void, copyArrayBytes, (ObjectHandle array, int32_t offset, int32_t length, void *to), array, offset, length, to)                   \
+    FFI_FUNCTION_LIST_ENTRY(int64_t, getMethodAddresss, (MethodHandle a), a)                                                                                   \
+    FFI_FUNCTION_LIST_ENTRY(int64_t, getObjectAddress, (ObjectHandle a), a)                                                                                    \
+    FFI_FUNCTION_LIST_ENTRY(GCHandle, gcCreateHandle, (ObjectHandle object, int pinned), object, pinned)                                                       \
+    FFI_FUNCTION_LIST_ENTRY(void, gcDeleteHandle, (GCHandle a), a)
+
+// Make sure signatures match
+#ifndef FFI_NOSTL
+#define FFI_FUNCTION_LIST_ENTRY(return_type, fnc, arguments, ...)                                                                                              \
+    static_assert(std::is_same<decltype(fnc), return_type arguments>(), "Signature of FFI function " #fnc " does not match that in list");
+FFI_FUNCTION_LIST
+#undef FFI_FUNCTION_LIST_ENTRY
+#endif
 
 #ifdef FFI_USES_FTABLE
 }
@@ -370,7 +378,7 @@ struct Imports
 #define _FFI_FTABLE_DEFAULT_ASSIGN(name)
 #define _FFI_ACCESS_NAME(name) decltype(Signatures::name)
 #endif
-#define FFI_FUNCTION_LIST_ENTRY(name) _FFI_ACCESS_NAME(name) * name _FFI_FTABLE_DEFAULT_ASSIGN(name);
+#define FFI_FUNCTION_LIST_ENTRY(_, name, ...) _FFI_ACCESS_NAME(name) * name _FFI_FTABLE_DEFAULT_ASSIGN(name);
     FFI_FUNCTION_LIST
 #undef FFI_FUNCTION_LIST_ENTRY
 };
@@ -384,7 +392,7 @@ struct Imports
 
 #ifndef FFI_NOSTL
 const static std::tuple functions = {
-#define FFI_FUNCTION_LIST_ENTRY(fnc) &FFI_USE_FTABLE fnc,
+#define FFI_FUNCTION_LIST_ENTRY(_, fnc, ...) &FFI_USE_FTABLE fnc,
     FFI_FUNCTION_LIST
 #undef FFI_FUNCTION_LIST_ENTRY
 };

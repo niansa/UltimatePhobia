@@ -26,7 +26,7 @@ FFIMod::FFIMod(const std::filesystem::path& base, std::string_view identifier, M
     else if (std::filesystem::exists(dllPath))
         ffi = std::make_unique<DLLFFI>(dllPath);
     else if (std::filesystem::exists(sockPath))
-        ffi = std::make_unique<SockFFI>(dllPath);
+        ffi = std::make_unique<SockFFI>(sockPath);
     else
         throw std::runtime_error("No valid FFI module found");
 
