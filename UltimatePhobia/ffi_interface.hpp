@@ -373,12 +373,12 @@ struct Imports
 {
 #ifndef FFI_EXT
 #define _FFI_FTABLE_DEFAULT_ASSIGN(name) = FFIInterface::name
-#define _FFI_ACCESS_NAME(name) decltype(name)
+#define _FFI_TYPE_OF(name) decltype(FFIInterface::name)
 #else
 #define _FFI_FTABLE_DEFAULT_ASSIGN(name)
-#define _FFI_ACCESS_NAME(name) decltype(Signatures::name)
+#define _FFI_TYPE_OF(name) decltype(Signatures::name)
 #endif
-#define FFI_FUNCTION_LIST_ENTRY(_, name, ...) _FFI_ACCESS_NAME(name) * name _FFI_FTABLE_DEFAULT_ASSIGN(name);
+#define FFI_FUNCTION_LIST_ENTRY(_, name, ...) _FFI_TYPE_OF(name) * name _FFI_FTABLE_DEFAULT_ASSIGN(name);
     FFI_FUNCTION_LIST
 #undef FFI_FUNCTION_LIST_ENTRY
 };
