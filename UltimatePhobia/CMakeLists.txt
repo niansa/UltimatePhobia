@@ -54,15 +54,16 @@ add_executable(UltimatePhobia WIN32 main.cpp icon.rc
     safe_path.hpp safe_path.cpp
     ffi_loader.hpp ffi_loader.cpp
     ffi_interface.hpp ffi_interface.cpp
-    wasm_ffi.hpp wasm_ffi.cpp
     ffi.hpp
+    wasm_ffi.hpp wasm_ffi.cpp
     dll_ffi.hpp dll_ffi.cpp
+    sock_ffi.hpp sock_ffi.cpp
     configure_persistentdatapath.hpp configure_persistentdatapath.cpp
     il2cpp_api.hpp il2cpp_api.cpp
     anycall.hpp
     generated/anycall.cpp
 )
-target_link_libraries(UltimatePhobia PRIVATE dbghelp commoncpp Detours spdlog imgui simdjson m3 wasm3_cpp)
+target_link_libraries(UltimatePhobia PRIVATE dbghelp commoncpp Detours spdlog imgui simdjson m3 wasm3_cpp ws2_32)
 target_include_directories(UltimatePhobia PRIVATE . ../il2cpp_dump)
 target_precompile_headers(UltimatePhobia PRIVATE ../il2cpp_dump/il2cpp.h generated/il2cpp.hpp)
 target_compile_definitions(UltimatePhobia PUBLIC _CRT_SECURE_NO_WARNINGS)
