@@ -1,11 +1,15 @@
 #include "wasmaot.hpp"
 #include "Module.h"
 
+namespace FFIInterface {
+struct Imports;
+}
+const FFIInterface::Imports *imports;
+
 #include <ffi_interface.hpp>
 
 
 namespace {
-const FFIInterface::Imports *imports;
 w2c_Module module;
 }
 

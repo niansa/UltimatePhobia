@@ -16,5 +16,5 @@ add_library(WASMAOT SHARED
   wasm-rt-impl.h wasm-rt-impl.c
   wasm-rt-mem-impl.c
 )
-target_compile_definitions(WASMAOT PRIVATE WASMAOT_LIBRARY FFI_EXT)
+target_compile_definitions(WASMAOT PRIVATE WASMAOT_LIBRARY FFI_EXT FFI_USES_FTABLE FFI_FTABLE=*imports)
 target_include_directories(WASMAOT PRIVATE ../UltimatePhobia/ffi)

@@ -3,8 +3,8 @@ from os import mkdir, chdir
 from subprocess import call
 
 # Check arguments
-if len(argv) != 4:
-    print(f"Usage: {argv[0]} <WASM module> <extra export,...> <has _initialize function?>")
+if len(argv) != 5:
+    print(f"Usage: {argv[0]} <WASM module> <extra export,...> <has _initialize function?> <compile for host platform?>")
     exit(-1)
 
 # Get arguments
@@ -15,6 +15,7 @@ extra_exports = argv[2].split(',')
 if len(extra_exports) == 1 and len(extra_exports[0]) == 0:
     extra_exports = []
 has_initialize_func = str_to_bool(argv[3])
+for_host_plat = str_to_bool(argv[4])
 
 # Read template file to get main source
 print("Filling source template...")
@@ -40,7 +41,10 @@ chdir("build-aot")
 
 # Run CMake and compiler
 print("Compiling DLL...")
-call(["cmake", "..", "-GNinja", "-DCMAKE_BUILD_TYPE=Release", "-DCMAKE_C_COMPILER=clang-19", "-DCMAKE_CXX_COMPILER=clang++-19", "-DCMAKE_EXE_LINKER_FLAGS:STRING=-fuse-ld=lld", "-DCMAKE_CXX_FLAGS:STRING=--target=x86_64-windows-msvc", "-DCMAKE_C_FLAGS:STRING=--target=x86_64-windows-msvc", "-DCMAKE_SYSTEM_NAME:STRING=Windows"])
+if not for_host_plat:
+    call(["cmake", "..", "-GNinja", "-DCMAKE_BUILD_TYPE=Release", "-DCMAKE_C_COMPILER=clang-19", "-DCMAKE_CXX_COMPILER=clang++-19", "-DCMAKE_EXE_LINKER_FLAGS:STRING=-fuse-ld=lld", "-DCMAKE_CXX_FLAGS:STRING=--target=x86_64-windows-msvc", "-DCMAKE_C_FLAGS:STRING=--target=x86_64-windows-msvc", "-DCMAKE_SYSTEM_NAME:STRING=Windows"])
+else:
+    call(["cmake", "..", "-GNinja", "-DCMAKE_BUILD_TYPE=Release"])
 call(["ninja"])
 
-print("DLL has been generated at build-aot/WASMAOT.dll if everything went well!")
+print("Module has been generated at build-aot/WASMAOT.{dll,so,dylib} if everything went well!")

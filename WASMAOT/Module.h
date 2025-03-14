@@ -29,17 +29,8 @@ struct w2c_env;
 typedef struct w2c_Module {
   struct w2c_env* w2c_env_instance;
   u32 w2c_g0;
-  u32 w2c_g1;
-  u32 w2c_g2;
-  u32 w2c_g3;
-  u32 w2c_g4;
-  u32 w2c_g5;
-  u32 w2c_g6;
-  u32 w2c_g7;
-  u32 w2c_g8;
-  u32 w2c_g9;
-  u32 w2c_g10;
   wasm_rt_memory_t w2c_memory;
+  wasm_rt_funcref_table_t w2c_T0;
 } w2c_Module;
 
 void wasm2c_Module_instantiate(w2c_Module*, struct w2c_env*);
@@ -49,20 +40,11 @@ wasm_rt_func_type_t wasm2c_Module_get_func_type(uint32_t param_count, uint32_t r
 /* import: 'env' 'ImGuiBegin' */
 void w2c_env_ImGuiBegin(struct w2c_env*, u32);
 
-/* import: 'env' 'ImGuiButton' */
-u32 w2c_env_ImGuiButton(struct w2c_env*, u32);
-
 /* import: 'env' 'ImGuiEnd' */
 void w2c_env_ImGuiEnd(struct w2c_env*);
 
-/* import: 'env' 'ImGuiSeparatorText' */
-void w2c_env_ImGuiSeparatorText(struct w2c_env*, u32);
-
-/* import: 'env' 'abort' */
-void w2c_env_abort(struct w2c_env*, u32, u32, u32, u32);
-
-/* import: 'env' 'addArgI32' */
-void w2c_env_addArgI32(struct w2c_env*, u32);
+/* import: 'env' 'ImGuiText' */
+void w2c_env_ImGuiText(struct w2c_env*, u32);
 
 /* import: 'env' 'addArgNull' */
 void w2c_env_addArgNull(struct w2c_env*);
@@ -79,6 +61,9 @@ void w2c_env_clearArgs(struct w2c_env*);
 /* import: 'env' 'dropObject' */
 void w2c_env_dropObject(struct w2c_env*, u32);
 
+/* import: 'env' 'getArgCount' */
+u32 w2c_env_getArgCount(struct w2c_env*);
+
 /* import: 'env' 'getMethodByIdentifier' */
 u32 w2c_env_getMethodByIdentifier(struct w2c_env*, u32);
 
@@ -91,6 +76,24 @@ u32 w2c_env_getValueObject(struct w2c_env*, u32);
 /* import: 'env' 'hook' */
 u32 w2c_env_hook(struct w2c_env*, u32, u32);
 
+/* import: 'env' 'logInfo' */
+void w2c_env_logInfo(struct w2c_env*, u32);
+
+/* import: 'env' 'moveArg' */
+u32 w2c_env_moveArg(struct w2c_env*, u32);
+
+/* import: 'env' 'toCString' */
+void w2c_env_toCString(struct w2c_env*, u32, u32, u32);
+
+/* import: 'env' 'toCsStringWithLength' */
+u32 w2c_env_toCsStringWithLength(struct w2c_env*, u32, u32);
+
+/* import: 'env' 'unhook' */
+u32 w2c_env_unhook(struct w2c_env*, u32);
+
+/* export: 'memory' */
+wasm_rt_memory_t* w2c_Module_memory(w2c_Module* instance);
+
 /* export: 'onLoad' */
 void w2c_Module_onLoad(w2c_Module*);
 
@@ -100,11 +103,14 @@ void w2c_Module_onUnload(w2c_Module*);
 /* export: 'onUiUpdate' */
 void w2c_Module_onUiUpdate(w2c_Module*);
 
-/* export: 'onDoorStart' */
-void w2c_Module_onDoorStart(w2c_Module*);
+/* export: 'onFuseBoxUseNetworked' */
+void w2c_Module_onFuseBoxUseNetworked(w2c_Module*);
 
-/* export: 'memory' */
-wasm_rt_memory_t* w2c_Module_memory(w2c_Module* instance);
+/* export: 'onCreateRoom' */
+void w2c_Module_onCreateRoom(w2c_Module*);
+
+/* export: '_initialize' */
+void w2c_Module_0x5Finitialize(w2c_Module*);
 
 #ifdef __cplusplus
 }
