@@ -17,30 +17,21 @@ class SockFFI final : public FFI {
     void sendString(std::string_view);
     template <typename T, unsigned size> void sendValue(T v) {
         static_assert(sizeof(T) == size);
-        sendData(&v, sizeof(v));
+        sendData(&v, size);
     }
 
     void receiveData(void *, size_t);
     std::string receiveString();
-    template <typename T, unsigned size> void receiveValue(T& v) {
-        static_assert(sizeof(T) == size);
-        receiveData(&v, sizeof(v));
-    }
     template <typename T, unsigned size> T receiveValue() {
         static_assert(sizeof(T) == size);
         T v;
-        receiveData(&v, sizeof(v));
+        receiveData(&v, size);
         return v;
-    }
-    template <> const char *receiveValue<const char *, sizeof(uintptr_t)>() {
-        static std::string buf;
-        buf = receiveString();
-        return buf.c_str();
     }
 
     void receiveValues() {}
     template <typename Arg0, typename... Args> void receiveValues(Arg0& arg0, Args&...args) {
-        receiveValue<Arg0, sizeof(Arg0)>();
+        arg0 = receiveValue<Arg0, sizeof(Arg0)>();
         receiveValues(args...);
     }
     template <typename Tuple> Tuple receiveValuesTuple() {
@@ -53,12 +44,14 @@ class SockFFI final : public FFI {
         static_assert(std::is_function<fncT>(), "Function to process RPC call for must be callable");
         using traits = function_traits<fncT>;
         const auto args = receiveValuesTuple<typename traits::argument_types>();
-        sendValue<bool, 1>(true); // Function has finished executing
-        if constexpr (!std::is_void_v<typename traits::return_type>)
-            sendValue<typename traits::return_type, sizeof(typename traits::return_type)>(
-                std::apply([function](auto&...args) { return function(args...); }, args));
-        else
+        if constexpr (!std::is_void_v<typename traits::return_type>) {
+            const auto fres = std::apply([function](auto&...args) { return function(args...); }, args);
+            sendValue<bool, 1>(true); // Function has finished executing
+            sendValue<typename traits::return_type, sizeof(typename traits::return_type)>(fres);
+        } else {
             std::apply([function](auto&...args) { function(args...); }, args);
+            sendValue<bool, 1>(true); // Function has finished executing
+        }
     }
 
     template <typename fncT> void doRpcCall(fncT *function, unsigned fncIdx, unsigned calledIdx) {
@@ -72,3 +65,5 @@ public:
 
     void simpleCall(const char *name);
 };
+
+template <> const char *SockFFI::receiveValue<const char *, sizeof(uintptr_t)>();

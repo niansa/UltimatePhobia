@@ -87,11 +87,15 @@ void SockFFI::receiveData(void *buf, size_t len) {
         totalReceived += received;
     }
 }
-
 std::string SockFFI::receiveString() {
     std::string fres(static_cast<size_t>(receiveValue<uint16_t, 2>()), '\0');
     receiveData(fres.data(), fres.size());
     return fres;
+}
+template <> const char *SockFFI::receiveValue<const char *, sizeof(uintptr_t)>() {
+    static std::string buf;
+    buf = receiveString();
+    return buf.c_str();
 }
 
 void SockFFI::simpleCall(const char *name) {
@@ -113,7 +117,7 @@ void SockFFI::simpleCall(const char *name) {
         // Call specified function
         uint8_t curFncIdx = 0;
         std::apply([this, &curFncIdx, fncIdx](auto... args) { ((doRpcCall(args, ++curFncIdx, fncIdx)), ...); }, FFIInterface::functions);
-        if (curFncIdx != std::tuple_size<decltype(FFIInterface::functions)>::value + 1)
+        if (curFncIdx != std::tuple_size<decltype(FFIInterface::functions)>::value)
             g.logger->warn("[SockFFI] Not all FFI functions were considered for calling");
     }
 
