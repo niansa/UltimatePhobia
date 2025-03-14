@@ -141,6 +141,15 @@ template <typename fncT> void SockFFI::doRpcCall(fncT *handler, unsigned fncIdx)
         sendValue<decltype(fres), sizeof(fres)>(fres);
         return;
     } break;
+    case FFIInterface::Functions::toCString: {
+        const auto str = receiveValue<FFIInterface::ObjectHandle, sizeof(FFIInterface::ObjectHandle)>();
+        const auto maxlen = receiveValue<int, sizeof(int)>();
+        std::string buf(maxlen, '\0');
+        FFIInterface::toCString(str, buf.data(), buf.size());
+        sendValue<bool, 1>(true); // Function has finished executing
+        sendString(buf);
+        return;
+    } break;
     default: {
     }
     }

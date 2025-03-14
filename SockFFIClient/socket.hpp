@@ -32,7 +32,6 @@ public:
         receiveData(&v, size);
         return v;
     }
-
     std::string receiveString() {
         std::string fres(static_cast<size_t>(receiveValue<uint16_t, 2>()), '\0');
         receiveData(fres.data(), fres.size());

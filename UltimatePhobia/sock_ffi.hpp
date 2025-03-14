@@ -27,7 +27,6 @@ class SockFFI final : public FFI {
         receiveData(&v, size);
         return v;
     }
-
     void receiveValues() {}
     template <typename Arg0, typename... Args> void receiveValues(Arg0& arg0, Args&...args) {
         arg0 = receiveValue<Arg0, sizeof(Arg0)>();

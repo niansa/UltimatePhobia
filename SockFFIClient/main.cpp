@@ -50,6 +50,18 @@ template <size_t fnc_index, typename retT, typename... argsT> retT prepareAndDoR
         socket->sendString(std::string_view{str, static_cast<size_t>(len)});
         return waitRpcCallResult<retT>();
     }
+    if constexpr (fnc_index == static_cast<size_t>(toCString)) {
+        FFIInterface::ObjectHandle csString = std::get<0>(argsTuple);
+        char *buf = std::get<1>(argsTuple);
+        int maxlen = std::get<2>(argsTuple);
+        sendFunctionIndex(fnc_index);
+        socket->sendValue<decltype(csString), sizeof(csString)>(csString);
+        socket->sendValue<decltype(maxlen), sizeof(maxlen)>(maxlen);
+        waitRpcCallResult<retT>();
+        const auto cString = socket->receiveString();
+        memcpy(buf, cString.data(), std::min<size_t>(cString.size(), maxlen));
+        return;
+    }
 
     return doRpcCall<fnc_index, retT>(args...);
 }
@@ -66,6 +78,7 @@ void waitForCommand() {
         socket->sendValue<bool, 1>(true);
         fnc();
         socket->sendValue<uint8_t, 1>(0);
+        waitForCommand();
     }
 }
 } // namespace
