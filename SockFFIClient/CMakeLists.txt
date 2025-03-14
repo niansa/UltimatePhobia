@@ -15,7 +15,7 @@ target_include_directories(SockFFIClient PRIVATE ../UltimatePhobia/ffi)
 
 add_library(SockFFIClientTest SHARED test.cpp)
 target_include_directories(SockFFIClientTest PRIVATE ../UltimatePhobia/ffi)
-target_compile_definitions(SockFFIClientTest PRIVATE FFI_EXT FFI_USES_FTABLE FFI_FTABLE=*imports FFI=FFI_USE_FTABLE)
+target_compile_definitions(SockFFIClientTest PRIVATE SOCKFFICLIENTTEST_LIBRARY FFI_EXT FFI_USES_FTABLE FFI_FTABLE=*imports FFI=FFI_USE_FTABLE)
 
 include(GNUInstallDirs)
 install(TARGETS SockFFIClient

@@ -25,7 +25,10 @@ using namespace Literals;
 
 SOCKFFICLIENTTEST_EXPORT void initImports(const FFIInterface::Imports *imports) { ::imports = imports; }
 
-SOCKFFICLIENTTEST_EXPORT void onLoad() { FFI logInfo("Hello from SockFFI module!"_cs); }
+SOCKFFICLIENTTEST_EXPORT void onLoad() {
+    FFI logInfo("Hello from SockFFI module!"_cs);
+    FFI logDebug(FFI toCsString("toCString redirection test ok!"));
+}
 
 SOCKFFICLIENTTEST_EXPORT void onUnload() { FFI logInfo("Goodbye from SockFFI module."_cs); }
 

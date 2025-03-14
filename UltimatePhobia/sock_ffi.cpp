@@ -1,6 +1,8 @@
 #include "sock_ffi.hpp"
 #include "global_state.hpp"
 #include "ffi_interface.hpp"
+#include "misc_utils.hpp"
+#include "ffi_interface.hpp"
 
 #include <string>
 #include <stdexcept>
@@ -109,17 +111,50 @@ void SockFFI::simpleCall(const char *name) {
     for (;;) {
         // Get called function index
         const auto fncIdx = receiveValue<uint8_t, 1>();
-
         // Stop if function indicates exit
         if (fncIdx == 0)
             break;
 
-        // Call specified function
+        // Call specified functions handler
         uint8_t curFncIdx = 0;
-        std::apply([this, &curFncIdx, fncIdx](auto... args) { ((doRpcCall(args, ++curFncIdx, fncIdx)), ...); }, FFIInterface::functions);
+        std::apply([this, &curFncIdx, fncIdx](auto... handler) { ((doRpcCall(handler, curFncIdx++, fncIdx - 1)), ...); }, FFIInterface::functions);
         if (curFncIdx != std::tuple_size<decltype(FFIInterface::functions)>::value)
             g.logger->warn("[SockFFI] Not all FFI functions were considered for calling");
     }
 
     g.logger->flush();
+}
+
+template <typename fncT> void SockFFI::doRpcCall(fncT *handler, unsigned fncIdx) {
+    static_assert(std::is_function<fncT>(), "Function to process RPC call for must be callable");
+
+    // Special handlers for special cases
+    switch (static_cast<FFIInterface::Functions>(fncIdx)) {
+    case FFIInterface::Functions::toCsString: {
+        g.logger->warn("[SockFFI] Desync: Attempting to call toCsString which may not be called through SockFFI! Client is expected to convert call to "
+                       "toCsStringWithLength. Things may or may not start going south now!");
+    } break;
+    case FFIInterface::Functions::toCsStringWithLength: {
+        const auto str = receiveString();
+        const FFIInterface::ObjectHandle fres = FFIInterface::toCsStringWithLength(str.data(), str.size());
+        sendValue<bool, 1>(true); // Function has finished executing
+        sendValue<decltype(fres), sizeof(fres)>(fres);
+        return;
+    } break;
+    default: {
+    }
+    }
+
+    // Default handlers
+    using traits = function_traits<fncT>;
+    const auto args = receiveValuesTuple<typename traits::argument_types>();
+
+    if constexpr (!std::is_void_v<typename traits::return_type>) {
+        const auto fres = std::apply([handler](auto&...args) { return handler(args...); }, args);
+        sendValue<bool, 1>(true); // handler has finished executing
+        sendValue<typename traits::return_type, sizeof(typename traits::return_type)>(fres);
+    } else {
+        std::apply([handler](auto&...args) { handler(args...); }, args);
+        sendValue<bool, 1>(true); // Function has finished executing
+    }
 }

@@ -1,7 +1,6 @@
 #pragma once
 
 #include "ffi.hpp"
-#include "misc_utils.hpp"
 
 #include <winsock2.h>
 #include <string>
@@ -40,23 +39,10 @@ class SockFFI final : public FFI {
         return fres;
     }
 
-    template <typename fncT> void doRpcCall(fncT *function) {
-        static_assert(std::is_function<fncT>(), "Function to process RPC call for must be callable");
-        using traits = function_traits<fncT>;
-        const auto args = receiveValuesTuple<typename traits::argument_types>();
-        if constexpr (!std::is_void_v<typename traits::return_type>) {
-            const auto fres = std::apply([function](auto&...args) { return function(args...); }, args);
-            sendValue<bool, 1>(true); // Function has finished executing
-            sendValue<typename traits::return_type, sizeof(typename traits::return_type)>(fres);
-        } else {
-            std::apply([function](auto&...args) { function(args...); }, args);
-            sendValue<bool, 1>(true); // Function has finished executing
-        }
-    }
-
-    template <typename fncT> void doRpcCall(fncT *function, unsigned fncIdx, unsigned calledIdx) {
+    template <typename fncT> void doRpcCall(fncT *handler, unsigned fncIdx);
+    template <typename fncT> void doRpcCall(fncT *function, unsigned calledIdx, unsigned fncIdx) {
         if (fncIdx == calledIdx)
-            doRpcCall(function);
+            doRpcCall<fncT>(function, fncIdx);
     }
 
 public:

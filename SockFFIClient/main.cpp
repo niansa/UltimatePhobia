@@ -1,8 +1,9 @@
 #include "socket.hpp"
-#include "utils.hpp"
 #include "dlhandle.hpp"
 
 #include <iostream>
+#include <string_view>
+#include <cstring>
 #include <ffi_interface.hpp>
 
 namespace {
@@ -12,18 +13,45 @@ Dlhandle *library;
 
 void waitForCommand();
 
-template <typename retT> retT doRpcCall_() {
+void sendFunctionIndex(size_t index) { socket->sendValue<uint8_t, 1>(index + 1); }
+
+template <typename retT> retT waitRpcCallResult() {
     waitForCommand();
     if constexpr (!std::is_void<retT>())
         return socket->receiveValue<retT, sizeof(retT)>();
 }
+template <typename retT> retT doRpcCall_() { return waitRpcCallResult<retT>(); }
 template <typename retT, typename argT, typename... argsT> retT doRpcCall_(argT arg, argsT... args) {
     socket->sendValue<argT, sizeof(argT)>(arg);
     return doRpcCall_<retT>(args...);
 }
-template <typename retT, typename... argsT> retT doRpcCall(unsigned index, argsT... args) {
-    socket->sendValue<uint8_t, 1>(index);
+template <size_t fnc_index, typename retT, typename... argsT> retT doRpcCall(argsT... args) {
+    sendFunctionIndex(fnc_index);
     return doRpcCall_<retT>(args...);
+}
+
+template <size_t fnc_index, typename retT, typename... argsT> retT prepareAndDoRpcCall(argsT... args) {
+    const std::tuple argsTuple = {args...};
+
+    // Handle known troublesome calls
+    using enum FFIInterface::Functions;
+
+    // Function redirects
+    if constexpr (fnc_index == static_cast<size_t>(toCsString)) {
+        const char *str = std::get<0>(argsTuple);
+        return prepareAndDoRpcCall<static_cast<size_t>(toCsStringWithLength), retT, const char *, int>(str, strlen(str));
+    }
+
+    // Function handlers for special cases
+    if constexpr (fnc_index == static_cast<size_t>(toCsStringWithLength)) {
+        const char *str = std::get<0>(argsTuple);
+        int len = std::get<1>(argsTuple);
+        sendFunctionIndex(fnc_index);
+        socket->sendString(std::string_view{str, static_cast<size_t>(len)});
+        return waitRpcCallResult<retT>();
+    }
+
+    return doRpcCall<fnc_index, retT>(args...);
 }
 
 void waitForCommand() {
@@ -46,12 +74,8 @@ void waitForCommand() {
 namespace FFIInterface {
 #define FFI_FUNCTION_LIST_ENTRY(return_type, fnc, arguments, ...)                                                                                              \
     return_type fnc arguments {                                                                                                                                \
-        const auto _fnc_index = tuple_find(FFIInterface::functions, &fnc);                                                                                     \
-        if (!_fnc_index.has_value()) {                                                                                                                         \
-            std::cerr << "Bad FFI function index called" << std::endl;                                                                                         \
-            ::abort();                                                                                                                                         \
-        }                                                                                                                                                      \
-        return doRpcCall<return_type>((*_fnc_index + 1) /*TODO*/ __VA_ARGS__);                                                                                 \
+        constexpr auto _fnc_index = static_cast<size_t>(FFIInterface::Functions::fnc);                                                                         \
+        return prepareAndDoRpcCall<_fnc_index, return_type>(__VA_ARGS__);                                                                                      \
     }
 FFI_FUNCTION_LIST
 #undef FFI_FUNCTION_LIST_ENTRY
