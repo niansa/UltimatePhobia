@@ -1,12 +1,15 @@
 #pragma once
 
 #include <string>
+#include <fstream>
 #include <cstdint>
 #include <cstddef>
 
 class Socket {
     int clientFd = -1;
     const char *socketFile;
+
+    std::ofstream trafficDump;
 
 public:
     Socket(const char *socketFile);

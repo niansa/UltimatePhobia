@@ -1,13 +1,19 @@
 #include "socket.hpp"
 
 #include <iostream>
+#include <fstream>
+#include <filesystem>
 #include <cstdio>
 #include <cstdlib>
 #include <unistd.h>
 #include <sys/socket.h>
 #include <sys/un.h>
 
-Socket::Socket(const char *socketFile) : socketFile(socketFile) {}
+Socket::Socket(const char *socketFile) : socketFile(socketFile) {
+    // Open log file
+    if (std::filesystem::exists("sockffi.log"))
+        trafficDump = std::ofstream("sockffi.log", std::ios::binary);
+}
 Socket::~Socket() {
     disconnect();
     unlink(socketFile);
@@ -46,6 +52,9 @@ void Socket::sendData(const void *buf, size_t len) {
     int sendResult = send(clientFd, reinterpret_cast<const char *>(buf), len, 0);
     if (sendResult == -1)
         perror("send error");
+    else
+        trafficDump.write(reinterpret_cast<const char *>(buf), len);
+    trafficDump.flush();
 }
 
 void Socket::receiveData(void *buf, size_t len) {
@@ -55,6 +64,8 @@ void Socket::receiveData(void *buf, size_t len) {
             perror("recv error");
         totalReceived += received;
     }
+    trafficDump.write(reinterpret_cast<const char *>(buf), len);
+    trafficDump.flush();
 }
 
 template <> void Socket::sendValue<const char *, sizeof(uintptr_t)>(const char *str) { sendString(str); }
