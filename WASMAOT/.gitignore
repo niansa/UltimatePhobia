@@ -83,3 +83,4 @@ CMakeLists.txt.user*
 
 # Generated files
 wasmaot.cpp
+Module.c  Module.h
