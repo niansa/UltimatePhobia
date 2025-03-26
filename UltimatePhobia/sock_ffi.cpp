@@ -5,6 +5,7 @@
 #include "ffi_interface.hpp"
 
 #include <string>
+#include <vector>
 #include <stdexcept>
 #include <cstring>
 #include <windows.h>
@@ -96,9 +97,13 @@ std::string SockFFI::receiveString() {
     return fres;
 }
 template <> const char *SockFFI::receiveValue<const char *, sizeof(uintptr_t)>() {
-    static std::string buf;
-    buf = receiveString();
-    return buf.c_str();
+    static std::vector<std::string> bufs(6);
+    static auto buf = bufs.begin();
+    *buf = receiveString();
+    const char *fres = buf->c_str();
+    if (++buf == bufs.end())
+        buf = bufs.begin();
+    return fres;
 }
 
 void SockFFI::simpleCall(const char *name) {
@@ -149,6 +154,16 @@ template <typename fncT> void SockFFI::doRpcCall(fncT *handler, unsigned fncIdx)
         FFIInterface::toCString(str, buf.data(), buf.size());
         sendValue<bool, 1>(true); // Function has finished executing
         sendString(buf);
+        return;
+    } break;
+    case FFIInterface::Functions::copyArrayBytes: {
+        const auto array = receiveValue<FFIInterface::ObjectHandle, sizeof(FFIInterface::ObjectHandle)>();
+        const auto offset = receiveValue<int32_t, sizeof(int32_t)>();
+        const auto length = receiveValue<int32_t, sizeof(int32_t)>();
+        std::vector<std::byte> buf(length);
+        FFIInterface::copyArrayBytes(array, offset, length, buf.data());
+        sendValue<bool, 1>(true); // Function has finished executing
+        sendData(buf.data(), buf.size());
         return;
     } break;
     default: {

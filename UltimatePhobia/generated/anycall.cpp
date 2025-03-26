@@ -801,7 +801,325 @@ uintptr_t call(const uintptr_t *args, void *fnc, std::string_view signature) {
         return bit_cast<uintptr_t>(reinterpret_cast<uintptr_t (*)(uintptr_t, uintptr_t, uintptr_t, uintptr_t)>(fnc)(bit_cast<uintptr_t>(args[0]), bit_cast<uintptr_t>(args[1]), bit_cast<uintptr_t>(args[2]), bit_cast<uintptr_t>(args[3])));
     if (signature == "viffiiifii")
         {reinterpret_cast<void (*)(uintptr_t, float, float, uintptr_t, uintptr_t, uintptr_t, float, uintptr_t, uintptr_t)>(fnc)(bit_cast<uintptr_t>(args[0]), bit_cast<float>(args[1]), bit_cast<float>(args[2]), bit_cast<uintptr_t>(args[3]), bit_cast<uintptr_t>(args[4]), bit_cast<uintptr_t>(args[5]), bit_cast<float>(args[6]), bit_cast<uintptr_t>(args[7]), bit_cast<uintptr_t>(args[8])); return 0;}
-
     throw std::runtime_error("Unknown function signature: " + std::string(signature));
 }
+
+Struct callStruct(const uintptr_t *args, void *fnc, std::string_view signature) {
+    if (signature == "iiii")
+        return reinterpret_cast<Struct (*)(uintptr_t, uintptr_t, uintptr_t)>(fnc)(bit_cast<uintptr_t>(args[0]), bit_cast<uintptr_t>(args[1]), bit_cast<uintptr_t>(args[2]));
+    if (signature == "iii")
+        return reinterpret_cast<Struct (*)(uintptr_t, uintptr_t)>(fnc)(bit_cast<uintptr_t>(args[0]), bit_cast<uintptr_t>(args[1]));
+    if (signature == "iiiii")
+        return reinterpret_cast<Struct (*)(uintptr_t, uintptr_t, uintptr_t, uintptr_t)>(fnc)(bit_cast<uintptr_t>(args[0]), bit_cast<uintptr_t>(args[1]), bit_cast<uintptr_t>(args[2]), bit_cast<uintptr_t>(args[3]));
+    if (signature == "ii")
+        return reinterpret_cast<Struct (*)(uintptr_t)>(fnc)(bit_cast<uintptr_t>(args[0]));
+    if (signature == "iiiiii")
+        return reinterpret_cast<Struct (*)(uintptr_t, uintptr_t, uintptr_t, uintptr_t, uintptr_t)>(fnc)(bit_cast<uintptr_t>(args[0]), bit_cast<uintptr_t>(args[1]), bit_cast<uintptr_t>(args[2]), bit_cast<uintptr_t>(args[3]), bit_cast<uintptr_t>(args[4]));
+    if (signature == "iiiiiii")
+        return reinterpret_cast<Struct (*)(uintptr_t, uintptr_t, uintptr_t, uintptr_t, uintptr_t, uintptr_t)>(fnc)(bit_cast<uintptr_t>(args[0]), bit_cast<uintptr_t>(args[1]), bit_cast<uintptr_t>(args[2]), bit_cast<uintptr_t>(args[3]), bit_cast<uintptr_t>(args[4]), bit_cast<uintptr_t>(args[5]));
+    if (signature == "iiiiiiiiii")
+        return reinterpret_cast<Struct (*)(uintptr_t, uintptr_t, uintptr_t, uintptr_t, uintptr_t, uintptr_t, uintptr_t, uintptr_t, uintptr_t)>(fnc)(bit_cast<uintptr_t>(args[0]), bit_cast<uintptr_t>(args[1]), bit_cast<uintptr_t>(args[2]), bit_cast<uintptr_t>(args[3]), bit_cast<uintptr_t>(args[4]), bit_cast<uintptr_t>(args[5]), bit_cast<uintptr_t>(args[6]), bit_cast<uintptr_t>(args[7]), bit_cast<uintptr_t>(args[8]));
+    if (signature == "iiiiiiiiiiiiii")
+        return reinterpret_cast<Struct (*)(uintptr_t, uintptr_t, uintptr_t, uintptr_t, uintptr_t, uintptr_t, uintptr_t, uintptr_t, uintptr_t, uintptr_t, uintptr_t, uintptr_t, uintptr_t)>(fnc)(bit_cast<uintptr_t>(args[0]), bit_cast<uintptr_t>(args[1]), bit_cast<uintptr_t>(args[2]), bit_cast<uintptr_t>(args[3]), bit_cast<uintptr_t>(args[4]), bit_cast<uintptr_t>(args[5]), bit_cast<uintptr_t>(args[6]), bit_cast<uintptr_t>(args[7]), bit_cast<uintptr_t>(args[8]), bit_cast<uintptr_t>(args[9]), bit_cast<uintptr_t>(args[10]), bit_cast<uintptr_t>(args[11]), bit_cast<uintptr_t>(args[12]));
+    if (signature == "iiiiiiii")
+        return reinterpret_cast<Struct (*)(uintptr_t, uintptr_t, uintptr_t, uintptr_t, uintptr_t, uintptr_t, uintptr_t)>(fnc)(bit_cast<uintptr_t>(args[0]), bit_cast<uintptr_t>(args[1]), bit_cast<uintptr_t>(args[2]), bit_cast<uintptr_t>(args[3]), bit_cast<uintptr_t>(args[4]), bit_cast<uintptr_t>(args[5]), bit_cast<uintptr_t>(args[6]));
+    if (signature == "iiiiiiiii")
+        return reinterpret_cast<Struct (*)(uintptr_t, uintptr_t, uintptr_t, uintptr_t, uintptr_t, uintptr_t, uintptr_t, uintptr_t)>(fnc)(bit_cast<uintptr_t>(args[0]), bit_cast<uintptr_t>(args[1]), bit_cast<uintptr_t>(args[2]), bit_cast<uintptr_t>(args[3]), bit_cast<uintptr_t>(args[4]), bit_cast<uintptr_t>(args[5]), bit_cast<uintptr_t>(args[6]), bit_cast<uintptr_t>(args[7]));
+    if (signature == "iiiiiiiiiii")
+        return reinterpret_cast<Struct (*)(uintptr_t, uintptr_t, uintptr_t, uintptr_t, uintptr_t, uintptr_t, uintptr_t, uintptr_t, uintptr_t, uintptr_t)>(fnc)(bit_cast<uintptr_t>(args[0]), bit_cast<uintptr_t>(args[1]), bit_cast<uintptr_t>(args[2]), bit_cast<uintptr_t>(args[3]), bit_cast<uintptr_t>(args[4]), bit_cast<uintptr_t>(args[5]), bit_cast<uintptr_t>(args[6]), bit_cast<uintptr_t>(args[7]), bit_cast<uintptr_t>(args[8]), bit_cast<uintptr_t>(args[9]));
+    if (signature == "iiiiiiiiiiii")
+        return reinterpret_cast<Struct (*)(uintptr_t, uintptr_t, uintptr_t, uintptr_t, uintptr_t, uintptr_t, uintptr_t, uintptr_t, uintptr_t, uintptr_t, uintptr_t)>(fnc)(bit_cast<uintptr_t>(args[0]), bit_cast<uintptr_t>(args[1]), bit_cast<uintptr_t>(args[2]), bit_cast<uintptr_t>(args[3]), bit_cast<uintptr_t>(args[4]), bit_cast<uintptr_t>(args[5]), bit_cast<uintptr_t>(args[6]), bit_cast<uintptr_t>(args[7]), bit_cast<uintptr_t>(args[8]), bit_cast<uintptr_t>(args[9]), bit_cast<uintptr_t>(args[10]));
+    if (signature == "iiiiiiiiiiiii")
+        return reinterpret_cast<Struct (*)(uintptr_t, uintptr_t, uintptr_t, uintptr_t, uintptr_t, uintptr_t, uintptr_t, uintptr_t, uintptr_t, uintptr_t, uintptr_t, uintptr_t)>(fnc)(bit_cast<uintptr_t>(args[0]), bit_cast<uintptr_t>(args[1]), bit_cast<uintptr_t>(args[2]), bit_cast<uintptr_t>(args[3]), bit_cast<uintptr_t>(args[4]), bit_cast<uintptr_t>(args[5]), bit_cast<uintptr_t>(args[6]), bit_cast<uintptr_t>(args[7]), bit_cast<uintptr_t>(args[8]), bit_cast<uintptr_t>(args[9]), bit_cast<uintptr_t>(args[10]), bit_cast<uintptr_t>(args[11]));
+    if (signature == "ifi")
+        return reinterpret_cast<Struct (*)(float, uintptr_t)>(fnc)(bit_cast<float>(args[0]), bit_cast<uintptr_t>(args[1]));
+    if (signature == "idi")
+        return reinterpret_cast<Struct (*)(double, uintptr_t)>(fnc)(bit_cast<double>(args[0]), bit_cast<uintptr_t>(args[1]));
+    if (signature == "iji")
+        return reinterpret_cast<Struct (*)(uintptr_t, uintptr_t)>(fnc)(bit_cast<uintptr_t>(args[0]), bit_cast<uintptr_t>(args[1]));
+    if (signature == "ijiiiiii")
+        return reinterpret_cast<Struct (*)(uintptr_t, uintptr_t, uintptr_t, uintptr_t, uintptr_t, uintptr_t, uintptr_t)>(fnc)(bit_cast<uintptr_t>(args[0]), bit_cast<uintptr_t>(args[1]), bit_cast<uintptr_t>(args[2]), bit_cast<uintptr_t>(args[3]), bit_cast<uintptr_t>(args[4]), bit_cast<uintptr_t>(args[5]), bit_cast<uintptr_t>(args[6]));
+    if (signature == "ijiiii")
+        return reinterpret_cast<Struct (*)(uintptr_t, uintptr_t, uintptr_t, uintptr_t, uintptr_t)>(fnc)(bit_cast<uintptr_t>(args[0]), bit_cast<uintptr_t>(args[1]), bit_cast<uintptr_t>(args[2]), bit_cast<uintptr_t>(args[3]), bit_cast<uintptr_t>(args[4]));
+    if (signature == "iiiiijjiiiii")
+        return reinterpret_cast<Struct (*)(uintptr_t, uintptr_t, uintptr_t, uintptr_t, uintptr_t, uintptr_t, uintptr_t, uintptr_t, uintptr_t, uintptr_t, uintptr_t)>(fnc)(bit_cast<uintptr_t>(args[0]), bit_cast<uintptr_t>(args[1]), bit_cast<uintptr_t>(args[2]), bit_cast<uintptr_t>(args[3]), bit_cast<uintptr_t>(args[4]), bit_cast<uintptr_t>(args[5]), bit_cast<uintptr_t>(args[6]), bit_cast<uintptr_t>(args[7]), bit_cast<uintptr_t>(args[8]), bit_cast<uintptr_t>(args[9]), bit_cast<uintptr_t>(args[10]));
+    if (signature == "iiji")
+        return reinterpret_cast<Struct (*)(uintptr_t, uintptr_t, uintptr_t)>(fnc)(bit_cast<uintptr_t>(args[0]), bit_cast<uintptr_t>(args[1]), bit_cast<uintptr_t>(args[2]));
+    if (signature == "iijji")
+        return reinterpret_cast<Struct (*)(uintptr_t, uintptr_t, uintptr_t, uintptr_t)>(fnc)(bit_cast<uintptr_t>(args[0]), bit_cast<uintptr_t>(args[1]), bit_cast<uintptr_t>(args[2]), bit_cast<uintptr_t>(args[3]));
+    if (signature == "iijjji")
+        return reinterpret_cast<Struct (*)(uintptr_t, uintptr_t, uintptr_t, uintptr_t, uintptr_t)>(fnc)(bit_cast<uintptr_t>(args[0]), bit_cast<uintptr_t>(args[1]), bit_cast<uintptr_t>(args[2]), bit_cast<uintptr_t>(args[3]), bit_cast<uintptr_t>(args[4]));
+    if (signature == "ijii")
+        return reinterpret_cast<Struct (*)(uintptr_t, uintptr_t, uintptr_t)>(fnc)(bit_cast<uintptr_t>(args[0]), bit_cast<uintptr_t>(args[1]), bit_cast<uintptr_t>(args[2]));
+    if (signature == "idii")
+        return reinterpret_cast<Struct (*)(double, uintptr_t, uintptr_t)>(fnc)(bit_cast<double>(args[0]), bit_cast<uintptr_t>(args[1]), bit_cast<uintptr_t>(args[2]));
+    if (signature == "iidii")
+        return reinterpret_cast<Struct (*)(uintptr_t, double, uintptr_t, uintptr_t)>(fnc)(bit_cast<uintptr_t>(args[0]), bit_cast<double>(args[1]), bit_cast<uintptr_t>(args[2]), bit_cast<uintptr_t>(args[3]));
+    if (signature == "iidi")
+        return reinterpret_cast<Struct (*)(uintptr_t, double, uintptr_t)>(fnc)(bit_cast<uintptr_t>(args[0]), bit_cast<double>(args[1]), bit_cast<uintptr_t>(args[2]));
+    if (signature == "iddi")
+        return reinterpret_cast<Struct (*)(double, double, uintptr_t)>(fnc)(bit_cast<double>(args[0]), bit_cast<double>(args[1]), bit_cast<uintptr_t>(args[2]));
+    if (signature == "idiii")
+        return reinterpret_cast<Struct (*)(double, uintptr_t, uintptr_t, uintptr_t)>(fnc)(bit_cast<double>(args[0]), bit_cast<uintptr_t>(args[1]), bit_cast<uintptr_t>(args[2]), bit_cast<uintptr_t>(args[3]));
+    if (signature == "ijji")
+        return reinterpret_cast<Struct (*)(uintptr_t, uintptr_t, uintptr_t)>(fnc)(bit_cast<uintptr_t>(args[0]), bit_cast<uintptr_t>(args[1]), bit_cast<uintptr_t>(args[2]));
+    if (signature == "ijiii")
+        return reinterpret_cast<Struct (*)(uintptr_t, uintptr_t, uintptr_t, uintptr_t)>(fnc)(bit_cast<uintptr_t>(args[0]), bit_cast<uintptr_t>(args[1]), bit_cast<uintptr_t>(args[2]), bit_cast<uintptr_t>(args[3]));
+    if (signature == "ifiii")
+        return reinterpret_cast<Struct (*)(float, uintptr_t, uintptr_t, uintptr_t)>(fnc)(bit_cast<float>(args[0]), bit_cast<uintptr_t>(args[1]), bit_cast<uintptr_t>(args[2]), bit_cast<uintptr_t>(args[3]));
+    if (signature == "ifii")
+        return reinterpret_cast<Struct (*)(float, uintptr_t, uintptr_t)>(fnc)(bit_cast<float>(args[0]), bit_cast<uintptr_t>(args[1]), bit_cast<uintptr_t>(args[2]));
+    if (signature == "iffi")
+        return reinterpret_cast<Struct (*)(float, float, uintptr_t)>(fnc)(bit_cast<float>(args[0]), bit_cast<float>(args[1]), bit_cast<uintptr_t>(args[2]));
+    if (signature == "iijiii")
+        return reinterpret_cast<Struct (*)(uintptr_t, uintptr_t, uintptr_t, uintptr_t, uintptr_t)>(fnc)(bit_cast<uintptr_t>(args[0]), bit_cast<uintptr_t>(args[1]), bit_cast<uintptr_t>(args[2]), bit_cast<uintptr_t>(args[3]), bit_cast<uintptr_t>(args[4]));
+    if (signature == "iijii")
+        return reinterpret_cast<Struct (*)(uintptr_t, uintptr_t, uintptr_t, uintptr_t)>(fnc)(bit_cast<uintptr_t>(args[0]), bit_cast<uintptr_t>(args[1]), bit_cast<uintptr_t>(args[2]), bit_cast<uintptr_t>(args[3]));
+    if (signature == "iifii")
+        return reinterpret_cast<Struct (*)(uintptr_t, float, uintptr_t, uintptr_t)>(fnc)(bit_cast<uintptr_t>(args[0]), bit_cast<float>(args[1]), bit_cast<uintptr_t>(args[2]), bit_cast<uintptr_t>(args[3]));
+    if (signature == "iiiiiji")
+        return reinterpret_cast<Struct (*)(uintptr_t, uintptr_t, uintptr_t, uintptr_t, uintptr_t, uintptr_t)>(fnc)(bit_cast<uintptr_t>(args[0]), bit_cast<uintptr_t>(args[1]), bit_cast<uintptr_t>(args[2]), bit_cast<uintptr_t>(args[3]), bit_cast<uintptr_t>(args[4]), bit_cast<uintptr_t>(args[5]));
+    if (signature == "iiiji")
+        return reinterpret_cast<Struct (*)(uintptr_t, uintptr_t, uintptr_t, uintptr_t)>(fnc)(bit_cast<uintptr_t>(args[0]), bit_cast<uintptr_t>(args[1]), bit_cast<uintptr_t>(args[2]), bit_cast<uintptr_t>(args[3]));
+    if (signature == "iiiiji")
+        return reinterpret_cast<Struct (*)(uintptr_t, uintptr_t, uintptr_t, uintptr_t, uintptr_t)>(fnc)(bit_cast<uintptr_t>(args[0]), bit_cast<uintptr_t>(args[1]), bit_cast<uintptr_t>(args[2]), bit_cast<uintptr_t>(args[3]), bit_cast<uintptr_t>(args[4]));
+    if (signature == "iijjii")
+        return reinterpret_cast<Struct (*)(uintptr_t, uintptr_t, uintptr_t, uintptr_t, uintptr_t)>(fnc)(bit_cast<uintptr_t>(args[0]), bit_cast<uintptr_t>(args[1]), bit_cast<uintptr_t>(args[2]), bit_cast<uintptr_t>(args[3]), bit_cast<uintptr_t>(args[4]));
+    if (signature == "iiiijiii")
+        return reinterpret_cast<Struct (*)(uintptr_t, uintptr_t, uintptr_t, uintptr_t, uintptr_t, uintptr_t, uintptr_t)>(fnc)(bit_cast<uintptr_t>(args[0]), bit_cast<uintptr_t>(args[1]), bit_cast<uintptr_t>(args[2]), bit_cast<uintptr_t>(args[3]), bit_cast<uintptr_t>(args[4]), bit_cast<uintptr_t>(args[5]), bit_cast<uintptr_t>(args[6]));
+    if (signature == "iidiii")
+        return reinterpret_cast<Struct (*)(uintptr_t, double, uintptr_t, uintptr_t, uintptr_t)>(fnc)(bit_cast<uintptr_t>(args[0]), bit_cast<double>(args[1]), bit_cast<uintptr_t>(args[2]), bit_cast<uintptr_t>(args[3]), bit_cast<uintptr_t>(args[4]));
+    if (signature == "iifi")
+        return reinterpret_cast<Struct (*)(uintptr_t, float, uintptr_t)>(fnc)(bit_cast<uintptr_t>(args[0]), bit_cast<float>(args[1]), bit_cast<uintptr_t>(args[2]));
+    if (signature == "iiiijjii")
+        return reinterpret_cast<Struct (*)(uintptr_t, uintptr_t, uintptr_t, uintptr_t, uintptr_t, uintptr_t, uintptr_t)>(fnc)(bit_cast<uintptr_t>(args[0]), bit_cast<uintptr_t>(args[1]), bit_cast<uintptr_t>(args[2]), bit_cast<uintptr_t>(args[3]), bit_cast<uintptr_t>(args[4]), bit_cast<uintptr_t>(args[5]), bit_cast<uintptr_t>(args[6]));
+    if (signature == "iiiijjiiii")
+        return reinterpret_cast<Struct (*)(uintptr_t, uintptr_t, uintptr_t, uintptr_t, uintptr_t, uintptr_t, uintptr_t, uintptr_t, uintptr_t)>(fnc)(bit_cast<uintptr_t>(args[0]), bit_cast<uintptr_t>(args[1]), bit_cast<uintptr_t>(args[2]), bit_cast<uintptr_t>(args[3]), bit_cast<uintptr_t>(args[4]), bit_cast<uintptr_t>(args[5]), bit_cast<uintptr_t>(args[6]), bit_cast<uintptr_t>(args[7]), bit_cast<uintptr_t>(args[8]));
+    if (signature == "iiidii")
+        return reinterpret_cast<Struct (*)(uintptr_t, uintptr_t, double, uintptr_t, uintptr_t)>(fnc)(bit_cast<uintptr_t>(args[0]), bit_cast<uintptr_t>(args[1]), bit_cast<double>(args[2]), bit_cast<uintptr_t>(args[3]), bit_cast<uintptr_t>(args[4]));
+    if (signature == "iiiiiiji")
+        return reinterpret_cast<Struct (*)(uintptr_t, uintptr_t, uintptr_t, uintptr_t, uintptr_t, uintptr_t, uintptr_t)>(fnc)(bit_cast<uintptr_t>(args[0]), bit_cast<uintptr_t>(args[1]), bit_cast<uintptr_t>(args[2]), bit_cast<uintptr_t>(args[3]), bit_cast<uintptr_t>(args[4]), bit_cast<uintptr_t>(args[5]), bit_cast<uintptr_t>(args[6]));
+    if (signature == "iffffi")
+        return reinterpret_cast<Struct (*)(float, float, float, float, uintptr_t)>(fnc)(bit_cast<float>(args[0]), bit_cast<float>(args[1]), bit_cast<float>(args[2]), bit_cast<float>(args[3]), bit_cast<uintptr_t>(args[4]));
+    if (signature == "iiiffi")
+        return reinterpret_cast<Struct (*)(uintptr_t, uintptr_t, float, float, uintptr_t)>(fnc)(bit_cast<uintptr_t>(args[0]), bit_cast<uintptr_t>(args[1]), bit_cast<float>(args[2]), bit_cast<float>(args[3]), bit_cast<uintptr_t>(args[4]));
+    if (signature == "iiffi")
+        return reinterpret_cast<Struct (*)(uintptr_t, float, float, uintptr_t)>(fnc)(bit_cast<uintptr_t>(args[0]), bit_cast<float>(args[1]), bit_cast<float>(args[2]), bit_cast<uintptr_t>(args[3]));
+    if (signature == "iiifi")
+        return reinterpret_cast<Struct (*)(uintptr_t, uintptr_t, float, uintptr_t)>(fnc)(bit_cast<uintptr_t>(args[0]), bit_cast<uintptr_t>(args[1]), bit_cast<float>(args[2]), bit_cast<uintptr_t>(args[3]));
+    if (signature == "iffffffi")
+        return reinterpret_cast<Struct (*)(float, float, float, float, float, float, uintptr_t)>(fnc)(bit_cast<float>(args[0]), bit_cast<float>(args[1]), bit_cast<float>(args[2]), bit_cast<float>(args[3]), bit_cast<float>(args[4]), bit_cast<float>(args[5]), bit_cast<uintptr_t>(args[6]));
+    if (signature == "iiiiffi")
+        return reinterpret_cast<Struct (*)(uintptr_t, uintptr_t, uintptr_t, float, float, uintptr_t)>(fnc)(bit_cast<uintptr_t>(args[0]), bit_cast<uintptr_t>(args[1]), bit_cast<uintptr_t>(args[2]), bit_cast<float>(args[3]), bit_cast<float>(args[4]), bit_cast<uintptr_t>(args[5]));
+    if (signature == "iiiifi")
+        return reinterpret_cast<Struct (*)(uintptr_t, uintptr_t, uintptr_t, float, uintptr_t)>(fnc)(bit_cast<uintptr_t>(args[0]), bit_cast<uintptr_t>(args[1]), bit_cast<uintptr_t>(args[2]), bit_cast<float>(args[3]), bit_cast<uintptr_t>(args[4]));
+    if (signature == "iiiifffi")
+        return reinterpret_cast<Struct (*)(uintptr_t, uintptr_t, uintptr_t, float, float, float, uintptr_t)>(fnc)(bit_cast<uintptr_t>(args[0]), bit_cast<uintptr_t>(args[1]), bit_cast<uintptr_t>(args[2]), bit_cast<float>(args[3]), bit_cast<float>(args[4]), bit_cast<float>(args[5]), bit_cast<uintptr_t>(args[6]));
+    if (signature == "ifffi")
+        return reinterpret_cast<Struct (*)(float, float, float, uintptr_t)>(fnc)(bit_cast<float>(args[0]), bit_cast<float>(args[1]), bit_cast<float>(args[2]), bit_cast<uintptr_t>(args[3]));
+    if (signature == "iifffi")
+        return reinterpret_cast<Struct (*)(uintptr_t, float, float, float, uintptr_t)>(fnc)(bit_cast<uintptr_t>(args[0]), bit_cast<float>(args[1]), bit_cast<float>(args[2]), bit_cast<float>(args[3]), bit_cast<uintptr_t>(args[4]));
+    if (signature == "iiiifiiiii")
+        return reinterpret_cast<Struct (*)(uintptr_t, uintptr_t, uintptr_t, float, uintptr_t, uintptr_t, uintptr_t, uintptr_t, uintptr_t)>(fnc)(bit_cast<uintptr_t>(args[0]), bit_cast<uintptr_t>(args[1]), bit_cast<uintptr_t>(args[2]), bit_cast<float>(args[3]), bit_cast<uintptr_t>(args[4]), bit_cast<uintptr_t>(args[5]), bit_cast<uintptr_t>(args[6]), bit_cast<uintptr_t>(args[7]), bit_cast<uintptr_t>(args[8]));
+    if (signature == "iiiifiiii")
+        return reinterpret_cast<Struct (*)(uintptr_t, uintptr_t, uintptr_t, float, uintptr_t, uintptr_t, uintptr_t, uintptr_t)>(fnc)(bit_cast<uintptr_t>(args[0]), bit_cast<uintptr_t>(args[1]), bit_cast<uintptr_t>(args[2]), bit_cast<float>(args[3]), bit_cast<uintptr_t>(args[4]), bit_cast<uintptr_t>(args[5]), bit_cast<uintptr_t>(args[6]), bit_cast<uintptr_t>(args[7]));
+    if (signature == "iiiifiii")
+        return reinterpret_cast<Struct (*)(uintptr_t, uintptr_t, uintptr_t, float, uintptr_t, uintptr_t, uintptr_t)>(fnc)(bit_cast<uintptr_t>(args[0]), bit_cast<uintptr_t>(args[1]), bit_cast<uintptr_t>(args[2]), bit_cast<float>(args[3]), bit_cast<uintptr_t>(args[4]), bit_cast<uintptr_t>(args[5]), bit_cast<uintptr_t>(args[6]));
+    if (signature == "iiiifii")
+        return reinterpret_cast<Struct (*)(uintptr_t, uintptr_t, uintptr_t, float, uintptr_t, uintptr_t)>(fnc)(bit_cast<uintptr_t>(args[0]), bit_cast<uintptr_t>(args[1]), bit_cast<uintptr_t>(args[2]), bit_cast<float>(args[3]), bit_cast<uintptr_t>(args[4]), bit_cast<uintptr_t>(args[5]));
+    if (signature == "iiifii")
+        return reinterpret_cast<Struct (*)(uintptr_t, uintptr_t, float, uintptr_t, uintptr_t)>(fnc)(bit_cast<uintptr_t>(args[0]), bit_cast<uintptr_t>(args[1]), bit_cast<float>(args[2]), bit_cast<uintptr_t>(args[3]), bit_cast<uintptr_t>(args[4]));
+    if (signature == "iiifiii")
+        return reinterpret_cast<Struct (*)(uintptr_t, uintptr_t, float, uintptr_t, uintptr_t, uintptr_t)>(fnc)(bit_cast<uintptr_t>(args[0]), bit_cast<uintptr_t>(args[1]), bit_cast<float>(args[2]), bit_cast<uintptr_t>(args[3]), bit_cast<uintptr_t>(args[4]), bit_cast<uintptr_t>(args[5]));
+    if (signature == "iiiiifiii")
+        return reinterpret_cast<Struct (*)(uintptr_t, uintptr_t, uintptr_t, uintptr_t, float, uintptr_t, uintptr_t, uintptr_t)>(fnc)(bit_cast<uintptr_t>(args[0]), bit_cast<uintptr_t>(args[1]), bit_cast<uintptr_t>(args[2]), bit_cast<uintptr_t>(args[3]), bit_cast<float>(args[4]), bit_cast<uintptr_t>(args[5]), bit_cast<uintptr_t>(args[6]), bit_cast<uintptr_t>(args[7]));
+    if (signature == "iiifiiii")
+        return reinterpret_cast<Struct (*)(uintptr_t, uintptr_t, float, uintptr_t, uintptr_t, uintptr_t, uintptr_t)>(fnc)(bit_cast<uintptr_t>(args[0]), bit_cast<uintptr_t>(args[1]), bit_cast<float>(args[2]), bit_cast<uintptr_t>(args[3]), bit_cast<uintptr_t>(args[4]), bit_cast<uintptr_t>(args[5]), bit_cast<uintptr_t>(args[6]));
+    if (signature == "iiiififiiii")
+        return reinterpret_cast<Struct (*)(uintptr_t, uintptr_t, uintptr_t, float, uintptr_t, float, uintptr_t, uintptr_t, uintptr_t, uintptr_t)>(fnc)(bit_cast<uintptr_t>(args[0]), bit_cast<uintptr_t>(args[1]), bit_cast<uintptr_t>(args[2]), bit_cast<float>(args[3]), bit_cast<uintptr_t>(args[4]), bit_cast<float>(args[5]), bit_cast<uintptr_t>(args[6]), bit_cast<uintptr_t>(args[7]), bit_cast<uintptr_t>(args[8]), bit_cast<uintptr_t>(args[9]));
+    if (signature == "iiiifiifiii")
+        return reinterpret_cast<Struct (*)(uintptr_t, uintptr_t, uintptr_t, float, uintptr_t, uintptr_t, float, uintptr_t, uintptr_t, uintptr_t)>(fnc)(bit_cast<uintptr_t>(args[0]), bit_cast<uintptr_t>(args[1]), bit_cast<uintptr_t>(args[2]), bit_cast<float>(args[3]), bit_cast<uintptr_t>(args[4]), bit_cast<uintptr_t>(args[5]), bit_cast<float>(args[6]), bit_cast<uintptr_t>(args[7]), bit_cast<uintptr_t>(args[8]), bit_cast<uintptr_t>(args[9]));
+    if (signature == "iiififiiii")
+        return reinterpret_cast<Struct (*)(uintptr_t, uintptr_t, float, uintptr_t, float, uintptr_t, uintptr_t, uintptr_t, uintptr_t)>(fnc)(bit_cast<uintptr_t>(args[0]), bit_cast<uintptr_t>(args[1]), bit_cast<float>(args[2]), bit_cast<uintptr_t>(args[3]), bit_cast<float>(args[4]), bit_cast<uintptr_t>(args[5]), bit_cast<uintptr_t>(args[6]), bit_cast<uintptr_t>(args[7]), bit_cast<uintptr_t>(args[8]));
+    if (signature == "iiifiifiii")
+        return reinterpret_cast<Struct (*)(uintptr_t, uintptr_t, float, uintptr_t, uintptr_t, float, uintptr_t, uintptr_t, uintptr_t)>(fnc)(bit_cast<uintptr_t>(args[0]), bit_cast<uintptr_t>(args[1]), bit_cast<float>(args[2]), bit_cast<uintptr_t>(args[3]), bit_cast<uintptr_t>(args[4]), bit_cast<float>(args[5]), bit_cast<uintptr_t>(args[6]), bit_cast<uintptr_t>(args[7]), bit_cast<uintptr_t>(args[8]));
+    if (signature == "iiiiiifiiii")
+        return reinterpret_cast<Struct (*)(uintptr_t, uintptr_t, uintptr_t, uintptr_t, uintptr_t, float, uintptr_t, uintptr_t, uintptr_t, uintptr_t)>(fnc)(bit_cast<uintptr_t>(args[0]), bit_cast<uintptr_t>(args[1]), bit_cast<uintptr_t>(args[2]), bit_cast<uintptr_t>(args[3]), bit_cast<uintptr_t>(args[4]), bit_cast<float>(args[5]), bit_cast<uintptr_t>(args[6]), bit_cast<uintptr_t>(args[7]), bit_cast<uintptr_t>(args[8]), bit_cast<uintptr_t>(args[9]));
+    if (signature == "iiiiiiifiii")
+        return reinterpret_cast<Struct (*)(uintptr_t, uintptr_t, uintptr_t, uintptr_t, uintptr_t, uintptr_t, float, uintptr_t, uintptr_t, uintptr_t)>(fnc)(bit_cast<uintptr_t>(args[0]), bit_cast<uintptr_t>(args[1]), bit_cast<uintptr_t>(args[2]), bit_cast<uintptr_t>(args[3]), bit_cast<uintptr_t>(args[4]), bit_cast<uintptr_t>(args[5]), bit_cast<float>(args[6]), bit_cast<uintptr_t>(args[7]), bit_cast<uintptr_t>(args[8]), bit_cast<uintptr_t>(args[9]));
+    if (signature == "iifiii")
+        return reinterpret_cast<Struct (*)(uintptr_t, float, uintptr_t, uintptr_t, uintptr_t)>(fnc)(bit_cast<uintptr_t>(args[0]), bit_cast<float>(args[1]), bit_cast<uintptr_t>(args[2]), bit_cast<uintptr_t>(args[3]), bit_cast<uintptr_t>(args[4]));
+    if (signature == "iiifiifii")
+        return reinterpret_cast<Struct (*)(uintptr_t, uintptr_t, float, uintptr_t, uintptr_t, float, uintptr_t, uintptr_t)>(fnc)(bit_cast<uintptr_t>(args[0]), bit_cast<uintptr_t>(args[1]), bit_cast<float>(args[2]), bit_cast<uintptr_t>(args[3]), bit_cast<uintptr_t>(args[4]), bit_cast<float>(args[5]), bit_cast<uintptr_t>(args[6]), bit_cast<uintptr_t>(args[7]));
+    if (signature == "iifiifiii")
+        return reinterpret_cast<Struct (*)(uintptr_t, float, uintptr_t, uintptr_t, float, uintptr_t, uintptr_t, uintptr_t)>(fnc)(bit_cast<uintptr_t>(args[0]), bit_cast<float>(args[1]), bit_cast<uintptr_t>(args[2]), bit_cast<uintptr_t>(args[3]), bit_cast<float>(args[4]), bit_cast<uintptr_t>(args[5]), bit_cast<uintptr_t>(args[6]), bit_cast<uintptr_t>(args[7]));
+    if (signature == "iifiifii")
+        return reinterpret_cast<Struct (*)(uintptr_t, float, uintptr_t, uintptr_t, float, uintptr_t, uintptr_t)>(fnc)(bit_cast<uintptr_t>(args[0]), bit_cast<float>(args[1]), bit_cast<uintptr_t>(args[2]), bit_cast<uintptr_t>(args[3]), bit_cast<float>(args[4]), bit_cast<uintptr_t>(args[5]), bit_cast<uintptr_t>(args[6]));
+    if (signature == "iififiii")
+        return reinterpret_cast<Struct (*)(uintptr_t, float, uintptr_t, float, uintptr_t, uintptr_t, uintptr_t)>(fnc)(bit_cast<uintptr_t>(args[0]), bit_cast<float>(args[1]), bit_cast<uintptr_t>(args[2]), bit_cast<float>(args[3]), bit_cast<uintptr_t>(args[4]), bit_cast<uintptr_t>(args[5]), bit_cast<uintptr_t>(args[6]));
+    if (signature == "iififii")
+        return reinterpret_cast<Struct (*)(uintptr_t, float, uintptr_t, float, uintptr_t, uintptr_t)>(fnc)(bit_cast<uintptr_t>(args[0]), bit_cast<float>(args[1]), bit_cast<uintptr_t>(args[2]), bit_cast<float>(args[3]), bit_cast<uintptr_t>(args[4]), bit_cast<uintptr_t>(args[5]));
+    if (signature == "iiiiiifiii")
+        return reinterpret_cast<Struct (*)(uintptr_t, uintptr_t, uintptr_t, uintptr_t, uintptr_t, float, uintptr_t, uintptr_t, uintptr_t)>(fnc)(bit_cast<uintptr_t>(args[0]), bit_cast<uintptr_t>(args[1]), bit_cast<uintptr_t>(args[2]), bit_cast<uintptr_t>(args[3]), bit_cast<uintptr_t>(args[4]), bit_cast<float>(args[5]), bit_cast<uintptr_t>(args[6]), bit_cast<uintptr_t>(args[7]), bit_cast<uintptr_t>(args[8]));
+    if (signature == "iiiiiifi")
+        return reinterpret_cast<Struct (*)(uintptr_t, uintptr_t, uintptr_t, uintptr_t, uintptr_t, float, uintptr_t)>(fnc)(bit_cast<uintptr_t>(args[0]), bit_cast<uintptr_t>(args[1]), bit_cast<uintptr_t>(args[2]), bit_cast<uintptr_t>(args[3]), bit_cast<uintptr_t>(args[4]), bit_cast<float>(args[5]), bit_cast<uintptr_t>(args[6]));
+    if (signature == "iiiififiii")
+        return reinterpret_cast<Struct (*)(uintptr_t, uintptr_t, uintptr_t, float, uintptr_t, float, uintptr_t, uintptr_t, uintptr_t)>(fnc)(bit_cast<uintptr_t>(args[0]), bit_cast<uintptr_t>(args[1]), bit_cast<uintptr_t>(args[2]), bit_cast<float>(args[3]), bit_cast<uintptr_t>(args[4]), bit_cast<float>(args[5]), bit_cast<uintptr_t>(args[6]), bit_cast<uintptr_t>(args[7]), bit_cast<uintptr_t>(args[8]));
+    if (signature == "iiififiii")
+        return reinterpret_cast<Struct (*)(uintptr_t, uintptr_t, float, uintptr_t, float, uintptr_t, uintptr_t, uintptr_t)>(fnc)(bit_cast<uintptr_t>(args[0]), bit_cast<uintptr_t>(args[1]), bit_cast<float>(args[2]), bit_cast<uintptr_t>(args[3]), bit_cast<float>(args[4]), bit_cast<uintptr_t>(args[5]), bit_cast<uintptr_t>(args[6]), bit_cast<uintptr_t>(args[7]));
+    if (signature == "iiififi")
+        return reinterpret_cast<Struct (*)(uintptr_t, uintptr_t, float, uintptr_t, float, uintptr_t)>(fnc)(bit_cast<uintptr_t>(args[0]), bit_cast<uintptr_t>(args[1]), bit_cast<float>(args[2]), bit_cast<uintptr_t>(args[3]), bit_cast<float>(args[4]), bit_cast<uintptr_t>(args[5]));
+    if (signature == "iiffiii")
+        return reinterpret_cast<Struct (*)(uintptr_t, float, float, uintptr_t, uintptr_t, uintptr_t)>(fnc)(bit_cast<uintptr_t>(args[0]), bit_cast<float>(args[1]), bit_cast<float>(args[2]), bit_cast<uintptr_t>(args[3]), bit_cast<uintptr_t>(args[4]), bit_cast<uintptr_t>(args[5]));
+    if (signature == "iiiiiiffiiiiiiiiiffffiiii")
+        return reinterpret_cast<Struct (*)(uintptr_t, uintptr_t, uintptr_t, uintptr_t, uintptr_t, float, float, uintptr_t, uintptr_t, uintptr_t, uintptr_t, uintptr_t, uintptr_t, uintptr_t, uintptr_t, uintptr_t, float, float, float, float, uintptr_t, uintptr_t, uintptr_t, uintptr_t)>(fnc)(bit_cast<uintptr_t>(args[0]), bit_cast<uintptr_t>(args[1]), bit_cast<uintptr_t>(args[2]), bit_cast<uintptr_t>(args[3]), bit_cast<uintptr_t>(args[4]), bit_cast<float>(args[5]), bit_cast<float>(args[6]), bit_cast<uintptr_t>(args[7]), bit_cast<uintptr_t>(args[8]), bit_cast<uintptr_t>(args[9]), bit_cast<uintptr_t>(args[10]), bit_cast<uintptr_t>(args[11]), bit_cast<uintptr_t>(args[12]), bit_cast<uintptr_t>(args[13]), bit_cast<uintptr_t>(args[14]), bit_cast<uintptr_t>(args[15]), bit_cast<float>(args[16]), bit_cast<float>(args[17]), bit_cast<float>(args[18]), bit_cast<float>(args[19]), bit_cast<uintptr_t>(args[20]), bit_cast<uintptr_t>(args[21]), bit_cast<uintptr_t>(args[22]), bit_cast<uintptr_t>(args[23]));
+    if (signature == "iiiiiiffiiiiiiiiiiiiiii")
+        return reinterpret_cast<Struct (*)(uintptr_t, uintptr_t, uintptr_t, uintptr_t, uintptr_t, float, float, uintptr_t, uintptr_t, uintptr_t, uintptr_t, uintptr_t, uintptr_t, uintptr_t, uintptr_t, uintptr_t, uintptr_t, uintptr_t, uintptr_t, uintptr_t, uintptr_t, uintptr_t)>(fnc)(bit_cast<uintptr_t>(args[0]), bit_cast<uintptr_t>(args[1]), bit_cast<uintptr_t>(args[2]), bit_cast<uintptr_t>(args[3]), bit_cast<uintptr_t>(args[4]), bit_cast<float>(args[5]), bit_cast<float>(args[6]), bit_cast<uintptr_t>(args[7]), bit_cast<uintptr_t>(args[8]), bit_cast<uintptr_t>(args[9]), bit_cast<uintptr_t>(args[10]), bit_cast<uintptr_t>(args[11]), bit_cast<uintptr_t>(args[12]), bit_cast<uintptr_t>(args[13]), bit_cast<uintptr_t>(args[14]), bit_cast<uintptr_t>(args[15]), bit_cast<uintptr_t>(args[16]), bit_cast<uintptr_t>(args[17]), bit_cast<uintptr_t>(args[18]), bit_cast<uintptr_t>(args[19]), bit_cast<uintptr_t>(args[20]), bit_cast<uintptr_t>(args[21]));
+    if (signature == "iiiiffiiiiiii")
+        return reinterpret_cast<Struct (*)(uintptr_t, uintptr_t, uintptr_t, float, float, uintptr_t, uintptr_t, uintptr_t, uintptr_t, uintptr_t, uintptr_t, uintptr_t)>(fnc)(bit_cast<uintptr_t>(args[0]), bit_cast<uintptr_t>(args[1]), bit_cast<uintptr_t>(args[2]), bit_cast<float>(args[3]), bit_cast<float>(args[4]), bit_cast<uintptr_t>(args[5]), bit_cast<uintptr_t>(args[6]), bit_cast<uintptr_t>(args[7]), bit_cast<uintptr_t>(args[8]), bit_cast<uintptr_t>(args[9]), bit_cast<uintptr_t>(args[10]), bit_cast<uintptr_t>(args[11]));
+    if (signature == "iffiii")
+        return reinterpret_cast<Struct (*)(float, float, uintptr_t, uintptr_t, uintptr_t)>(fnc)(bit_cast<float>(args[0]), bit_cast<float>(args[1]), bit_cast<uintptr_t>(args[2]), bit_cast<uintptr_t>(args[3]), bit_cast<uintptr_t>(args[4]));
+    if (signature == "iffffiii")
+        return reinterpret_cast<Struct (*)(float, float, float, float, uintptr_t, uintptr_t, uintptr_t)>(fnc)(bit_cast<float>(args[0]), bit_cast<float>(args[1]), bit_cast<float>(args[2]), bit_cast<float>(args[3]), bit_cast<uintptr_t>(args[4]), bit_cast<uintptr_t>(args[5]), bit_cast<uintptr_t>(args[6]));
+    if (signature == "iiififfi")
+        return reinterpret_cast<Struct (*)(uintptr_t, uintptr_t, float, uintptr_t, float, float, uintptr_t)>(fnc)(bit_cast<uintptr_t>(args[0]), bit_cast<uintptr_t>(args[1]), bit_cast<float>(args[2]), bit_cast<uintptr_t>(args[3]), bit_cast<float>(args[4]), bit_cast<float>(args[5]), bit_cast<uintptr_t>(args[6]));
+    if (signature == "iiiiifi")
+        return reinterpret_cast<Struct (*)(uintptr_t, uintptr_t, uintptr_t, uintptr_t, float, uintptr_t)>(fnc)(bit_cast<uintptr_t>(args[0]), bit_cast<uintptr_t>(args[1]), bit_cast<uintptr_t>(args[2]), bit_cast<uintptr_t>(args[3]), bit_cast<float>(args[4]), bit_cast<uintptr_t>(args[5]));
+    if (signature == "ijjiiii")
+        return reinterpret_cast<Struct (*)(uintptr_t, uintptr_t, uintptr_t, uintptr_t, uintptr_t, uintptr_t)>(fnc)(bit_cast<uintptr_t>(args[0]), bit_cast<uintptr_t>(args[1]), bit_cast<uintptr_t>(args[2]), bit_cast<uintptr_t>(args[3]), bit_cast<uintptr_t>(args[4]), bit_cast<uintptr_t>(args[5]));
+    if (signature == "iiijji")
+        return reinterpret_cast<Struct (*)(uintptr_t, uintptr_t, uintptr_t, uintptr_t, uintptr_t)>(fnc)(bit_cast<uintptr_t>(args[0]), bit_cast<uintptr_t>(args[1]), bit_cast<uintptr_t>(args[2]), bit_cast<uintptr_t>(args[3]), bit_cast<uintptr_t>(args[4]));
+    if (signature == "iiiffiii")
+        return reinterpret_cast<Struct (*)(uintptr_t, uintptr_t, float, float, uintptr_t, uintptr_t, uintptr_t)>(fnc)(bit_cast<uintptr_t>(args[0]), bit_cast<uintptr_t>(args[1]), bit_cast<float>(args[2]), bit_cast<float>(args[3]), bit_cast<uintptr_t>(args[4]), bit_cast<uintptr_t>(args[5]), bit_cast<uintptr_t>(args[6]));
+    if (signature == "iiififii")
+        return reinterpret_cast<Struct (*)(uintptr_t, uintptr_t, float, uintptr_t, float, uintptr_t, uintptr_t)>(fnc)(bit_cast<uintptr_t>(args[0]), bit_cast<uintptr_t>(args[1]), bit_cast<float>(args[2]), bit_cast<uintptr_t>(args[3]), bit_cast<float>(args[4]), bit_cast<uintptr_t>(args[5]), bit_cast<uintptr_t>(args[6]));
+    if (signature == "iiijjiiii")
+        return reinterpret_cast<Struct (*)(uintptr_t, uintptr_t, uintptr_t, uintptr_t, uintptr_t, uintptr_t, uintptr_t, uintptr_t)>(fnc)(bit_cast<uintptr_t>(args[0]), bit_cast<uintptr_t>(args[1]), bit_cast<uintptr_t>(args[2]), bit_cast<uintptr_t>(args[3]), bit_cast<uintptr_t>(args[4]), bit_cast<uintptr_t>(args[5]), bit_cast<uintptr_t>(args[6]), bit_cast<uintptr_t>(args[7]));
+    if (signature == "iiijiii")
+        return reinterpret_cast<Struct (*)(uintptr_t, uintptr_t, uintptr_t, uintptr_t, uintptr_t, uintptr_t)>(fnc)(bit_cast<uintptr_t>(args[0]), bit_cast<uintptr_t>(args[1]), bit_cast<uintptr_t>(args[2]), bit_cast<uintptr_t>(args[3]), bit_cast<uintptr_t>(args[4]), bit_cast<uintptr_t>(args[5]));
+    if (signature == "iiidiii")
+        return reinterpret_cast<Struct (*)(uintptr_t, uintptr_t, double, uintptr_t, uintptr_t, uintptr_t)>(fnc)(bit_cast<uintptr_t>(args[0]), bit_cast<uintptr_t>(args[1]), bit_cast<double>(args[2]), bit_cast<uintptr_t>(args[3]), bit_cast<uintptr_t>(args[4]), bit_cast<uintptr_t>(args[5]));
+    if (signature == "iiffffiii")
+        return reinterpret_cast<Struct (*)(uintptr_t, float, float, float, float, uintptr_t, uintptr_t, uintptr_t)>(fnc)(bit_cast<uintptr_t>(args[0]), bit_cast<float>(args[1]), bit_cast<float>(args[2]), bit_cast<float>(args[3]), bit_cast<float>(args[4]), bit_cast<uintptr_t>(args[5]), bit_cast<uintptr_t>(args[6]), bit_cast<uintptr_t>(args[7]));
+    if (signature == "iiidfi")
+        return reinterpret_cast<Struct (*)(uintptr_t, uintptr_t, double, float, uintptr_t)>(fnc)(bit_cast<uintptr_t>(args[0]), bit_cast<uintptr_t>(args[1]), bit_cast<double>(args[2]), bit_cast<float>(args[3]), bit_cast<uintptr_t>(args[4]));
+    if (signature == "iiijfi")
+        return reinterpret_cast<Struct (*)(uintptr_t, uintptr_t, uintptr_t, float, uintptr_t)>(fnc)(bit_cast<uintptr_t>(args[0]), bit_cast<uintptr_t>(args[1]), bit_cast<uintptr_t>(args[2]), bit_cast<float>(args[3]), bit_cast<uintptr_t>(args[4]));
+    if (signature == "iiiffii")
+        return reinterpret_cast<Struct (*)(uintptr_t, uintptr_t, float, float, uintptr_t, uintptr_t)>(fnc)(bit_cast<uintptr_t>(args[0]), bit_cast<uintptr_t>(args[1]), bit_cast<float>(args[2]), bit_cast<float>(args[3]), bit_cast<uintptr_t>(args[4]), bit_cast<uintptr_t>(args[5]));
+    if (signature == "iiiififi")
+        return reinterpret_cast<Struct (*)(uintptr_t, uintptr_t, uintptr_t, float, uintptr_t, float, uintptr_t)>(fnc)(bit_cast<uintptr_t>(args[0]), bit_cast<uintptr_t>(args[1]), bit_cast<uintptr_t>(args[2]), bit_cast<float>(args[3]), bit_cast<uintptr_t>(args[4]), bit_cast<float>(args[5]), bit_cast<uintptr_t>(args[6]));
+    if (signature == "iiiffifiii")
+        return reinterpret_cast<Struct (*)(uintptr_t, uintptr_t, float, float, uintptr_t, float, uintptr_t, uintptr_t, uintptr_t)>(fnc)(bit_cast<uintptr_t>(args[0]), bit_cast<uintptr_t>(args[1]), bit_cast<float>(args[2]), bit_cast<float>(args[3]), bit_cast<uintptr_t>(args[4]), bit_cast<float>(args[5]), bit_cast<uintptr_t>(args[6]), bit_cast<uintptr_t>(args[7]), bit_cast<uintptr_t>(args[8]));
+    if (signature == "iiifiifiiii")
+        return reinterpret_cast<Struct (*)(uintptr_t, uintptr_t, float, uintptr_t, uintptr_t, float, uintptr_t, uintptr_t, uintptr_t, uintptr_t)>(fnc)(bit_cast<uintptr_t>(args[0]), bit_cast<uintptr_t>(args[1]), bit_cast<float>(args[2]), bit_cast<uintptr_t>(args[3]), bit_cast<uintptr_t>(args[4]), bit_cast<float>(args[5]), bit_cast<uintptr_t>(args[6]), bit_cast<uintptr_t>(args[7]), bit_cast<uintptr_t>(args[8]), bit_cast<uintptr_t>(args[9]));
+    if (signature == "ifffii")
+        return reinterpret_cast<Struct (*)(float, float, float, uintptr_t, uintptr_t)>(fnc)(bit_cast<float>(args[0]), bit_cast<float>(args[1]), bit_cast<float>(args[2]), bit_cast<uintptr_t>(args[3]), bit_cast<uintptr_t>(args[4]));
+    if (signature == "iifiiiiii")
+        return reinterpret_cast<Struct (*)(uintptr_t, float, uintptr_t, uintptr_t, uintptr_t, uintptr_t, uintptr_t, uintptr_t)>(fnc)(bit_cast<uintptr_t>(args[0]), bit_cast<float>(args[1]), bit_cast<uintptr_t>(args[2]), bit_cast<uintptr_t>(args[3]), bit_cast<uintptr_t>(args[4]), bit_cast<uintptr_t>(args[5]), bit_cast<uintptr_t>(args[6]), bit_cast<uintptr_t>(args[7]));
+    if (signature == "iifiiiii")
+        return reinterpret_cast<Struct (*)(uintptr_t, float, uintptr_t, uintptr_t, uintptr_t, uintptr_t, uintptr_t)>(fnc)(bit_cast<uintptr_t>(args[0]), bit_cast<float>(args[1]), bit_cast<uintptr_t>(args[2]), bit_cast<uintptr_t>(args[3]), bit_cast<uintptr_t>(args[4]), bit_cast<uintptr_t>(args[5]), bit_cast<uintptr_t>(args[6]));
+    if (signature == "iiffiiiii")
+        return reinterpret_cast<Struct (*)(uintptr_t, float, float, uintptr_t, uintptr_t, uintptr_t, uintptr_t, uintptr_t)>(fnc)(bit_cast<uintptr_t>(args[0]), bit_cast<float>(args[1]), bit_cast<float>(args[2]), bit_cast<uintptr_t>(args[3]), bit_cast<uintptr_t>(args[4]), bit_cast<uintptr_t>(args[5]), bit_cast<uintptr_t>(args[6]), bit_cast<uintptr_t>(args[7]));
+    if (signature == "iiffifii")
+        return reinterpret_cast<Struct (*)(uintptr_t, float, float, uintptr_t, float, uintptr_t, uintptr_t)>(fnc)(bit_cast<uintptr_t>(args[0]), bit_cast<float>(args[1]), bit_cast<float>(args[2]), bit_cast<uintptr_t>(args[3]), bit_cast<float>(args[4]), bit_cast<uintptr_t>(args[5]), bit_cast<uintptr_t>(args[6]));
+    if (signature == "iififi")
+        return reinterpret_cast<Struct (*)(uintptr_t, float, uintptr_t, float, uintptr_t)>(fnc)(bit_cast<uintptr_t>(args[0]), bit_cast<float>(args[1]), bit_cast<uintptr_t>(args[2]), bit_cast<float>(args[3]), bit_cast<uintptr_t>(args[4]));
+    if (signature == "iiffii")
+        return reinterpret_cast<Struct (*)(uintptr_t, float, float, uintptr_t, uintptr_t)>(fnc)(bit_cast<uintptr_t>(args[0]), bit_cast<float>(args[1]), bit_cast<float>(args[2]), bit_cast<uintptr_t>(args[3]), bit_cast<uintptr_t>(args[4]));
+    if (signature == "iiffifiii")
+        return reinterpret_cast<Struct (*)(uintptr_t, float, float, uintptr_t, float, uintptr_t, uintptr_t, uintptr_t)>(fnc)(bit_cast<uintptr_t>(args[0]), bit_cast<float>(args[1]), bit_cast<float>(args[2]), bit_cast<uintptr_t>(args[3]), bit_cast<float>(args[4]), bit_cast<uintptr_t>(args[5]), bit_cast<uintptr_t>(args[6]), bit_cast<uintptr_t>(args[7]));
+    if (signature == "iiifiiiii")
+        return reinterpret_cast<Struct (*)(uintptr_t, uintptr_t, float, uintptr_t, uintptr_t, uintptr_t, uintptr_t, uintptr_t)>(fnc)(bit_cast<uintptr_t>(args[0]), bit_cast<uintptr_t>(args[1]), bit_cast<float>(args[2]), bit_cast<uintptr_t>(args[3]), bit_cast<uintptr_t>(args[4]), bit_cast<uintptr_t>(args[5]), bit_cast<uintptr_t>(args[6]), bit_cast<uintptr_t>(args[7]));
+    if (signature == "iiiiifiiii")
+        return reinterpret_cast<Struct (*)(uintptr_t, uintptr_t, uintptr_t, uintptr_t, float, uintptr_t, uintptr_t, uintptr_t, uintptr_t)>(fnc)(bit_cast<uintptr_t>(args[0]), bit_cast<uintptr_t>(args[1]), bit_cast<uintptr_t>(args[2]), bit_cast<uintptr_t>(args[3]), bit_cast<float>(args[4]), bit_cast<uintptr_t>(args[5]), bit_cast<uintptr_t>(args[6]), bit_cast<uintptr_t>(args[7]), bit_cast<uintptr_t>(args[8]));
+    if (signature == "iiiiifii")
+        return reinterpret_cast<Struct (*)(uintptr_t, uintptr_t, uintptr_t, uintptr_t, float, uintptr_t, uintptr_t)>(fnc)(bit_cast<uintptr_t>(args[0]), bit_cast<uintptr_t>(args[1]), bit_cast<uintptr_t>(args[2]), bit_cast<uintptr_t>(args[3]), bit_cast<float>(args[4]), bit_cast<uintptr_t>(args[5]), bit_cast<uintptr_t>(args[6]));
+    if (signature == "iifiiii")
+        return reinterpret_cast<Struct (*)(uintptr_t, float, uintptr_t, uintptr_t, uintptr_t, uintptr_t)>(fnc)(bit_cast<uintptr_t>(args[0]), bit_cast<float>(args[1]), bit_cast<uintptr_t>(args[2]), bit_cast<uintptr_t>(args[3]), bit_cast<uintptr_t>(args[4]), bit_cast<uintptr_t>(args[5]));
+    if (signature == "iiiiiiidii")
+        return reinterpret_cast<Struct (*)(uintptr_t, uintptr_t, uintptr_t, uintptr_t, uintptr_t, uintptr_t, double, uintptr_t, uintptr_t)>(fnc)(bit_cast<uintptr_t>(args[0]), bit_cast<uintptr_t>(args[1]), bit_cast<uintptr_t>(args[2]), bit_cast<uintptr_t>(args[3]), bit_cast<uintptr_t>(args[4]), bit_cast<uintptr_t>(args[5]), bit_cast<double>(args[6]), bit_cast<uintptr_t>(args[7]), bit_cast<uintptr_t>(args[8]));
+    if (signature == "iiidi")
+        return reinterpret_cast<Struct (*)(uintptr_t, uintptr_t, double, uintptr_t)>(fnc)(bit_cast<uintptr_t>(args[0]), bit_cast<uintptr_t>(args[1]), bit_cast<double>(args[2]), bit_cast<uintptr_t>(args[3]));
+    if (signature == "iiiidi")
+        return reinterpret_cast<Struct (*)(uintptr_t, uintptr_t, uintptr_t, double, uintptr_t)>(fnc)(bit_cast<uintptr_t>(args[0]), bit_cast<uintptr_t>(args[1]), bit_cast<uintptr_t>(args[2]), bit_cast<double>(args[3]), bit_cast<uintptr_t>(args[4]));
+    if (signature == "ijjji")
+        return reinterpret_cast<Struct (*)(uintptr_t, uintptr_t, uintptr_t, uintptr_t)>(fnc)(bit_cast<uintptr_t>(args[0]), bit_cast<uintptr_t>(args[1]), bit_cast<uintptr_t>(args[2]), bit_cast<uintptr_t>(args[3]));
+    if (signature == "ifiiiiii")
+        return reinterpret_cast<Struct (*)(float, uintptr_t, uintptr_t, uintptr_t, uintptr_t, uintptr_t, uintptr_t)>(fnc)(bit_cast<float>(args[0]), bit_cast<uintptr_t>(args[1]), bit_cast<uintptr_t>(args[2]), bit_cast<uintptr_t>(args[3]), bit_cast<uintptr_t>(args[4]), bit_cast<uintptr_t>(args[5]), bit_cast<uintptr_t>(args[6]));
+    if (signature == "iiiiiffi")
+        return reinterpret_cast<Struct (*)(uintptr_t, uintptr_t, uintptr_t, uintptr_t, float, float, uintptr_t)>(fnc)(bit_cast<uintptr_t>(args[0]), bit_cast<uintptr_t>(args[1]), bit_cast<uintptr_t>(args[2]), bit_cast<uintptr_t>(args[3]), bit_cast<float>(args[4]), bit_cast<float>(args[5]), bit_cast<uintptr_t>(args[6]));
+    if (signature == "iiiiijiii")
+        return reinterpret_cast<Struct (*)(uintptr_t, uintptr_t, uintptr_t, uintptr_t, uintptr_t, uintptr_t, uintptr_t, uintptr_t)>(fnc)(bit_cast<uintptr_t>(args[0]), bit_cast<uintptr_t>(args[1]), bit_cast<uintptr_t>(args[2]), bit_cast<uintptr_t>(args[3]), bit_cast<uintptr_t>(args[4]), bit_cast<uintptr_t>(args[5]), bit_cast<uintptr_t>(args[6]), bit_cast<uintptr_t>(args[7]));
+    if (signature == "iiiifdi")
+        return reinterpret_cast<Struct (*)(uintptr_t, uintptr_t, uintptr_t, float, double, uintptr_t)>(fnc)(bit_cast<uintptr_t>(args[0]), bit_cast<uintptr_t>(args[1]), bit_cast<uintptr_t>(args[2]), bit_cast<float>(args[3]), bit_cast<double>(args[4]), bit_cast<uintptr_t>(args[5]));
+    if (signature == "iiifdi")
+        return reinterpret_cast<Struct (*)(uintptr_t, uintptr_t, float, double, uintptr_t)>(fnc)(bit_cast<uintptr_t>(args[0]), bit_cast<uintptr_t>(args[1]), bit_cast<float>(args[2]), bit_cast<double>(args[3]), bit_cast<uintptr_t>(args[4]));
+    if (signature == "iifdi")
+        return reinterpret_cast<Struct (*)(uintptr_t, float, double, uintptr_t)>(fnc)(bit_cast<uintptr_t>(args[0]), bit_cast<float>(args[1]), bit_cast<double>(args[2]), bit_cast<uintptr_t>(args[3]));
+    if (signature == "iififfi")
+        return reinterpret_cast<Struct (*)(uintptr_t, float, uintptr_t, float, float, uintptr_t)>(fnc)(bit_cast<uintptr_t>(args[0]), bit_cast<float>(args[1]), bit_cast<uintptr_t>(args[2]), bit_cast<float>(args[3]), bit_cast<float>(args[4]), bit_cast<uintptr_t>(args[5]));
+    if (signature == "iiifffi")
+        return reinterpret_cast<Struct (*)(uintptr_t, uintptr_t, float, float, float, uintptr_t)>(fnc)(bit_cast<uintptr_t>(args[0]), bit_cast<uintptr_t>(args[1]), bit_cast<float>(args[2]), bit_cast<float>(args[3]), bit_cast<float>(args[4]), bit_cast<uintptr_t>(args[5]));
+    if (signature == "iiiiffiiii")
+        return reinterpret_cast<Struct (*)(uintptr_t, uintptr_t, uintptr_t, float, float, uintptr_t, uintptr_t, uintptr_t, uintptr_t)>(fnc)(bit_cast<uintptr_t>(args[0]), bit_cast<uintptr_t>(args[1]), bit_cast<uintptr_t>(args[2]), bit_cast<float>(args[3]), bit_cast<float>(args[4]), bit_cast<uintptr_t>(args[5]), bit_cast<uintptr_t>(args[6]), bit_cast<uintptr_t>(args[7]), bit_cast<uintptr_t>(args[8]));
+    if (signature == "iiiiffii")
+        return reinterpret_cast<Struct (*)(uintptr_t, uintptr_t, uintptr_t, float, float, uintptr_t, uintptr_t)>(fnc)(bit_cast<uintptr_t>(args[0]), bit_cast<uintptr_t>(args[1]), bit_cast<uintptr_t>(args[2]), bit_cast<float>(args[3]), bit_cast<float>(args[4]), bit_cast<uintptr_t>(args[5]), bit_cast<uintptr_t>(args[6]));
+    if (signature == "iifiiiiiii")
+        return reinterpret_cast<Struct (*)(uintptr_t, float, uintptr_t, uintptr_t, uintptr_t, uintptr_t, uintptr_t, uintptr_t, uintptr_t)>(fnc)(bit_cast<uintptr_t>(args[0]), bit_cast<float>(args[1]), bit_cast<uintptr_t>(args[2]), bit_cast<uintptr_t>(args[3]), bit_cast<uintptr_t>(args[4]), bit_cast<uintptr_t>(args[5]), bit_cast<uintptr_t>(args[6]), bit_cast<uintptr_t>(args[7]), bit_cast<uintptr_t>(args[8]));
+    if (signature == "iiiififii")
+        return reinterpret_cast<Struct (*)(uintptr_t, uintptr_t, uintptr_t, float, uintptr_t, float, uintptr_t, uintptr_t)>(fnc)(bit_cast<uintptr_t>(args[0]), bit_cast<uintptr_t>(args[1]), bit_cast<uintptr_t>(args[2]), bit_cast<float>(args[3]), bit_cast<uintptr_t>(args[4]), bit_cast<float>(args[5]), bit_cast<uintptr_t>(args[6]), bit_cast<uintptr_t>(args[7]));
+    if (signature == "iiiffiiii")
+        return reinterpret_cast<Struct (*)(uintptr_t, uintptr_t, float, float, uintptr_t, uintptr_t, uintptr_t, uintptr_t)>(fnc)(bit_cast<uintptr_t>(args[0]), bit_cast<uintptr_t>(args[1]), bit_cast<float>(args[2]), bit_cast<float>(args[3]), bit_cast<uintptr_t>(args[4]), bit_cast<uintptr_t>(args[5]), bit_cast<uintptr_t>(args[6]), bit_cast<uintptr_t>(args[7]));
+    if (signature == "iijiiiiii")
+        return reinterpret_cast<Struct (*)(uintptr_t, uintptr_t, uintptr_t, uintptr_t, uintptr_t, uintptr_t, uintptr_t, uintptr_t)>(fnc)(bit_cast<uintptr_t>(args[0]), bit_cast<uintptr_t>(args[1]), bit_cast<uintptr_t>(args[2]), bit_cast<uintptr_t>(args[3]), bit_cast<uintptr_t>(args[4]), bit_cast<uintptr_t>(args[5]), bit_cast<uintptr_t>(args[6]), bit_cast<uintptr_t>(args[7]));
+    if (signature == "iijiiiiiiii")
+        return reinterpret_cast<Struct (*)(uintptr_t, uintptr_t, uintptr_t, uintptr_t, uintptr_t, uintptr_t, uintptr_t, uintptr_t, uintptr_t, uintptr_t)>(fnc)(bit_cast<uintptr_t>(args[0]), bit_cast<uintptr_t>(args[1]), bit_cast<uintptr_t>(args[2]), bit_cast<uintptr_t>(args[3]), bit_cast<uintptr_t>(args[4]), bit_cast<uintptr_t>(args[5]), bit_cast<uintptr_t>(args[6]), bit_cast<uintptr_t>(args[7]), bit_cast<uintptr_t>(args[8]), bit_cast<uintptr_t>(args[9]));
+    if (signature == "iijiiiii")
+        return reinterpret_cast<Struct (*)(uintptr_t, uintptr_t, uintptr_t, uintptr_t, uintptr_t, uintptr_t, uintptr_t)>(fnc)(bit_cast<uintptr_t>(args[0]), bit_cast<uintptr_t>(args[1]), bit_cast<uintptr_t>(args[2]), bit_cast<uintptr_t>(args[3]), bit_cast<uintptr_t>(args[4]), bit_cast<uintptr_t>(args[5]), bit_cast<uintptr_t>(args[6]));
+    if (signature == "iijiiiiiii")
+        return reinterpret_cast<Struct (*)(uintptr_t, uintptr_t, uintptr_t, uintptr_t, uintptr_t, uintptr_t, uintptr_t, uintptr_t, uintptr_t)>(fnc)(bit_cast<uintptr_t>(args[0]), bit_cast<uintptr_t>(args[1]), bit_cast<uintptr_t>(args[2]), bit_cast<uintptr_t>(args[3]), bit_cast<uintptr_t>(args[4]), bit_cast<uintptr_t>(args[5]), bit_cast<uintptr_t>(args[6]), bit_cast<uintptr_t>(args[7]), bit_cast<uintptr_t>(args[8]));
+    if (signature == "iijiiii")
+        return reinterpret_cast<Struct (*)(uintptr_t, uintptr_t, uintptr_t, uintptr_t, uintptr_t, uintptr_t)>(fnc)(bit_cast<uintptr_t>(args[0]), bit_cast<uintptr_t>(args[1]), bit_cast<uintptr_t>(args[2]), bit_cast<uintptr_t>(args[3]), bit_cast<uintptr_t>(args[4]), bit_cast<uintptr_t>(args[5]));
+    if (signature == "iifffffiiii")
+        return reinterpret_cast<Struct (*)(uintptr_t, float, float, float, float, float, uintptr_t, uintptr_t, uintptr_t, uintptr_t)>(fnc)(bit_cast<uintptr_t>(args[0]), bit_cast<float>(args[1]), bit_cast<float>(args[2]), bit_cast<float>(args[3]), bit_cast<float>(args[4]), bit_cast<float>(args[5]), bit_cast<uintptr_t>(args[6]), bit_cast<uintptr_t>(args[7]), bit_cast<uintptr_t>(args[8]), bit_cast<uintptr_t>(args[9]));
+    if (signature == "iijfffi")
+        return reinterpret_cast<Struct (*)(uintptr_t, uintptr_t, float, float, float, uintptr_t)>(fnc)(bit_cast<uintptr_t>(args[0]), bit_cast<uintptr_t>(args[1]), bit_cast<float>(args[2]), bit_cast<float>(args[3]), bit_cast<float>(args[4]), bit_cast<uintptr_t>(args[5]));
+    if (signature == "iijfffiii")
+        return reinterpret_cast<Struct (*)(uintptr_t, uintptr_t, float, float, float, uintptr_t, uintptr_t, uintptr_t)>(fnc)(bit_cast<uintptr_t>(args[0]), bit_cast<uintptr_t>(args[1]), bit_cast<float>(args[2]), bit_cast<float>(args[3]), bit_cast<float>(args[4]), bit_cast<uintptr_t>(args[5]), bit_cast<uintptr_t>(args[6]), bit_cast<uintptr_t>(args[7]));
+    if (signature == "iijfi")
+        return reinterpret_cast<Struct (*)(uintptr_t, uintptr_t, float, uintptr_t)>(fnc)(bit_cast<uintptr_t>(args[0]), bit_cast<uintptr_t>(args[1]), bit_cast<float>(args[2]), bit_cast<uintptr_t>(args[3]));
+    if (signature == "iijfiii")
+        return reinterpret_cast<Struct (*)(uintptr_t, uintptr_t, float, uintptr_t, uintptr_t, uintptr_t)>(fnc)(bit_cast<uintptr_t>(args[0]), bit_cast<uintptr_t>(args[1]), bit_cast<float>(args[2]), bit_cast<uintptr_t>(args[3]), bit_cast<uintptr_t>(args[4]), bit_cast<uintptr_t>(args[5]));
+    if (signature == "iijffi")
+        return reinterpret_cast<Struct (*)(uintptr_t, uintptr_t, float, float, uintptr_t)>(fnc)(bit_cast<uintptr_t>(args[0]), bit_cast<uintptr_t>(args[1]), bit_cast<float>(args[2]), bit_cast<float>(args[3]), bit_cast<uintptr_t>(args[4]));
+    if (signature == "iijffiii")
+        return reinterpret_cast<Struct (*)(uintptr_t, uintptr_t, float, float, uintptr_t, uintptr_t, uintptr_t)>(fnc)(bit_cast<uintptr_t>(args[0]), bit_cast<uintptr_t>(args[1]), bit_cast<float>(args[2]), bit_cast<float>(args[3]), bit_cast<uintptr_t>(args[4]), bit_cast<uintptr_t>(args[5]), bit_cast<uintptr_t>(args[6]));
+    if (signature == "iijjiiii")
+        return reinterpret_cast<Struct (*)(uintptr_t, uintptr_t, uintptr_t, uintptr_t, uintptr_t, uintptr_t, uintptr_t)>(fnc)(bit_cast<uintptr_t>(args[0]), bit_cast<uintptr_t>(args[1]), bit_cast<uintptr_t>(args[2]), bit_cast<uintptr_t>(args[3]), bit_cast<uintptr_t>(args[4]), bit_cast<uintptr_t>(args[5]), bit_cast<uintptr_t>(args[6]));
+    if (signature == "iiijjiii")
+        return reinterpret_cast<Struct (*)(uintptr_t, uintptr_t, uintptr_t, uintptr_t, uintptr_t, uintptr_t, uintptr_t)>(fnc)(bit_cast<uintptr_t>(args[0]), bit_cast<uintptr_t>(args[1]), bit_cast<uintptr_t>(args[2]), bit_cast<uintptr_t>(args[3]), bit_cast<uintptr_t>(args[4]), bit_cast<uintptr_t>(args[5]), bit_cast<uintptr_t>(args[6]));
+    if (signature == "iijiiiiiiiii")
+        return reinterpret_cast<Struct (*)(uintptr_t, uintptr_t, uintptr_t, uintptr_t, uintptr_t, uintptr_t, uintptr_t, uintptr_t, uintptr_t, uintptr_t, uintptr_t)>(fnc)(bit_cast<uintptr_t>(args[0]), bit_cast<uintptr_t>(args[1]), bit_cast<uintptr_t>(args[2]), bit_cast<uintptr_t>(args[3]), bit_cast<uintptr_t>(args[4]), bit_cast<uintptr_t>(args[5]), bit_cast<uintptr_t>(args[6]), bit_cast<uintptr_t>(args[7]), bit_cast<uintptr_t>(args[8]), bit_cast<uintptr_t>(args[9]), bit_cast<uintptr_t>(args[10]));
+    if (signature == "iijiiiiiiiiiii")
+        return reinterpret_cast<Struct (*)(uintptr_t, uintptr_t, uintptr_t, uintptr_t, uintptr_t, uintptr_t, uintptr_t, uintptr_t, uintptr_t, uintptr_t, uintptr_t, uintptr_t, uintptr_t)>(fnc)(bit_cast<uintptr_t>(args[0]), bit_cast<uintptr_t>(args[1]), bit_cast<uintptr_t>(args[2]), bit_cast<uintptr_t>(args[3]), bit_cast<uintptr_t>(args[4]), bit_cast<uintptr_t>(args[5]), bit_cast<uintptr_t>(args[6]), bit_cast<uintptr_t>(args[7]), bit_cast<uintptr_t>(args[8]), bit_cast<uintptr_t>(args[9]), bit_cast<uintptr_t>(args[10]), bit_cast<uintptr_t>(args[11]), bit_cast<uintptr_t>(args[12]));
+    if (signature == "iiiiiiiiji")
+        return reinterpret_cast<Struct (*)(uintptr_t, uintptr_t, uintptr_t, uintptr_t, uintptr_t, uintptr_t, uintptr_t, uintptr_t, uintptr_t)>(fnc)(bit_cast<uintptr_t>(args[0]), bit_cast<uintptr_t>(args[1]), bit_cast<uintptr_t>(args[2]), bit_cast<uintptr_t>(args[3]), bit_cast<uintptr_t>(args[4]), bit_cast<uintptr_t>(args[5]), bit_cast<uintptr_t>(args[6]), bit_cast<uintptr_t>(args[7]), bit_cast<uintptr_t>(args[8]));
+    if (signature == "iiiiiiiijiii")
+        return reinterpret_cast<Struct (*)(uintptr_t, uintptr_t, uintptr_t, uintptr_t, uintptr_t, uintptr_t, uintptr_t, uintptr_t, uintptr_t, uintptr_t, uintptr_t)>(fnc)(bit_cast<uintptr_t>(args[0]), bit_cast<uintptr_t>(args[1]), bit_cast<uintptr_t>(args[2]), bit_cast<uintptr_t>(args[3]), bit_cast<uintptr_t>(args[4]), bit_cast<uintptr_t>(args[5]), bit_cast<uintptr_t>(args[6]), bit_cast<uintptr_t>(args[7]), bit_cast<uintptr_t>(args[8]), bit_cast<uintptr_t>(args[9]), bit_cast<uintptr_t>(args[10]));
+    if (signature == "iijiiiiiiji")
+        return reinterpret_cast<Struct (*)(uintptr_t, uintptr_t, uintptr_t, uintptr_t, uintptr_t, uintptr_t, uintptr_t, uintptr_t, uintptr_t, uintptr_t)>(fnc)(bit_cast<uintptr_t>(args[0]), bit_cast<uintptr_t>(args[1]), bit_cast<uintptr_t>(args[2]), bit_cast<uintptr_t>(args[3]), bit_cast<uintptr_t>(args[4]), bit_cast<uintptr_t>(args[5]), bit_cast<uintptr_t>(args[6]), bit_cast<uintptr_t>(args[7]), bit_cast<uintptr_t>(args[8]), bit_cast<uintptr_t>(args[9]));
+    if (signature == "iijiiiiiijiii")
+        return reinterpret_cast<Struct (*)(uintptr_t, uintptr_t, uintptr_t, uintptr_t, uintptr_t, uintptr_t, uintptr_t, uintptr_t, uintptr_t, uintptr_t, uintptr_t, uintptr_t)>(fnc)(bit_cast<uintptr_t>(args[0]), bit_cast<uintptr_t>(args[1]), bit_cast<uintptr_t>(args[2]), bit_cast<uintptr_t>(args[3]), bit_cast<uintptr_t>(args[4]), bit_cast<uintptr_t>(args[5]), bit_cast<uintptr_t>(args[6]), bit_cast<uintptr_t>(args[7]), bit_cast<uintptr_t>(args[8]), bit_cast<uintptr_t>(args[9]), bit_cast<uintptr_t>(args[10]), bit_cast<uintptr_t>(args[11]));
+    if (signature == "iijjiiiiii")
+        return reinterpret_cast<Struct (*)(uintptr_t, uintptr_t, uintptr_t, uintptr_t, uintptr_t, uintptr_t, uintptr_t, uintptr_t, uintptr_t)>(fnc)(bit_cast<uintptr_t>(args[0]), bit_cast<uintptr_t>(args[1]), bit_cast<uintptr_t>(args[2]), bit_cast<uintptr_t>(args[3]), bit_cast<uintptr_t>(args[4]), bit_cast<uintptr_t>(args[5]), bit_cast<uintptr_t>(args[6]), bit_cast<uintptr_t>(args[7]), bit_cast<uintptr_t>(args[8]));
+    if (signature == "iijjiiiiiiii")
+        return reinterpret_cast<Struct (*)(uintptr_t, uintptr_t, uintptr_t, uintptr_t, uintptr_t, uintptr_t, uintptr_t, uintptr_t, uintptr_t, uintptr_t, uintptr_t)>(fnc)(bit_cast<uintptr_t>(args[0]), bit_cast<uintptr_t>(args[1]), bit_cast<uintptr_t>(args[2]), bit_cast<uintptr_t>(args[3]), bit_cast<uintptr_t>(args[4]), bit_cast<uintptr_t>(args[5]), bit_cast<uintptr_t>(args[6]), bit_cast<uintptr_t>(args[7]), bit_cast<uintptr_t>(args[8]), bit_cast<uintptr_t>(args[9]), bit_cast<uintptr_t>(args[10]));
+    if (signature == "iiiiffffiii")
+        return reinterpret_cast<Struct (*)(uintptr_t, uintptr_t, uintptr_t, float, float, float, float, uintptr_t, uintptr_t, uintptr_t)>(fnc)(bit_cast<uintptr_t>(args[0]), bit_cast<uintptr_t>(args[1]), bit_cast<uintptr_t>(args[2]), bit_cast<float>(args[3]), bit_cast<float>(args[4]), bit_cast<float>(args[5]), bit_cast<float>(args[6]), bit_cast<uintptr_t>(args[7]), bit_cast<uintptr_t>(args[8]), bit_cast<uintptr_t>(args[9]));
+    if (signature == "iffffffffii")
+        return reinterpret_cast<Struct (*)(float, float, float, float, float, float, float, float, uintptr_t, uintptr_t)>(fnc)(bit_cast<float>(args[0]), bit_cast<float>(args[1]), bit_cast<float>(args[2]), bit_cast<float>(args[3]), bit_cast<float>(args[4]), bit_cast<float>(args[5]), bit_cast<float>(args[6]), bit_cast<float>(args[7]), bit_cast<uintptr_t>(args[8]), bit_cast<uintptr_t>(args[9]));
+    throw std::runtime_error("Unknown function signature: " + std::string(signature));
+}
+
 } // namespace AnyCall

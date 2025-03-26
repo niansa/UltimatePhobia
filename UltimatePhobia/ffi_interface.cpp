@@ -58,6 +58,8 @@ void toCString(ObjectHandle str, char *buf, int maxlen) { Il2Cpp::CppInterop::To
 
 ObjectHandle getImageCorlib() { return addObject(const_cast<void *>(reinterpret_cast<const void *>(Il2Cpp::API::il2cpp_get_corlib()))); }
 ObjectHandle getClassFromName(ObjectHandle image, const char *namespaze, const char *name) {
+    g.logger->info("Getting class {}.{}...", namespaze, name);
+    g.logger->flush();
     return addObject(
         reinterpret_cast<void *>(Il2Cpp::API::il2cpp_class_from_name(reinterpret_cast<Il2Cpp::API::Il2CppImage *>(getObject(image)), namespaze, name)));
 }
@@ -168,7 +170,7 @@ void logBadCall(MethodHandle index) {
 }
 } // namespace
 
-WIBool call(MethodHandle index, int argCount) {
+WIBool call2(MethodHandle index, int argCount, WIBool returnsStruct) {
     // Handle unknown argument count
     if (argCount == unknownArgCount)
         argCount = call_args.size();
@@ -204,7 +206,16 @@ WIBool call(MethodHandle index, int argCount) {
     const auto args = std::move(std::exchange(call_args, {}));
     bool fres = true;
     try {
-        return_value = reinterpret_cast<void *>(AnyCall::call(reinterpret_cast<const uintptr_t *>(args.data()), method.getFullAddress(), method.typeSignature));
+        if (!returnsStruct) {
+            return_value =
+                reinterpret_cast<void *>(AnyCall::call(reinterpret_cast<const uintptr_t *>(args.data()), method.getFullAddress(), method.typeSignature));
+        } else {
+            auto *dataDest = reinterpret_cast<System_Byte_array *>(return_value);
+            const AnyCall::Struct returnData =
+                AnyCall::callStruct(reinterpret_cast<const uintptr_t *>(args.data()), method.getFullAddress(), method.typeSignature);
+            std::memcpy(dataDest->m_Items, &returnData, sizeof(returnData));
+            return_value = dataDest;
+        }
     } catch (const std::exception& e) {
         call_error = fmt::format("Method has thrown an exception: {}", e.what());
         logBadCall(index);
@@ -225,6 +236,7 @@ WIBool call(MethodHandle index, int argCount) {
     // Everything seems to have gone well
     return fres;
 }
+WIBool call(MethodHandle index, int argCount) { return call2(index, argCount, false); }
 
 namespace {
 struct FFIGameHookInfo {
@@ -303,6 +315,11 @@ void ImGuiBegin(const char *name) { ImGui::Begin(name); }
 void ImGuiEnd() { ImGui::End(); }
 void ImGuiText(ObjectHandle text) { ImGui::TextUnformatted(Il2Cpp::CppInterop::ToCppString(reinterpret_cast<System_String_o *>(getObject(text))).c_str()); }
 void ImGuiCheckbox(const char *label, bool *v) { ImGui::Checkbox(label, v); }
+WIBool ImGuiCheckbox2(const char *label, WIBool v) {
+    bool fres = v;
+    ImGui::Checkbox(label, &fres);
+    return fres;
+}
 WIBool ImGuiButton(const char *label) { return ImGui::Button(label); }
 void ImGuiSeparator() { ImGui::Separator(); }
 void ImGuiSeparatorText(const char *label) { ImGui::SeparatorText(label); }

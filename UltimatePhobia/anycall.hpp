@@ -4,6 +4,10 @@
 #include <cstring>
 
 namespace AnyCall {
+struct Struct {
+    char data[32];
+};
+
 template <class T> const T& min(const T& a, const T& b) { return (b < a) ? b : a; }
 
 template <class To, class From>
@@ -16,4 +20,5 @@ std::enable_if_t<std::is_trivially_copyable_v<From> && std::is_trivially_copyabl
 }
 
 uintptr_t call(const uintptr_t *args, void *fnc, std::string_view signature);
+Struct callStruct(const uintptr_t *args, void *fnc, std::string_view signature);
 } // namespace AnyCall

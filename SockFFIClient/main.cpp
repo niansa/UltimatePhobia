@@ -3,6 +3,8 @@
 
 #include <iostream>
 #include <string_view>
+#include <filesystem>
+#include <fstream>
 #include <cstring>
 #include <ffi_interface.hpp>
 
@@ -17,8 +19,10 @@ void sendFunctionIndex(size_t index) { socket->sendValue<uint8_t, 1>(index + 1);
 
 template <typename retT> retT waitRpcCallResult() {
     waitForCommand();
-    if constexpr (!std::is_void<retT>())
-        return socket->receiveValue<retT, sizeof(retT)>();
+    if constexpr (!std::is_void<retT>()) {
+        const retT fres = socket->receiveValue<retT, sizeof(retT)>();
+        return fres;
+    }
 }
 template <typename retT> retT doRpcCall_() { return waitRpcCallResult<retT>(); }
 template <typename retT, typename argT, typename... argsT> retT doRpcCall_(argT arg, argsT... args) {
@@ -41,6 +45,12 @@ template <size_t fnc_index, typename retT, typename... argsT> retT prepareAndDoR
         const char *str = std::get<0>(argsTuple);
         return prepareAndDoRpcCall<static_cast<size_t>(toCsStringWithLength), retT, const char *, int>(str, strlen(str));
     }
+    if constexpr (fnc_index == static_cast<size_t>(ImGuiCheckbox)) {
+        const char *label = std::get<0>(argsTuple);
+        bool *v = std::get<1>(argsTuple);
+        *v = prepareAndDoRpcCall<static_cast<size_t>(ImGuiCheckbox2), FFIInterface::WIBool, const char *, FFIInterface::WIBool>(label, *v);
+        return;
+    }
 
     // Function handlers for special cases
     if constexpr (fnc_index == static_cast<size_t>(toCsStringWithLength)) {
@@ -60,6 +70,19 @@ template <size_t fnc_index, typename retT, typename... argsT> retT prepareAndDoR
         waitRpcCallResult<retT>();
         const auto cString = socket->receiveString();
         memcpy(buf, cString.data(), std::min<size_t>(cString.size(), maxlen));
+        return;
+    }
+    if constexpr (fnc_index == static_cast<size_t>(copyArrayBytes)) {
+        FFIInterface::ObjectHandle array = std::get<0>(argsTuple);
+        int32_t offset = std::get<1>(argsTuple);
+        int32_t length = std::get<2>(argsTuple);
+        void *to = std::get<3>(argsTuple);
+        sendFunctionIndex(fnc_index);
+        socket->sendValue<decltype(array), sizeof(array)>(array);
+        socket->sendValue<decltype(offset), sizeof(offset)>(offset);
+        socket->sendValue<decltype(length), sizeof(length)>(length);
+        waitRpcCallResult<retT>();
+        socket->receiveData(to, length);
         return;
     }
 
@@ -106,6 +129,7 @@ int main(int argc, char **argv) {
     const char *socketPath = argv[1], *implementation = argv[2];
 
     // Load library
+    std::cout << "Loading library " << implementation << "..." << std::endl;
     library = new Dlhandle(implementation);
 
     // Create and connect socket client
@@ -114,6 +138,7 @@ int main(int argc, char **argv) {
         return 2;
 
     // Initalize exports
+    std::cout << "Initializing imports..." << std::endl;
     const static FFIInterface::Exports exports;
     auto initImports = library->get<void(const FFIInterface::Exports *)>("initImports");
     if (!initImports)

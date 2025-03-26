@@ -10,13 +10,8 @@ template_top = """#include "../anycall.hpp"
 #include <stdexcept>
 
 namespace AnyCall {
-uintptr_t call(const uintptr_t *args, void *fnc, std::string_view signature) {"""
-template_bottom = """
-
-    throw std::runtime_error("Unknown function signature: " + std::string(signature));
-}
-} // namespace AnyCall
 """
+template_bottom = "} // namespace AnyCall\n"
 
 max_args = 5
 types = {'v': "void", 'i': "uintptr_t", 'j': "uintptr_t", 'f': "float", 'd': "double"}
@@ -62,13 +57,29 @@ for method in script["ScriptMethod"]:
 del script
 
 print("Generating callers...")
-for signature, _ in signatures.items():
-    file.write(f"\n    if (signature == \"{signature}\")\n        ")
-    return_type = types[signature[0]]
-    call = f"reinterpret_cast<{return_type} (*)({generate_arg_types(signature)})>(fnc)({generate_args(signature)})"
-    if return_type != "void":
-        file.write(f"return bit_cast<uintptr_t>({call});")
+for return_specialization in ["", "Struct"]:
+    if len(return_specialization) == 0:
+        file.write("uintptr_t")
     else:
-        file.write(f"{{{call}; return 0;}}")
+        file.write(return_specialization)
+    file.write(f" call{return_specialization}(const uintptr_t *args, void *fnc, std::string_view signature) {{")
+    for signature, _ in signatures.items():
+        return_type = signature[0]
+        if len(return_specialization) != 0:
+            if return_type != 'i':
+                continue
+            return_type = return_specialization
+        else:
+            return_type = types[return_type]
+        file.write(f"\n    if (signature == \"{signature}\")\n        ")
+        call = f"reinterpret_cast<{return_type} (*)({generate_arg_types(signature)})>(fnc)({generate_args(signature)})"
+        if return_type != "void":
+            if len(return_specialization) != 0:
+                file.write(f"return {call};")
+            else:
+                file.write(f"return bit_cast<uintptr_t>({call});")
+        else:
+            file.write(f"{{{call}; return 0;}}")
+    file.write("\n    throw std::runtime_error(\"Unknown function signature: \" + std::string(signature));\n}\n\n")
 
 file.write(template_bottom)

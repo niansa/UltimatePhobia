@@ -267,6 +267,15 @@ UP_API ObjectHandle getCallError();
  * @return 1 on success, 0 on failure (use getCallError to get error string)
  */
 UP_API WIBool call(MethodHandle, int argCount);
+/**
+ * @brief Calls given method with previously added arguments (also clears them
+ * if function call was able to be initiated)
+ * @param argCount Amount of arguments previously added (optional, may be
+ * unknownArgCount)
+ * @param returnsStruct Set to true if function returns struct
+ * @return 1 on success, 0 on failure (use getCallError to get error string)
+ */
+UP_API WIBool call2(MethodHandle, int argCount, WIBool returnsStruct = false);
 
 /**
  * @brief Hooks given method
@@ -291,6 +300,7 @@ UP_API void ImGuiBegin(const char *name = "");
 UP_API void ImGuiEnd();
 UP_API void ImGuiText(ObjectHandle text);
 UP_API void ImGuiCheckbox(const char *label, bool *v);
+UP_API WIBool ImGuiCheckbox2(const char *label, WIBool v);
 UP_API WIBool ImGuiButton(const char *label);
 UP_API void ImGuiSeparator();
 UP_API void ImGuiSeparatorText(const char *label);
@@ -350,7 +360,9 @@ UP_API void abort(const char *message, const char *filename, int lineNumber, int
     FFI_FUNCTION_LIST_ENTRY(int64_t, getMethodAddresss, (MethodHandle a), a)                                                                                   \
     FFI_FUNCTION_LIST_ENTRY(int64_t, getObjectAddress, (ObjectHandle a), a)                                                                                    \
     FFI_FUNCTION_LIST_ENTRY(GCHandle, gcCreateHandle, (ObjectHandle object, int pinned), object, pinned)                                                       \
-    FFI_FUNCTION_LIST_ENTRY(void, gcDeleteHandle, (GCHandle a), a)
+    FFI_FUNCTION_LIST_ENTRY(void, gcDeleteHandle, (GCHandle a), a)                                                                                             \
+    FFI_FUNCTION_LIST_ENTRY(WIBool, call2, (MethodHandle a, int argCount, WIBool returnsStruct), a, argCount, returnsStruct)                                   \
+    FFI_FUNCTION_LIST_ENTRY(WIBool, ImGuiCheckbox2, (const char *label, WIBool v), label, v)
 
 // Make sure signatures match
 #ifndef FFI_NOSTL
@@ -469,12 +481,35 @@ template <StringLiteral identifier> FFIInterface::MethodHandle getMethodCached()
     return fres;
 }
 
+ObjectHandle getDataArrayType() {
+    static const auto byteArrayType = []() {
+        ObjectHandle corlib = FFI_USE_FTABLE getImageCorlib();
+        ObjectHandle byteType = FFI_USE_FTABLE getClassFromName(corlib, "System", "Byte");
+        ObjectHandle byteArrayType = FFI_USE_FTABLE getArrayFromClass(byteType, 1);
+        FFI_USE_FTABLE dropObject(corlib);
+        FFI_USE_FTABLE dropObject(byteType);
+        return byteArrayType;
+    }();
+    return byteArrayType;
+}
+ObjectHandle getDataArray(unsigned length) { return FFI_USE_FTABLE createArray(getDataArrayType(), length); }
+
 bool call_error;
 template <StringLiteral identifier, typename returnT = void, typename... Args> returnT call(Args... args) {
     FFI_USE_FTABLE clearArgs();
     addArgs(args...);
-    call_error = !FFI_USE_FTABLE call(getMethodCached<identifier>(), FFIInterface::unknownArgCount);
+    call_error = !FFI_USE_FTABLE call2(getMethodCached<identifier>(), FFIInterface::unknownArgCount, false);
     return getReturnValue<returnT>();
+}
+template <StringLiteral identifier, typename returnT, typename... Args> returnT callRetStruct(Args... args) {
+    FFI_USE_FTABLE clearArgs();
+    addArgs(args...);
+    ObjectHandle byteArray = getDataArray(32);
+    returnT fres;
+    call_error = !FFI_USE_FTABLE call2(getMethodCached<identifier>(), FFIInterface::unknownArgCount, true);
+    FFI_USE_FTABLE copyArrayBytes(byteArray, 0, 32, &fres);
+    FFI_USE_FTABLE dropObject(byteArray);
+    return fres;
 }
 
 namespace Literals {
