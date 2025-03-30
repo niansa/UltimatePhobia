@@ -5,7 +5,7 @@
 
 namespace AnyCall {
 struct Struct {
-    char data[32];
+    char data[64];
 };
 
 template <class T> const T& min(const T& a, const T& b) { return (b < a) ? b : a; }

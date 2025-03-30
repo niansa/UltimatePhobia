@@ -504,10 +504,12 @@ template <StringLiteral identifier, typename returnT = void, typename... Args> r
 template <StringLiteral identifier, typename returnT, typename... Args> returnT callRetStruct(Args... args) {
     FFI_USE_FTABLE clearArgs();
     addArgs(args...);
-    ObjectHandle byteArray = getDataArray(32);
+    ObjectHandle byteArray = getDataArray(64);
     returnT fres;
+    FFI_USE_FTABLE addArgObject(byteArray);
+    FFI_USE_FTABLE moveArg(-1);
     call_error = !FFI_USE_FTABLE call2(getMethodCached<identifier>(), FFIInterface::unknownArgCount, true);
-    FFI_USE_FTABLE copyArrayBytes(byteArray, 0, 32, &fres);
+    FFI_USE_FTABLE copyArrayBytes(byteArray, 0, sizeof(fres), &fres);
     FFI_USE_FTABLE dropObject(byteArray);
     return fres;
 }

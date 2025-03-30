@@ -58,8 +58,6 @@ void toCString(ObjectHandle str, char *buf, int maxlen) { Il2Cpp::CppInterop::To
 
 ObjectHandle getImageCorlib() { return addObject(const_cast<void *>(reinterpret_cast<const void *>(Il2Cpp::API::il2cpp_get_corlib()))); }
 ObjectHandle getClassFromName(ObjectHandle image, const char *namespaze, const char *name) {
-    g.logger->info("Getting class {}.{}...", namespaze, name);
-    g.logger->flush();
     return addObject(
         reinterpret_cast<void *>(Il2Cpp::API::il2cpp_class_from_name(reinterpret_cast<Il2Cpp::API::Il2CppImage *>(getObject(image)), namespaze, name)));
 }
@@ -139,7 +137,7 @@ void clearArgs() { call_args.clear(); }
 
 int getArgCount() { return call_args.size(); }
 WIBool moveArg(int index) {
-    if (call_args.empty() || call_args.size() < index)
+    if (call_args.empty() || static_cast<int>(call_args.size()) < index)
         return false;
     if (index >= 0) {
         call_args[index] = call_args.back();
