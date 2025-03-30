@@ -9,6 +9,8 @@ class Environment {
     struct Impl;
     Impl *i;
 
+    void findNewColliders();
+
 public:
     Environment();
     ~Environment();

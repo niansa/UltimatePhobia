@@ -26,6 +26,7 @@ IPLContext phononCtx;
 ma_device maDevice;
 
 IPLCoordinateSpace3 playerCoord;
+Statistics stats;
 } // namespace GlobalState
 
 namespace Interface {
@@ -37,7 +38,7 @@ STEAMAUDIOIMPL_EXPORT void onAudioSourcePlay() {
 
     {
         // Make sure source isn't already playing
-        std::scoped_lock L(playbackQueueMutex);
+        std::scoped_lock L(playbackMutex);
         for (auto& playback : playbackQueue) {
             if (!playback.hasReachedEnd() && call<"UnityEngine.Object$$Equals", bool>(audioSource, playback.audioSource, nullptr)) {
                 FFI logDebug("Not playing audio because it is already being played"_cs);
@@ -90,7 +91,7 @@ STEAMAUDIOIMPL_EXPORT void onAudioSourcePlay() {
 
     // Add audio to playback queue
     {
-        std::scoped_lock L(playbackQueueMutex);
+        std::scoped_lock L(playbackMutex);
         auto& playback = playbackQueue.emplace_back(audioSource, audioBuffer, delay, volumeScale, isOneShot);
         PhononTools::updatePlayback(playback, true);
     }
@@ -114,7 +115,7 @@ STEAMAUDIOIMPL_EXPORT void onAudioSourceStop() {
     }
 
     // Remove audio source from qeue
-    std::scoped_lock L(playbackQueueMutex);
+    std::scoped_lock L(playbackMutex);
     for (auto it = playbackQueue.begin(); it != playbackQueue.end(); ++it) {
         if (call<"UnityEngine.Object$$Equals", bool>(audioSource, it->audioSource, nullptr) && (!it->isOneShot || stopOneShots)) {
             playbackQueue.erase(it);
@@ -130,7 +131,7 @@ STEAMAUDIOIMPL_EXPORT void onAudioSourceGetIsPlaying() {
     const ObjectHandle audioSource = FFI getValueObject(0);
 
     // Check playback queue
-    std::scoped_lock L(playbackQueueMutex);
+    std::scoped_lock L(playbackMutex);
     for (auto it = playbackQueue.begin(); it != playbackQueue.end(); ++it) {
         if (call<"UnityEngine.Object$$Equals", bool>(audioSource, it->audioSource, nullptr)) {
             FFI addArgI32(!it->hasReachedEnd());
@@ -157,7 +158,7 @@ STEAMAUDIOIMPL_EXPORT void onAudioSourceSetVolume() {
     FFI call(FFI getOriginal(), 3);
 
     // Update audio source volume
-    std::scoped_lock L(playbackQueueMutex);
+    std::scoped_lock L(playbackMutex);
     for (auto it = playbackQueue.begin(); it != playbackQueue.end(); ++it) {
         if (call<"UnityEngine.Object$$Equals", bool>(audioSource, it->audioSource, nullptr)) {
             it->volume = newVolume;
@@ -177,7 +178,7 @@ STEAMAUDIOIMPL_EXPORT void onAudioSourceSetLoop() {
     FFI call(FFI getOriginal(), 3);
 
     // Update audio source volume
-    std::scoped_lock L(playbackQueueMutex);
+    std::scoped_lock L(playbackMutex);
     for (auto it = playbackQueue.begin(); it != playbackQueue.end(); ++it) {
         if (call<"UnityEngine.Object$$Equals", bool>(audioSource, it->audioSource, nullptr)) {
             it->volume = newLoop;
@@ -206,7 +207,7 @@ STEAMAUDIOIMPL_EXPORT void onAudioSourceSetClip() {
     FFI call(FFI getOriginal(), 3);
 
     // Update audio source clip
-    std::scoped_lock L(playbackQueueMutex);
+    std::scoped_lock L(playbackMutex);
     for (auto it = playbackQueue.begin(); it != playbackQueue.end(); ++it) {
         if (call<"UnityEngine.Object$$Equals", bool>(audioSource, it->audioSource, nullptr)) {
             if (audioBuffer.has_value())
@@ -337,20 +338,23 @@ STEAMAUDIOIMPL_EXPORT void onUiUpdate() {
         FFI dropObject(camera);
     }
 
-    // Run simulation
-    if (enableSimulation)
-        PhononSimulation::run();
-
     // Display basic stats
     if (showStats) {
         FFI ImGuiBegin("Steam Audio Stats");
         FFI ImGuiText(FFI toCsString(("Active sources: " + std::to_string(playbackQueue.size())).c_str()));
-        if (enableSimulation)
+        FFI ImGuiText(FFI toCsString(("Frame size: " + std::to_string(env->audioSettings.frameSize)).c_str()));
+        FFI ImGuiText(FFI toCsString(
+            ("Frames processed: " + std::to_string(GlobalState::stats.framesFinished) + '/' + std::to_string(GlobalState::stats.framesStarted)).c_str()));
+        FFI ImGuiText(FFI toCsString(
+            ("Playbacks processed: " + std::to_string(GlobalState::stats.playbacksFinished) + '/' + std::to_string(GlobalState::stats.playbacksStarted))
+                .c_str()));
+        if (enableSimulation && PhononSimulation::env.has_value())
             FFI ImGuiText(FFI toCsString(("Scene meshes: " + std::to_string(PhononSimulation::env->getMeshCount())).c_str()));
+        FFI ImGuiText(FFI toCsString(("World transform: " + Utils::formatCoord(GlobalState::playerCoord)).c_str()));
     }
 
     // Update playbacks and display stats
-    std::scoped_lock L(playbackQueueMutex);
+    std::scoped_lock L(playbackMutex);
     for (auto playback = playbackQueue.begin(); playback != playbackQueue.end(); ++playback) {
         if (PhononTools::updatePlayback(*playback, false)) {
             if (showStats) {
@@ -363,6 +367,9 @@ STEAMAUDIOIMPL_EXPORT void onUiUpdate() {
                 FFI ImGuiText(FFI toCsString(("Max distance: " + std::to_string(playback->maxDistance)).c_str()));
                 FFI ImGuiText(FFI toCsString(
                     ("Loop: " + std::string(call<"UnityEngine.AudioSource$$get_loop", bool>(playback->audioSource, nullptr) ? "yes" : "no")).c_str()));
+                if (enableSimulation)
+                    FFI ImGuiText(FFI toCsString(("Simulated: " + std::string(playback->simulationOutputsCache.has_value() ? "yes" : "no")).c_str()));
+                FFI ImGuiText(FFI toCsString(("World position: " + Utils::formatPos(playback->worldPosition)).c_str()));
             }
         } else {
             playbackQueue.erase(playback);
@@ -370,8 +377,11 @@ STEAMAUDIOIMPL_EXPORT void onUiUpdate() {
         }
     }
 
-    if (showStats) {
+    if (showStats)
         FFI ImGuiEnd();
-    }
+
+    // Run simulation
+    if (enableSimulation)
+        PhononSimulation::run();
 }
 } // namespace Interface

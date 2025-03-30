@@ -1,4 +1,5 @@
 #include "simulation_environment.hpp"
+#include "playback_environment.hpp"
 #include "SteamAudioImpl.hpp"
 #include "phonontools.hpp"
 #include "utils.hpp"
@@ -11,6 +12,7 @@
 #include <cstring>
 #include <phonon.h>
 #include <ffi_interface.hpp>
+#include <commoncpp/timer.hpp>
 
 using namespace FFIInterface;
 using namespace Helpers;
@@ -48,9 +50,10 @@ struct SubScene {
 
 struct Environment::Impl {
     IPLScene scene;
-    IPLSimulator simulator;
+    IPLSimulator simulator = nullptr;
     std::map<ObjectHandle, GCHandle> gcHandles;
     std::map<ObjectHandle, SubScene> meshes;
+    common::Timer collisionSearchTimer;
 
     std::mutex simulatorMutex;
     bool simulatorDirty = true;
@@ -61,66 +64,59 @@ struct Environment::Impl {
         if (status != IPL_STATUS_SUCCESS)
             FFI logError(Utils::createErrorMessage("create scene", status));
 
-        IPLSimulationSettings simulationSettings{.flags = FixedSettings::simulationFlags, .sceneType = IPL_SCENETYPE_DEFAULT};
+        refreshSimulator();
+    }
+    ~Impl() {
+        releaseSimulator();
+        iplSceneRelease(&scene);
+    }
+    Impl(const Impl&) = delete;
+    Impl(Impl&&) = delete;
+
+    void releaseSimulator() {
+        simulatorMutex.lock();
+        simulatorMutex.unlock();
+        iplSimulatorRelease(&simulator);
+    }
+
+    void refreshSimulator() {
+        if (simulator)
+            releaseSimulator();
+
+        IPLSimulationSettings simulationSettings{.flags = FixedSettings::simulationFlags,
+                                                 .sceneType = IPL_SCENETYPE_DEFAULT,
+                                                 .reflectionType = IPL_REFLECTIONEFFECTTYPE_CONVOLUTION,
+                                                 .maxNumOcclusionSamples = 12,
+                                                 .maxNumRays = FixedSettings::numRays,
+                                                 .numDiffuseSamples = 8, // TODO: No idea about this, find a good default value
+                                                 .maxDuration = FixedSettings::irDuration,
+                                                 .maxOrder = FixedSettings::reflectionAmbisonicsOrder,
+                                                 .maxNumSources = 16, // TODO: This should dynamically increase if limit is reached
+                                                 .numThreads = 3,
+                                                 .numVisSamples = 8, // TODO: No idea about this, find a good default value
+                                                 .samplingRate = PhononPlayback::env->audioSettings.samplingRate,
+                                                 .frameSize = PhononPlayback::env->audioSettings.frameSize};
 
         iplSimulatorCreate(GlobalState::phononCtx, &simulationSettings, &simulator);
         iplSimulatorSetScene(simulator, scene);
         iplSimulatorCommit(simulator);
     }
-    ~Impl() { iplSceneRelease(&scene); }
-    Impl(const Impl&) = delete;
-    Impl(Impl&&) = delete;
 };
 
-Environment::Environment() { i = new Impl; }
-Environment::~Environment() {
-    i->simulatorMutex.lock();
-    i->simulatorMutex.unlock();
-    delete i;
+Environment::Environment() {
+    i = new Impl;
+    findNewColliders();
 }
+Environment::~Environment() { delete i; }
 
-void Environment::updateScene() {
+void Environment::findNewColliders() {
     using namespace Literals;
 
-    {
-        std::vector<ObjectHandle> deletionQueue;
-        // Update transforms
-        for (auto& [object, mesh] : i->meshes) {
-            // Make sure object isn't dead
-            if (!call<"UnityEngine.Object$$IsNativeObjectAlive", bool>(object, nullptr) || call_error) {
-                deletionQueue.push_back(object);
-                continue;
-            }
-
-            // Get transform
-            const auto transform = call<"UnityEngine.Component$$get_transform", ObjectHandle>(object, nullptr);
-
-            // Get matrix
-            const auto matrix = PhononTools::TransformUtils::get_localToWorldMatrix(transform);
-
-            // Update internal matrix if updated
-            if (std::memcmp(matrix.elements, mesh.matrix.elements, sizeof(matrix.elements)) != 0) {
-                iplInstancedMeshUpdateTransform(mesh.instancedMesh, env->getScene(), matrix);
-                mesh.matrix = matrix;
-            }
-
-            FFI dropObject(transform);
-        }
-        // Clean up dead objects collected on the way
-        for (const ObjectHandle object : deletionQueue) {
-            auto res = i->gcHandles.find(object);
-            FFI gcDeleteHandle(res->second);
-            FFI dropObject(object);
-            i->meshes.erase(object);
-            i->gcHandles.erase(res);
-        }
-    }
-
     // Get MeshCollider type
-    const auto meshColliderType = call<"System_Type_o* System_Type__GetType (System_String_o* typeName, const MethodInfo* method);", ObjectHandle>(
+    static const auto meshColliderType = call<"System_Type_o* System_Type__GetType (System_String_o* typeName, const MethodInfo* method);", ObjectHandle>(
         "UnityEngine.MeshCollider, UnityEngine.PhysicsModule, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null"_cs, nullptr);
 
-    // Get mesh colliders
+    // Get new mesh colliders
     const auto meshColliders = call<"UnityEngine.Object$$FindObjectsOfType", ObjectHandle>(meshColliderType, nullptr);
     if (meshColliders != ObjectHandle::Null) {
         const int32_t meshColliderCount = call<"System.Array$$get_Length", int32_t>(meshColliders, nullptr);
@@ -204,7 +200,51 @@ void Environment::updateScene() {
         if (sceneDirty)
             iplSceneCommit(env->getScene());
     } else {
-        FFI logError("Failed to get mesh colliders!"_cs);
+        FFI logError("Failed to get new mesh colliders!"_cs);
+    }
+}
+
+void Environment::updateScene() {
+    using namespace Literals;
+
+    {
+        std::vector<ObjectHandle> deletionQueue;
+        // Update transforms
+        for (auto& [object, mesh] : i->meshes) {
+            // Make sure object isn't dead
+            if (!call<"UnityEngine.Object$$IsNativeObjectAlive", bool>(object, nullptr) || call_error) {
+                deletionQueue.push_back(object);
+                continue;
+            }
+
+            // Get transform
+            const auto transform = call<"UnityEngine.Component$$get_transform", ObjectHandle>(object, nullptr);
+
+            // Get matrix
+            const auto matrix = PhononTools::TransformUtils::get_localToWorldMatrix(transform);
+
+            // Update internal matrix if updated
+            if (std::memcmp(matrix.elements, mesh.matrix.elements, sizeof(matrix.elements)) != 0) {
+                iplInstancedMeshUpdateTransform(mesh.instancedMesh, env->getScene(), matrix);
+                mesh.matrix = matrix;
+            }
+
+            FFI dropObject(transform);
+        }
+        // Clean up dead objects collected on the way
+        for (const ObjectHandle object : deletionQueue) {
+            auto res = i->gcHandles.find(object);
+            FFI gcDeleteHandle(res->second);
+            FFI dropObject(object);
+            i->meshes.erase(object);
+            i->gcHandles.erase(res);
+        }
+    }
+
+    // Throttle searching for new mesh colliders
+    if (i->collisionSearchTimer.get() > 30000) {
+        findNewColliders();
+        i->collisionSearchTimer.reset();
     }
 }
 

@@ -4,9 +4,10 @@ project(SteamAudioImpl LANGUAGES CXX C)
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
-#set(CMAKE_INTERPROCEDURAL_OPTIMIZATION ON)
+set(CMAKE_INTERPROCEDURAL_OPTIMIZATION ON)
 
 add_subdirectory(../deps/steam-audio steam-audio)
+add_subdirectory(../deps/commoncpp commoncpp)
 
 add_library(SteamAudioImpl SHARED
   SteamAudioImpl_global.hpp
@@ -23,7 +24,7 @@ add_library(SteamAudioImpl SHARED
   simulation_environment.hpp simulation_environment.cpp
   simulation.hpp simulation.cpp
 )
-target_link_libraries(SteamAudioImpl PRIVATE phonon)
+target_link_libraries(SteamAudioImpl PRIVATE phonon commoncpp)
 target_compile_definitions(SteamAudioImpl PRIVATE STEAMAUDIOIMPL_LIBRARY FFI_EXT FFI_USES_FTABLE FFI=FFI_USE_FTABLE)
 target_include_directories(SteamAudioImpl PRIVATE ../UltimatePhobia/ffi)
 target_compile_options(SteamAudioImpl PUBLIC -fno-exceptions)

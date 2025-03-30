@@ -3,6 +3,7 @@
 #include "miniaudio.h"
 #include "SteamAudioImpl.hpp"
 
+#include <string>
 #include <phonon.h>
 #include <ffi_interface.hpp>
 
@@ -12,4 +13,7 @@ const char *errorToMessage(ma_result error);
 
 FFIInterface::ObjectHandle createErrorMessage(const char *what, IPLerror why);
 FFIInterface::ObjectHandle createErrorMessage(const char *what, ma_result why);
+
+std::string formatPos(IPLVector3 pos);
+std::string formatCoord(IPLCoordinateSpace3 coord);
 } // namespace Utils

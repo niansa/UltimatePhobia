@@ -27,31 +27,12 @@ enum { Generic, Brick, Concrete, Ceramic, Gravel, Carpet, Glass, Plaster, Wood, 
 
 namespace PhononTools {
 namespace TransformUtils {
-IPLVector3 get_position(FFIInterface::ObjectHandle transform) {
-    static const IPLVector3 (*Transform$$get_position)(uintptr_t __this, uintptr_t method) = reinterpret_cast<decltype(Transform$$get_position)>(
-        reinterpret_cast<void *>(FFI getMethodAddresss(Helpers::getMethodCached<"UnityEngine.Transform$$get_position">())));
-    return Transform$$get_position(FFI getObjectAddress(transform), 0);
-}
-IPLVector3 get_forward(FFIInterface::ObjectHandle transform) {
-    static const IPLVector3 (*Transform$$get_forward)(uintptr_t __this, uintptr_t method) = reinterpret_cast<decltype(Transform$$get_forward)>(
-        reinterpret_cast<void *>(FFI getMethodAddresss(Helpers::getMethodCached<"UnityEngine.Transform$$get_forward">())));
-    return Transform$$get_forward(FFI getObjectAddress(transform), 0);
-}
-IPLVector3 get_up(FFIInterface::ObjectHandle transform) {
-    static const IPLVector3 (*Transform$$get_up)(uintptr_t __this, uintptr_t method) = reinterpret_cast<decltype(Transform$$get_up)>(
-        reinterpret_cast<void *>(FFI getMethodAddresss(Helpers::getMethodCached<"UnityEngine.Transform$$get_up">())));
-    return Transform$$get_up(FFI getObjectAddress(transform), 0);
-}
-IPLVector3 get_right(FFIInterface::ObjectHandle transform) {
-    static const IPLVector3 (*Transform$$get_right)(uintptr_t __this, uintptr_t method) = reinterpret_cast<decltype(Transform$$get_right)>(
-        reinterpret_cast<void *>(FFI getMethodAddresss(Helpers::getMethodCached<"UnityEngine.Transform$$get_right">())));
-    return Transform$$get_right(FFI getObjectAddress(transform), 0);
-}
+IPLVector3 get_position(FFIInterface::ObjectHandle transform) { return callRetStruct<"UnityEngine.Transform$$get_position", IPLVector3>(transform, nullptr); }
+IPLVector3 get_forward(FFIInterface::ObjectHandle transform) { return callRetStruct<"UnityEngine.Transform$$get_forward", IPLVector3>(transform, nullptr); }
+IPLVector3 get_up(FFIInterface::ObjectHandle transform) { return callRetStruct<"UnityEngine.Transform$$get_up", IPLVector3>(transform, nullptr); }
+IPLVector3 get_right(FFIInterface::ObjectHandle transform) { return callRetStruct<"UnityEngine.Transform$$get_right", IPLVector3>(transform, nullptr); }
 IPLMatrix4x4 get_localToWorldMatrix(FFIInterface::ObjectHandle transform) {
-    static const IPLMatrix4x4 (*Transform$$get_localToWorldMatrix)(uintptr_t __this, uintptr_t method) =
-        reinterpret_cast<decltype(Transform$$get_localToWorldMatrix)>(
-            reinterpret_cast<void *>(FFI getMethodAddresss(Helpers::getMethodCached<"UnityEngine.Transform$$get_localToWorldMatrix">())));
-    return Transform$$get_localToWorldMatrix(FFI getObjectAddress(transform), 0);
+    return callRetStruct<"UnityEngine.Transform$$get_localToWorldMatrix", IPLMatrix4x4>(transform, nullptr);
 }
 } // namespace TransformUtils
 
@@ -185,27 +166,30 @@ bool updatePlayback(PhononPlayback::Playback& p, bool initial) {
         p.loop = call<"UnityEngine.AudioSource$$get_loop", bool>(p.audioSource, nullptr);
     }
 
-    // Update simulation inputs
-    if (positionChanged && p.source && PhononSimulation::env.has_value()) {
-        FFI logInfo(FFI toCsString("Updating simulation inputs..."));
-        IPLSimulationInputs inputs{
-            .flags = FixedSettings::simulationFlags,
-            .directFlags = static_cast<IPLDirectSimulationFlags>(IPL_DIRECTSIMULATIONFLAGS_DISTANCEATTENUATION | IPL_DIRECTSIMULATIONFLAGS_AIRABSORPTION |
-                                                                 IPL_DIRECTSIMULATIONFLAGS_OCCLUSION | IPL_DIRECTSIMULATIONFLAGS_TRANSMISSION),
-            .source = {.right = TransformUtils::get_right(sourceTransform),
-                       .up = TransformUtils::get_up(sourceTransform),
-                       .ahead = TransformUtils::get_forward(sourceTransform),
-                       .origin = p.worldPosition},
-            .directivity = {.dipoleWeight = 1.0f},
-            .occlusionType = IPL_OCCLUSIONTYPE_RAYCAST,
-            .occlusionRadius = 0.25f,
-            .numOcclusionSamples = 8,
-            .reverbScale = {1.0f, 1.0f, 1.0f},
-            .hybridReverbTransitionTime = 1.0f,
-            .hybridReverbOverlapPercent = 0.25f,
-            .numTransmissionRays = 16};
-        iplSourceSetInputs(p.source, FixedSettings::simulationFlags, &inputs);
-        PhononSimulation::env->markSimulatorDirty();
+    // Update simulation
+    if (PhononSimulation::env.has_value()) {
+        // Update simulation outputs
+        p.updateSimulationOutputs();
+
+        // Update simulation inputs
+        if (positionChanged && p.source) {
+            IPLSimulationInputs inputs{.flags = FixedSettings::simulationFlags,
+                                       .directFlags = FixedSettings::directSimulationFlags,
+                                       .source = {.right = TransformUtils::get_right(sourceTransform),
+                                                  .up = TransformUtils::get_up(sourceTransform),
+                                                  .ahead = TransformUtils::get_forward(sourceTransform),
+                                                  .origin = p.worldPosition},
+                                       .directivity = {.dipoleWeight = 1.0f},
+                                       .occlusionType = IPL_OCCLUSIONTYPE_RAYCAST,
+                                       .occlusionRadius = 0.25f,
+                                       .numOcclusionSamples = 8,
+                                       .reverbScale = {1.0f, 1.0f, 1.0f},
+                                       .hybridReverbTransitionTime = 1.0f,
+                                       .hybridReverbOverlapPercent = 0.25f,
+                                       .numTransmissionRays = 16};
+            iplSourceSetInputs(p.source, FixedSettings::simulationFlags, &inputs);
+            PhononSimulation::env->markSimulatorDirty();
+        }
     }
 
     // We're all good
