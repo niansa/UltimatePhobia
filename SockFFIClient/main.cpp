@@ -90,18 +90,22 @@ template <size_t fnc_index, typename retT, typename... argsT> retT prepareAndDoR
 }
 
 void waitForCommand() {
+beginning:
     const bool doExecute = !socket->receiveValue<bool, 1>();
     if (doExecute) {
         const auto fncName = socket->receiveString();
+        std::cout << "Attempting to execute " << fncName << "..." << std::endl;
         const auto fnc = library->getFnc(fncName);
         if (fnc == nullptr) {
+            std::cout << "Could not find " << fncName << "!" << std::endl;
             socket->sendValue<bool, 1>(false);
             return;
         }
         socket->sendValue<bool, 1>(true);
         fnc();
+        std::cout << "Finished executing " << fncName << '!' << std::endl;
         socket->sendValue<uint8_t, 1>(0);
-        waitForCommand();
+        goto beginning; // Instead of tail call to self to avoid stack overflow in debug build
     }
 }
 } // namespace
