@@ -1,8 +1,6 @@
 #include "SteamAudioImpl.hpp"
 #include "playback_environment.hpp"
 #include "playback.hpp"
-#include "simulation_environment.hpp"
-#include "simulation.hpp"
 #include "phonontools.hpp"
 #include "playback_environment.hpp"
 #include "utils.hpp"
@@ -33,8 +31,40 @@ namespace Interface {
 STEAMAUDIOIMPL_EXPORT void onAudioSourcePlay() {
     using namespace PhononPlayback;
 
+    // Get original function
+    const MethodHandle original = FFI getOriginal();
+
     // Get audio source
     const auto audioSource = FFI getValueObject(0);
+
+    // Get default properties
+    uint64_t delay = 0.0;
+    float volumeScale = 1.0f;
+    ObjectHandle audioClip = ObjectHandle::Invalid;
+    bool isOneShot = false;
+
+    // Get properties from arguments
+    if (getMethodCached<
+            "void UnityEngine_AudioSource__PlayOneShot (UnityEngine_AudioSource_o* __this, UnityEngine_AudioClip_o* clip, const MethodInfo* method);">() ==
+        original) {
+        audioClip = FFI getValueObject(1);
+        isOneShot = true;
+    } else if (getMethodCached<
+                   "void UnityEngine_AudioSource__PlayOneShot (UnityEngine_AudioSource_o* __this, UnityEngine_AudioClip_o* clip, float volumeScale, const "
+                   "MethodInfo* method);">() == original) {
+        audioClip = FFI getValueObject(1);
+        volumeScale = FFI getValueFloat(2);
+        isOneShot = true;
+    } else if (getMethodCached<"void UnityEngine_AudioSource__Play (UnityEngine_AudioSource_o* __this, double delay, const MethodInfo* method);">() ==
+               original) {
+        delay = FFI getValueDouble(1);
+    } else if (getMethodCached<"void UnityEngine_AudioSource__Play (UnityEngine_AudioSource_o* __this, uint64_t delay, const MethodInfo* method);">() ==
+               original) {
+        delay = FFI getValueI64(1);
+    }
+
+    // Call original method
+    FFI call(original, unknownArgCount);
 
     {
         // Make sure source isn't already playing
@@ -45,35 +75,6 @@ STEAMAUDIOIMPL_EXPORT void onAudioSourcePlay() {
                 return;
             }
         }
-    }
-
-    // Get default properties
-    uint64_t delay = 0.0;
-    float volumeScale = 1.0f;
-    ObjectHandle audioClip = ObjectHandle::Invalid;
-    bool isOneShot = false;
-
-    // Get properties from arguments
-    if (getMethodCached<"void UnityEngine_AudioSource__PlayOneShot "
-                        "(UnityEngine_AudioSource_o* __this, UnityEngine_AudioClip_o* "
-                        "clip, const MethodInfo* method);">() == FFI getOriginal()) {
-        audioClip = FFI getValueObject(1);
-        isOneShot = true;
-    }
-    if (getMethodCached<"void UnityEngine_AudioSource__PlayOneShot "
-                        "(UnityEngine_AudioSource_o* __this, UnityEngine_AudioClip_o* "
-                        "clip, float volumeScale, const MethodInfo* method);">() == FFI getOriginal()) {
-        audioClip = FFI getValueObject(1);
-        volumeScale = FFI getValueFloat(2);
-        isOneShot = true;
-    }
-    if (getMethodCached<"void UnityEngine_AudioSource__Play (UnityEngine_AudioSource_o* "
-                        "__this, double delay, const MethodInfo* method);">() == FFI getOriginal()) {
-        delay = FFI getValueDouble(1);
-    }
-    if (getMethodCached<"void UnityEngine_AudioSource__Play (UnityEngine_AudioSource_o* "
-                        "__this, uint64_t delay, const MethodInfo* method);">() == FFI getOriginal()) {
-        delay = FFI getValueI64(1);
     }
 
     // Get audio clip if not passed by argument
@@ -90,11 +91,17 @@ STEAMAUDIOIMPL_EXPORT void onAudioSourcePlay() {
     const IPLAudioBuffer audioBuffer = PhononTools::audioBufferFromAudioClip(audioClip);
 
     // Add audio to playback queue
+    bool fallback = false;
     {
         std::scoped_lock L(playbackMutex);
+
+        // Try to handle playback
         auto& playback = playbackQueue.emplace_back(audioSource, audioBuffer, delay, volumeScale, isOneShot);
         PhononTools::updatePlayback(playback, true);
     }
+
+    // Prevent unity from playing audio itself
+    call<"UnityEngine.AudioSource$$set_mute">(audioSource, true, nullptr);
 
     // Clean up
     FFI dropObject(audioClip);
@@ -103,23 +110,27 @@ STEAMAUDIOIMPL_EXPORT void onAudioSourcePlay() {
 STEAMAUDIOIMPL_EXPORT void onAudioSourceStop() {
     using namespace PhononPlayback;
 
+    // Get original function
+    const MethodHandle original = FFI getOriginal();
+
     // Get audio source
     const auto audioSource = FFI getValueObject(0);
 
     bool stopOneShots = true;
-    if (getMethodCached<"void UnityEngine_AudioSource__Stop "
-                        "(UnityEngine_AudioSource_o* "
-                        "__this, bool stopOneShots, const MethodInfo* "
-                        "method);">() == FFI getOriginal()) {
+    if (getMethodCached<"void UnityEngine_AudioSource__Stop (UnityEngine_AudioSource_o* __this, bool stopOneShots, const MethodInfo* method);">() == original)
         stopOneShots = FFI getValueI32(1) & 0xff;
-    }
 
-    // Remove audio source from qeue
-    std::scoped_lock L(playbackMutex);
-    for (auto it = playbackQueue.begin(); it != playbackQueue.end(); ++it) {
-        if (call<"UnityEngine.Object$$Equals", bool>(audioSource, it->audioSource, nullptr) && (!it->isOneShot || stopOneShots)) {
-            playbackQueue.erase(it);
-            break;
+    // Call original method
+    FFI call(original, unknownArgCount);
+
+    // Remove audio source from queue
+    {
+        std::scoped_lock L(playbackMutex);
+        for (auto it = playbackQueue.begin(); it != playbackQueue.end(); ++it) {
+            if (call<"UnityEngine.Object$$Equals", bool>(audioSource, it->audioSource, nullptr) && (!it->isOneShot || stopOneShots)) {
+                playbackQueue.erase(it);
+                break;
+            }
         }
     }
 }
@@ -147,25 +158,26 @@ STEAMAUDIOIMPL_EXPORT void onAudioSourceGetIsPlaying() {
     FFI call(FFI getOriginal(), 2);
 }
 
-STEAMAUDIOIMPL_EXPORT void onAudioSourceSetVolume() {
-    using namespace PhononPlayback;
+// This is broken for some reason. The original method isn't called correctly. Probably because of the float?
+// STEAMAUDIOIMPL_EXPORT void onAudioSourceSetVolume() {
+//     using namespace PhononPlayback;
 
-    // Get audio source and new volume
-    const ObjectHandle audioSource = FFI getValueObject(0);
-    const float newVolume = std::fabs(FFI getValueFloat(1));
+//     // Get audio source and new volume
+//     const ObjectHandle audioSource = FFI getValueObject(0);
+//     const float newVolume = FFI getValueFloat(1);
 
-    // Call original function
-    FFI call(FFI getOriginal(), 3);
+//     // Call original function
+//     FFI call(FFI getOriginal(), 3);
 
-    // Update audio source volume
-    std::scoped_lock L(playbackMutex);
-    for (auto it = playbackQueue.begin(); it != playbackQueue.end(); ++it) {
-        if (call<"UnityEngine.Object$$Equals", bool>(audioSource, it->audioSource, nullptr)) {
-            it->volume = newVolume;
-            break;
-        }
-    }
-}
+//     // Update audio source volume
+//     std::scoped_lock L(playbackMutex);
+//     for (auto it = playbackQueue.begin(); it != playbackQueue.end(); ++it) {
+//         if (call<"UnityEngine.Object$$Equals", bool>(audioSource, it->audioSource, nullptr)) {
+//             it->volume = newVolume;
+//             break;
+//         }
+//     }
+// }
 
 STEAMAUDIOIMPL_EXPORT void onAudioSourceSetLoop() {
     using namespace PhononPlayback;
@@ -182,6 +194,26 @@ STEAMAUDIOIMPL_EXPORT void onAudioSourceSetLoop() {
     for (auto it = playbackQueue.begin(); it != playbackQueue.end(); ++it) {
         if (call<"UnityEngine.Object$$Equals", bool>(audioSource, it->audioSource, nullptr)) {
             it->volume = newLoop;
+            break;
+        }
+    }
+}
+
+STEAMAUDIOIMPL_EXPORT void onAudioSourceSetRolloffMode() {
+    using namespace PhononPlayback;
+
+    // Get audio source and new volume
+    const ObjectHandle audioSource = FFI getValueObject(0);
+    const auto mode = static_cast<PhononPlayback::AudioRolloffMode>(FFI getValueI32(1));
+
+    // Call original function
+    FFI call(FFI getOriginal(), 3);
+
+    // Apply mode
+    std::scoped_lock L(playbackMutex);
+    for (auto it = playbackQueue.begin(); it != playbackQueue.end(); ++it) {
+        if (call<"UnityEngine.Object$$Equals", bool>(audioSource, it->audioSource, nullptr)) {
+            it->rolloffMode = mode;
             break;
         }
     }
@@ -266,9 +298,10 @@ STEAMAUDIOIMPL_EXPORT void onLoad() {
              "onAudioSourceStop");
 
     FFI hook(getMethodCached<"UnityEngine.AudioSource$$get_isPlaying">(), "onAudioSourceGetIsPlaying");
-    FFI hook(getMethodCached<"UnityEngine.AudioSource$$set_volume">(), "onAudioSourceSetVolume");
+    // FFI hook(getMethodCached<"UnityEngine.AudioSource$$set_volume">(), "onAudioSourceSetVolume");
     FFI hook(getMethodCached<"UnityEngine.AudioSource$$set_clip">(), "onAudioSourceSetClip");
     FFI hook(getMethodCached<"UnityEngine.AudioSource$$set_loop">(), "onAudioSourceSetLoop");
+    FFI hook(getMethodCached<"UnityEngine.AudioSource$$set_rolloffMode">(), "onAudioSourceSetRolloffMode");
 }
 
 STEAMAUDIOIMPL_EXPORT void onUnload() {
@@ -277,7 +310,6 @@ STEAMAUDIOIMPL_EXPORT void onUnload() {
 
     FFI logInfo("Unloading Steam Audio..."_cs);
     PhononPlayback::env.reset();
-    PhononSimulation::env.reset();
     iplContextRelease(&GlobalState::phononCtx);
 
     FFI unhook(getMethodCached<"void UnityEngine_AudioSource__Play (UnityEngine_AudioSource_o* "
@@ -302,9 +334,10 @@ STEAMAUDIOIMPL_EXPORT void onUnload() {
                                "method);">());
 
     FFI unhook(getMethodCached<"UnityEngine.AudioSource$$get_isPlaying">());
-    FFI unhook(getMethodCached<"UnityEngine.AudioSource$$set_volume">());
+    // FFI unhook(getMethodCached<"UnityEngine.AudioSource$$set_volume">());
     FFI unhook(getMethodCached<"UnityEngine.AudioSource$$set_clip">());
     FFI unhook(getMethodCached<"UnityEngine.AudioSource$$set_loop">());
+    FFI unhook(getMethodCached<"UnityEngine.AudioSource$$set_rolloffMode">());
 }
 
 STEAMAUDIOIMPL_EXPORT void onUiUpdate() {
@@ -312,8 +345,6 @@ STEAMAUDIOIMPL_EXPORT void onUiUpdate() {
 
     // Display settings
     FFI ImGuiBegin("Steam Audio");
-    static bool enableSimulation = false;
-    FFI ImGuiCheckbox("Enable reflection simulation", &enableSimulation);
     static bool showStats = true;
     FFI ImGuiCheckbox("Show stats", &showStats);
     FFI ImGuiEnd();
@@ -348,8 +379,6 @@ STEAMAUDIOIMPL_EXPORT void onUiUpdate() {
         FFI ImGuiText(FFI toCsString(
             ("Playbacks processed: " + std::to_string(GlobalState::stats.playbacksFinished) + '/' + std::to_string(GlobalState::stats.playbacksStarted))
                 .c_str()));
-        if (enableSimulation && PhononSimulation::env.has_value())
-            FFI ImGuiText(FFI toCsString(("Scene meshes: " + std::to_string(PhononSimulation::env->getMeshCount())).c_str()));
         FFI ImGuiText(FFI toCsString(("World transform: " + Utils::formatCoord(GlobalState::playerCoord)).c_str()));
     }
 
@@ -367,8 +396,6 @@ STEAMAUDIOIMPL_EXPORT void onUiUpdate() {
                 FFI ImGuiText(FFI toCsString(("Max distance: " + std::to_string(playback->maxDistance)).c_str()));
                 FFI ImGuiText(FFI toCsString(
                     ("Loop: " + std::string(call<"UnityEngine.AudioSource$$get_loop", bool>(playback->audioSource, nullptr) ? "yes" : "no")).c_str()));
-                if (enableSimulation)
-                    FFI ImGuiText(FFI toCsString(("Simulated: " + std::string(playback->simulationOutputsCache.has_value() ? "yes" : "no")).c_str()));
                 FFI ImGuiText(FFI toCsString(("World position: " + Utils::formatPos(playback->worldPosition)).c_str()));
             }
         } else {
@@ -379,9 +406,5 @@ STEAMAUDIOIMPL_EXPORT void onUiUpdate() {
 
     if (showStats)
         FFI ImGuiEnd();
-
-    // Run simulation
-    if (enableSimulation)
-        PhononSimulation::run();
 }
 } // namespace Interface

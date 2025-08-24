@@ -21,8 +21,8 @@ add_library(SteamAudioImpl SHARED
   phonontools.hpp
   phonontools.cpp
   playback.hpp playback.cpp
-  simulation_environment.hpp simulation_environment.cpp
-  simulation.hpp simulation.cpp
+
+
 )
 target_link_libraries(SteamAudioImpl PRIVATE phonon commoncpp)
 target_compile_definitions(SteamAudioImpl PRIVATE STEAMAUDIOIMPL_LIBRARY FFI_EXT FFI_USES_FTABLE FFI=FFI_USE_FTABLE)

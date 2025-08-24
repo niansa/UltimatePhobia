@@ -2,7 +2,6 @@
 #include "SteamAudioImpl.hpp"
 #include "utils.hpp"
 #include "playback.hpp"
-#include "simulation_environment.hpp"
 #include "fixedsettings.hpp"
 
 #include <vector>
@@ -145,51 +144,23 @@ bool updatePlayback(PhononPlayback::Playback& p, bool initial) {
         return false;
 
     // Update position
-    bool positionChanged = initial;
     ObjectHandle sourceTransform = call<"UnityEngine.Component$$get_transform", ObjectHandle>(p.audioSource, nullptr);
     if (sourceTransform != ObjectHandle::Null) {
         const auto newPosition = TransformUtils::get_position(sourceTransform);
         if (std::memcmp(&p.worldPosition, &newPosition, sizeof(newPosition)) != 0) {
             p.worldPosition = newPosition;
-            positionChanged = true;
         }
     }
 
     // Update initial properties
+    p.volume = call<"UnityEngine.AudioSource$$get_volume", float>(p.audioSource, nullptr); // Meant to be initial
     if (initial) {
-        p.volume = std::fabs(call<"UnityEngine.AudioSource$$get_volume", float>(p.audioSource, nullptr));
         if (call<"UnityEngine.AudioSource$$get_spatialize", bool>(p.audioSource, nullptr))
             p.spatialBlend = call<"UnityEngine.AudioSource$$get_spatialBlend", float>(p.audioSource, nullptr);
         else
             p.spatialBlend = 0.0f;
         p.maxDistance = call<"UnityEngine.AudioSource$$get_maxDistance", float>(p.audioSource, nullptr);
         p.loop = call<"UnityEngine.AudioSource$$get_loop", bool>(p.audioSource, nullptr);
-    }
-
-    // Update simulation
-    if (PhononSimulation::env.has_value()) {
-        // Update simulation outputs
-        p.updateSimulationOutputs();
-
-        // Update simulation inputs
-        if (positionChanged && p.source) {
-            IPLSimulationInputs inputs{.flags = FixedSettings::simulationFlags,
-                                       .directFlags = FixedSettings::directSimulationFlags,
-                                       .source = {.right = TransformUtils::get_right(sourceTransform),
-                                                  .up = TransformUtils::get_up(sourceTransform),
-                                                  .ahead = TransformUtils::get_forward(sourceTransform),
-                                                  .origin = p.worldPosition},
-                                       .directivity = {.dipoleWeight = 1.0f},
-                                       .occlusionType = IPL_OCCLUSIONTYPE_RAYCAST,
-                                       .occlusionRadius = 0.25f,
-                                       .numOcclusionSamples = 8,
-                                       .reverbScale = {1.0f, 1.0f, 1.0f},
-                                       .hybridReverbTransitionTime = 1.0f,
-                                       .hybridReverbOverlapPercent = 0.25f,
-                                       .numTransmissionRays = 16};
-            iplSourceSetInputs(p.source, FixedSettings::simulationFlags, &inputs);
-            PhononSimulation::env->markSimulatorDirty();
-        }
     }
 
     // We're all good

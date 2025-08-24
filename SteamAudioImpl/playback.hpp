@@ -4,15 +4,17 @@
 
 #include <list>
 #include <mutex>
-#include <optional>
 #include <ffi_interface.hpp>
 
 typedef struct ma_device ma_device;
 
 namespace PhononPlayback {
+enum AudioRolloffMode { Logarithmic = 0, Linear = 1, Custom = 2 };
+
 struct Playback {
     FFIInterface::ObjectHandle audioSource;
     FFIInterface::GCHandle audioSourceGc;
+    AudioRolloffMode rolloffMode = Linear;
     uint64_t delay;
     float volumeScale;
     float volume = 0.5f;
@@ -22,14 +24,10 @@ struct Playback {
     bool loop = false;
     uint64_t playPosition = 0;
     IPLVector3 worldPosition{};
-    std::optional<IPLSimulationOutputs> simulationOutputsCache;
 
     IPLAudioBuffer audioBuffer;
     IPLBinauralEffect binauralEffect = nullptr;
     IPLDirectEffect directEffect = nullptr;
-    IPLReflectionEffect reflectionEffect = nullptr;
-    IPLAmbisonicsBinauralEffect ambisonicsBinauralEffect = nullptr;
-    IPLSource source = nullptr;
 
     Playback(FFIInterface::ObjectHandle audioSource, const IPLAudioBuffer& audioBuffer, uint64_t delay, float volumeScale, bool isOneShot);
     ~Playback();
@@ -41,8 +39,6 @@ struct Playback {
     }
 
     IPLAudioBuffer& operator=(const IPLAudioBuffer& audioBuffer);
-
-    void updateSimulationOutputs();
 
     bool hasReachedEnd() const { return playPosition >= audioBuffer.numSamples; }
 };
