@@ -7,8 +7,6 @@
 #include "ffi_loader.hpp"
 #include "il2cpp_dynamic.hpp"
 #include "generated/il2cpp.hpp"
-#include "generated_classes/GhostAI.hpp"
-#include "generated_classes/GhostAI.cpp"
 
 #include "mods/global_instance_manager.hpp"
 #include "mods/tracer.hpp"
