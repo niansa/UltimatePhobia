@@ -4,8 +4,9 @@
 
 #include <imgui.h>
 #include <imgui_impl_win32.h>
-#include <imgui_impl_dx11.h>
-#include <d3d11.h>
+#include <imgui_impl_opengl3.h>
+#include <windows.h>
+#include <GL/gl.h>
 
 // Forward declare message handler from imgui_impl_win32.cpp
 extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
@@ -14,20 +15,19 @@ namespace ImGuiMan {
 namespace {
 constexpr ImVec4 clear_color = ImVec4(0.1372549019607843f, 0.1215686274509804f, 0.1254901960784314f, 1.00f); // #231f20
 
-ID3D11Device *pd3dDevice = nullptr;
-ID3D11DeviceContext *pd3dDeviceContext = nullptr;
-IDXGISwapChain *pSwapChain = nullptr;
-bool swapChainOccluded = false;
-UINT resizeWidth = 0, resizeHeight = 0;
-ID3D11RenderTargetView *mainRenderTargetView = nullptr;
+struct WGL_WindowData {
+    HDC hDC;
+};
+HGLRC g_hRC = nullptr;
+WGL_WindowData g_MainWindow;
+int g_Width = 0;
+int g_Height = 0;
 
 WNDCLASSEXW wc;
 HWND hwnd;
 
-bool CreateDeviceD3D(HWND hWnd);
-void CleanupDeviceD3D();
-void CreateRenderTarget();
-void CleanupRenderTarget();
+bool CreateDeviceWGL(HWND hWnd, WGL_WindowData *data);
+void CleanupDeviceWGL(HWND hWnd, WGL_WindowData *data);
 LRESULT WINAPI WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
 } // namespace
 
@@ -36,17 +36,19 @@ void init() {
 
     // Create application window
     // ImGui_ImplWin32_EnableDpiAwareness();
-    wc = {sizeof(wc), CS_CLASSDC, WndProc, 0L, 0L, GetModuleHandle(nullptr), nullptr, nullptr, nullptr, nullptr, L"ImGui Example", nullptr};
+    wc = {sizeof(wc), CS_OWNDC, WndProc, 0L, 0L, GetModuleHandle(nullptr), nullptr, nullptr, nullptr, nullptr, L"Phasmophobia", nullptr};
     ::RegisterClassExW(&wc);
-    hwnd = ::CreateWindowW(wc.lpszClassName, L"UltimatePhasmo", WS_OVERLAPPEDWINDOW, 100, 100, 1280, 800, nullptr, nullptr, wc.hInstance, nullptr);
+    hwnd = ::CreateWindowW(wc.lpszClassName, L"Phasmophobia", WS_OVERLAPPEDWINDOW, 100, 100, 1280, 800, nullptr, nullptr, wc.hInstance, nullptr);
 
-    // Initialize Direct3D
-    if (!CreateDeviceD3D(hwnd)) {
-        CleanupDeviceD3D();
+    // Initialize OpenGL
+    if (!CreateDeviceWGL(hwnd, &g_MainWindow)) {
+        CleanupDeviceWGL(hwnd, &g_MainWindow);
+        ::DestroyWindow(hwnd);
         ::UnregisterClassW(wc.lpszClassName, wc.hInstance);
-        g.logger->error("Failed to create D3D11 device");
+        g.logger->error("Failed to create OpenGL context");
         return;
     }
+    wglMakeCurrent(g_MainWindow.hDC, g_hRC);
 
     // Show the window
     ::ShowWindow(hwnd, SW_SHOWDEFAULT);
@@ -64,48 +66,42 @@ void init() {
     ImGui::StyleColorsDark();
 
     // Setup Platform/Renderer backends
-    ImGui_ImplWin32_Init(hwnd);
-    ImGui_ImplDX11_Init(pd3dDevice, pd3dDeviceContext);
+    ImGui_ImplWin32_InitForOpenGL(hwnd);
+    ImGui_ImplOpenGL3_Init();
 }
+
 void deinit() {
     g.logger->info("Deinitializing GUI...");
 
     // Cleanup
-    ImGui_ImplDX11_Shutdown();
+    ImGui_ImplOpenGL3_Shutdown();
     ImGui_ImplWin32_Shutdown();
     ImGui::DestroyContext();
 
-    CleanupDeviceD3D();
+    CleanupDeviceWGL(hwnd, &g_MainWindow);
+    wglDeleteContext(g_hRC);
     ::DestroyWindow(hwnd);
     ::UnregisterClassW(wc.lpszClassName, wc.hInstance);
 }
 
 bool pre_update() {
     // Poll and handle messages (inputs, window resize, etc.)
-    // See the WndProc() function below for our to dispatch events to the Win32
-    // backend.
     MSG msg;
     while (::PeekMessage(&msg, nullptr, 0U, 0U, PM_REMOVE)) {
         ::TranslateMessage(&msg);
         ::DispatchMessage(&msg);
+        if (msg.message == WM_QUIT)
+            return false;
     }
 
-    // Handle window being minimized or screen locked
-    if (swapChainOccluded && pSwapChain->Present(0, DXGI_PRESENT_TEST) == DXGI_STATUS_OCCLUDED) {
+    // Handle minimized window
+    if (::IsIconic(hwnd)) {
+        ::Sleep(10);
         return false;
-    }
-    swapChainOccluded = false;
-
-    // Handle window resize (we don't resize directly in the WM_SIZE handler)
-    if (resizeWidth != 0 && resizeHeight != 0) {
-        CleanupRenderTarget();
-        pSwapChain->ResizeBuffers(0, resizeWidth, resizeHeight, DXGI_FORMAT_UNKNOWN, 0);
-        resizeWidth = resizeHeight = 0;
-        CreateRenderTarget();
     }
 
     // Start the Dear ImGui frame
-    ImGui_ImplDX11_NewFrame();
+    ImGui_ImplOpenGL3_NewFrame();
     ImGui_ImplWin32_NewFrame();
     static std::string iniFilename = (SafePath::get() / "imgui.ini").string();
     ImGui::GetIO().IniFilename = iniFilename.c_str();
@@ -113,107 +109,57 @@ bool pre_update() {
 
     return true;
 }
+
 void post_update() {
     // Rendering
     ImGui::Render();
-    const float clear_color_with_alpha[4] = {clear_color.x * clear_color.w, clear_color.y * clear_color.w, clear_color.z * clear_color.w, clear_color.w};
-    pd3dDeviceContext->OMSetRenderTargets(1, &mainRenderTargetView, nullptr);
-    pd3dDeviceContext->ClearRenderTargetView(mainRenderTargetView, clear_color_with_alpha);
-    ImGui_ImplDX11_RenderDrawData(ImGui::GetDrawData());
+    glViewport(0, 0, g_Width, g_Height);
+    glClearColor(clear_color.x, clear_color.y, clear_color.z, clear_color.w);
+    glClear(GL_COLOR_BUFFER_BIT);
+    ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 
     // Present
-    HRESULT hr = pSwapChain->Present(0, 0); // Present without vsync
-    swapChainOccluded = (hr == DXGI_STATUS_OCCLUDED);
+    ::SwapBuffers(g_MainWindow.hDC);
 }
 
 namespace {
-bool CreateDeviceD3D(HWND hWnd) {
-    // Setup swap chain
-    DXGI_SWAP_CHAIN_DESC sd;
-    ZeroMemory(&sd, sizeof(sd));
-    sd.BufferCount = 2;
-    sd.BufferDesc.Width = 0;
-    sd.BufferDesc.Height = 0;
-    sd.BufferDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
-    sd.BufferDesc.RefreshRate.Numerator = 60;
-    sd.BufferDesc.RefreshRate.Denominator = 1;
-    sd.Flags = DXGI_SWAP_CHAIN_FLAG_ALLOW_MODE_SWITCH;
-    sd.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
-    sd.OutputWindow = hWnd;
-    sd.SampleDesc.Count = 1;
-    sd.SampleDesc.Quality = 0;
-    sd.Windowed = TRUE;
-    sd.SwapEffect = DXGI_SWAP_EFFECT_DISCARD;
+bool CreateDeviceWGL(HWND hWnd, WGL_WindowData *data) {
+    HDC hDc = ::GetDC(hWnd);
+    PIXELFORMATDESCRIPTOR pfd = {0};
+    pfd.nSize = sizeof(pfd);
+    pfd.nVersion = 1;
+    pfd.dwFlags = PFD_DRAW_TO_WINDOW | PFD_SUPPORT_OPENGL | PFD_DOUBLEBUFFER;
+    pfd.iPixelType = PFD_TYPE_RGBA;
+    pfd.cColorBits = 32;
 
-    UINT createDeviceFlags = 0;
-    // createDeviceFlags |= D3D11_CREATE_DEVICE_DEBUG;
-    D3D_FEATURE_LEVEL featureLevel;
-    const D3D_FEATURE_LEVEL featureLevelArray[2] = {
-        D3D_FEATURE_LEVEL_11_0,
-        D3D_FEATURE_LEVEL_10_0,
-    };
-    HRESULT res = D3D11CreateDeviceAndSwapChain(nullptr, D3D_DRIVER_TYPE_HARDWARE, nullptr, createDeviceFlags, featureLevelArray, 2, D3D11_SDK_VERSION, &sd,
-                                                &pSwapChain, &pd3dDevice, &featureLevel, &pd3dDeviceContext);
-    if (res == DXGI_ERROR_UNSUPPORTED) // Try high-performance WARP software
-                                       // driver if hardware is not available.
-        res = D3D11CreateDeviceAndSwapChain(nullptr, D3D_DRIVER_TYPE_WARP, nullptr, createDeviceFlags, featureLevelArray, 2, D3D11_SDK_VERSION, &sd,
-                                            &pSwapChain, &pd3dDevice, &featureLevel, &pd3dDeviceContext);
-    if (res != S_OK)
+    const int pf = ::ChoosePixelFormat(hDc, &pfd);
+    if (pf == 0)
         return false;
+    if (::SetPixelFormat(hDc, pf, &pfd) == FALSE)
+        return false;
+    ::ReleaseDC(hWnd, hDc);
 
-    CreateRenderTarget();
+    data->hDC = ::GetDC(hWnd);
+    if (!g_hRC)
+        g_hRC = wglCreateContext(data->hDC);
     return true;
 }
 
-void CleanupDeviceD3D() {
-    CleanupRenderTarget();
-    if (pSwapChain) {
-        pSwapChain->Release();
-        pSwapChain = nullptr;
-    }
-    if (pd3dDeviceContext) {
-        pd3dDeviceContext->Release();
-        pd3dDeviceContext = nullptr;
-    }
-    if (pd3dDevice) {
-        pd3dDevice->Release();
-        pd3dDevice = nullptr;
-    }
+void CleanupDeviceWGL(HWND hWnd, WGL_WindowData *data) {
+    wglMakeCurrent(nullptr, nullptr);
+    ::ReleaseDC(hWnd, data->hDC);
 }
 
-void CreateRenderTarget() {
-    ID3D11Texture2D *pBackBuffer;
-    pSwapChain->GetBuffer(0, IID_PPV_ARGS(&pBackBuffer));
-    pd3dDevice->CreateRenderTargetView(pBackBuffer, nullptr, &mainRenderTargetView);
-    pBackBuffer->Release();
-}
-
-void CleanupRenderTarget() {
-    if (mainRenderTargetView) {
-        mainRenderTargetView->Release();
-        mainRenderTargetView = nullptr;
-    }
-}
-
-// Win32 message handler
-// You can read the io.WantCaptureMouse, io.WantCaptureKeyboard flags to tell if
-// dear imgui wants to use your inputs.
-// - When io.WantCaptureMouse is true, do not dispatch mouse input data to your
-// main application, or clear/overwrite your copy of the mouse data.
-// - When io.WantCaptureKeyboard is true, do not dispatch keyboard input data to
-// your main application, or clear/overwrite your copy of the keyboard data.
-// Generally you may always pass all inputs to dear imgui, and hide them from
-// your application based on those two flags.
 LRESULT WINAPI WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam) {
     if (ImGui_ImplWin32_WndProcHandler(hWnd, msg, wParam, lParam))
         return true;
 
     switch (msg) {
     case WM_SIZE:
-        if (wParam == SIZE_MINIMIZED)
-            return 0;
-        resizeWidth = (UINT)LOWORD(lParam); // Queue resize
-        resizeHeight = (UINT)HIWORD(lParam);
+        if (wParam != SIZE_MINIMIZED) {
+            g_Width = LOWORD(lParam);
+            g_Height = HIWORD(lParam);
+        }
         return 0;
     case WM_SYSCOMMAND:
         if ((wParam & 0xfff0) == SC_KEYMENU) // Disable ALT application menu

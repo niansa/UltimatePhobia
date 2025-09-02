@@ -20,9 +20,9 @@ add_subdirectory(../deps/wasm3/platforms/cpp/wasm3_cpp wasm3_cpp)
 
 add_library(imgui STATIC
     ../deps/imgui/imgui.cpp ../deps/imgui/imgui_draw.cpp ../deps/imgui/imgui_tables.cpp ../deps/imgui/imgui_widgets.cpp
-    ../deps/imgui/backends/imgui_impl_win32.cpp ../deps/imgui/backends/imgui_impl_dx11.cpp
+    ../deps/imgui/backends/imgui_impl_win32.cpp ../deps/imgui/backends/imgui_impl_opengl3.cpp
 )
-target_link_libraries(imgui PUBLIC d3d11)
+target_link_libraries(imgui PUBLIC opengl32)
 target_include_directories(imgui PUBLIC ../deps/imgui/ ../deps/imgui/backends/)
 
 add_executable(UltimatePhobia WIN32 main.cpp icon.rc
