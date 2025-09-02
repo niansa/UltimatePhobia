@@ -1,5 +1,6 @@
 #include "imgui_man.hpp"
 #include "global_state.hpp"
+#include "safe_path.hpp"
 
 #include <imgui.h>
 #include <imgui_impl_win32.h>
@@ -106,6 +107,8 @@ bool pre_update() {
     // Start the Dear ImGui frame
     ImGui_ImplDX11_NewFrame();
     ImGui_ImplWin32_NewFrame();
+    static std::string iniFilename = (SafePath::get() / "imgui.ini").string();
+    ImGui::GetIO().IniFilename = iniFilename.c_str();
     ImGui::NewFrame();
 
     return true;
