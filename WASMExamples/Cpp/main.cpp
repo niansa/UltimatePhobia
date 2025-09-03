@@ -25,6 +25,9 @@ void useBoxSoonIfNeeded() {
 
 WASM_EXPORT("onLoad")
 void onLoad() {
+    if (getFtableItemCount() < getLocalFtableItemCount())
+        logWarn("UltimatePhobia runtime version might be too old!"_cs);
+
     logInfo("Hello from WASM module!"_cs);
     puts("Hello from WASM puts!\nThis is a multi-line test...");
     printf("Hello from WASM printf at %p!\nThis is another multi-line test...\n", printf);

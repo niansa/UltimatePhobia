@@ -538,30 +538,24 @@ template <StringLiteral identifier, typename returnT, typename... Args> returnT 
     return fres;
 }
 
-#ifndef FFI_NOSTL_CONTAINERS
 class GameHook {
-    FFIInterface::MethodHandle method;
-    std::string callback_name;
-    bool active;
+    FFIInterface::MethodHandle method = MethodHandle::Invalid;
+    const char *callback_name = nullptr;
+    bool active = false;
 
 public:
-    static std::optional<GameHook> create(FFIInterface::MethodHandle method, const char *callback) {
-        if (FFI_USE_FTABLE hook(method, callback)) {
-            return GameHook(method, callback);
-        }
-        return std::nullopt;
-    }
-
+    GameHook(FFIInterface::MethodHandle method, const char *callback) : method(method), callback_name(callback) { restore(); }
+    GameHook() {}
     ~GameHook() { release(); }
 
     // Move only
-    GameHook(GameHook&& o) noexcept : method(o.method), callback_name(std::move(o.callback_name)), active(o.active) { o.active = false; }
+    GameHook(GameHook&& o) noexcept : method(o.method), callback_name(o.callback_name), active(o.active) { o.active = false; }
 
     GameHook& operator=(GameHook&& o) noexcept {
         if (this != &o) {
             release();
             method = o.method;
-            callback_name = std::move(o.callback_name);
+            callback_name = o.callback_name;
             active = o.active;
             o.active = false;
         }
@@ -578,7 +572,7 @@ public:
 
     bool restore() {
         if (!active) {
-            active = FFI_USE_FTABLE hook(method, callback_name.c_str());
+            active = FFI_USE_FTABLE hook(method, callback_name);
             return active;
         }
         return false;
@@ -586,19 +580,17 @@ public:
 
     FFIInterface::MethodHandle target() const { return method; }
     bool isActive() const { return active; }
-
-private:
-    GameHook(FFIInterface::MethodHandle method, const char *callback) : method(method), callback_name(callback), active(true) {}
 };
 
+#ifndef FFI_NOSTL_CONTAINERS
 class GameHookPool {
     std::vector<std::shared_ptr<GameHook>> hooks;
 
 public:
     std::shared_ptr<GameHook> add(FFIInterface::MethodHandle method, const char *callback) {
-        auto hook = GameHook::create(method, callback);
-        if (hook) {
-            auto ptr = std::make_shared<GameHook>(std::move(*hook));
+        auto hook = GameHook(method, callback);
+        if (hook.isActive()) {
+            auto ptr = std::make_shared<GameHook>(std::move(hook));
             hooks.push_back(ptr);
             return ptr;
         }
@@ -606,9 +598,9 @@ public:
     }
 
     template <StringLiteral identifier> std::shared_ptr<GameHook> add(const char *callback) {
-        auto hook = GameHook::create(getMethodCached<identifier>(), callback);
-        if (hook) {
-            auto ptr = std::make_shared<GameHook>(std::move(*hook));
+        auto hook = GameHook(getMethodCached<identifier>(), callback);
+        if (hook.isActive()) {
+            auto ptr = std::make_shared<GameHook>(std::move(hook));
             hooks.push_back(ptr);
             return ptr;
         }
@@ -635,12 +627,12 @@ public:
 bool hookToggle(const char *description, std::optional<GameHook>& hook, bool& boolean, FFIInterface::MethodHandle method, const char *hookFnc) {
     if (FFI_USE_FTABLE ImGuiCheckbox3(description, &boolean)) {
         if (boolean) {
-            auto hook = GameHook::create(method, hookFnc);
-            if (!hook.has_value()) {
+            auto newHook = GameHook(method, hookFnc);
+            if (!newHook.isActive()) {
                 boolean = false;
                 return false;
             }
-            hook.emplace(GameHook(std::move(*hook)));
+            hook.emplace(std::move(newHook));
         } else {
             hook.reset();
         }

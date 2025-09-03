@@ -118,3 +118,118 @@ u32 w2c_env_ImGuiButton(struct w2c_env*, u32 a) {
 void w2c_env_abort(struct w2c_env*, u32 a, u32 b, u32 c, u32 d) {
     imports->abort(wasmPtrToCStr(a), wasmPtrToCStr(b), c, d);
 }
+u32 w2c_env_isValidObject(struct w2c_env*, u32 a) {
+    return imports->isValidObject(static_cast<FFIInterface::ObjectHandle>(a));
+}
+u32 w2c_env_getNull(struct w2c_env*) {
+    return static_cast<u32>(imports->getNull());
+}
+u32 w2c_env_toCsString(struct w2c_env*, u32 str_ptr) {
+    return static_cast<u32>(imports->toCsString(wasmPtrToCStr(str_ptr)));
+}
+void w2c_env_logTrace(struct w2c_env*, u32 message) {
+    imports->logTrace(static_cast<FFIInterface::ObjectHandle>(message));
+}
+void w2c_env_logDebug(struct w2c_env*, u32 message) {
+    imports->logDebug(static_cast<FFIInterface::ObjectHandle>(message));
+}
+void w2c_env_logWarn(struct w2c_env*, u32 message) {
+    imports->logWarn(static_cast<FFIInterface::ObjectHandle>(message));
+}
+void w2c_env_logError(struct w2c_env*, u32 message) {
+    imports->logError(static_cast<FFIInterface::ObjectHandle>(message));
+}
+void w2c_env_logCritical(struct w2c_env*, u32 message) {
+    imports->logCritical(static_cast<FFIInterface::ObjectHandle>(message));
+}
+u32 w2c_env_getMethodByAddress(struct w2c_env*, u64 addr) {
+    return static_cast<u32>(imports->getMethodByAddress(addr));
+}
+u32 w2c_env_getMethodName(struct w2c_env*, u32 a) {
+    return static_cast<u32>(imports->getMethodName(static_cast<FFIInterface::MethodHandle>(a)));
+}
+u32 w2c_env_getMethodSignature(struct w2c_env*, u32 a) {
+    return static_cast<u32>(imports->getMethodSignature(static_cast<FFIInterface::MethodHandle>(a)));
+}
+u32 w2c_env_getValueI32(struct w2c_env*, u32 index) {
+    return static_cast<u32>(imports->getValueI32(static_cast<int32_t>(index)));
+}
+u64 w2c_env_getValueI64(struct w2c_env*, u32 index) {
+    return imports->getValueI64(static_cast<int32_t>(index));
+}
+float w2c_env_getValueFloat(struct w2c_env*, u32 index) {
+    return imports->getValueFloat(static_cast<int32_t>(index));
+}
+double w2c_env_getValueDouble(struct w2c_env*, u32 index) {
+    return imports->getValueDouble(static_cast<int32_t>(index));
+}
+u32 w2c_env_getCallError(struct w2c_env*) {
+    return static_cast<u32>(imports->getCallError());
+}
+void w2c_env_ImGuiCheckbox(struct w2c_env*, u32 label_ptr, u32 v_ptr) {
+    imports->ImGuiCheckbox(wasmPtrToCStr(label_ptr), reinterpret_cast<bool*>(module.w2c_memory.data + v_ptr));
+}
+void w2c_env_ImGuiSeparator(struct w2c_env*) {
+    imports->ImGuiSeparator();
+}
+u32 w2c_env_ImGuiCheckbox2(struct w2c_env*, u32 label_ptr, u32 v) {
+    return imports->ImGuiCheckbox2(wasmPtrToCStr(label_ptr), static_cast<FFIInterface::WIBool>(v));
+}
+u32 w2c_env_ImGuiCheckbox3(struct w2c_env*, u32 label_ptr, u32 v_ptr) {
+    return imports->ImGuiCheckbox3(wasmPtrToCStr(label_ptr), reinterpret_cast<bool*>(module.w2c_memory.data + v_ptr));
+}
+u32 w2c_env_getImageCorlib(struct w2c_env*) {
+    return static_cast<u32>(imports->getImageCorlib());
+}
+u32 w2c_env_getClassFromName(struct w2c_env*, u32 image, u32 namespaze_ptr, u32 name_ptr) {
+    return static_cast<u32>(imports->getClassFromName(
+        static_cast<FFIInterface::ObjectHandle>(image),
+        wasmPtrToCStr(namespaze_ptr),
+        wasmPtrToCStr(name_ptr)
+    ));
+}
+u32 w2c_env_getArrayFromClass(struct w2c_env*, u32 elementClass, u32 rank) {
+    return static_cast<u32>(imports->getArrayFromClass(
+        static_cast<FFIInterface::ObjectHandle>(elementClass),
+        static_cast<int32_t>(rank)
+    ));
+}
+u32 w2c_env_createArray(struct w2c_env*, u32 elementClass, u32 length) {
+    return static_cast<u32>(imports->createArray(
+        static_cast<FFIInterface::ObjectHandle>(elementClass),
+        static_cast<int32_t>(length)
+    ));
+}
+void w2c_env_copyArrayBytes(struct w2c_env*, u32 array, u32 offset, u32 length, u32 to_ptr) {
+    imports->copyArrayBytes(
+        static_cast<FFIInterface::ObjectHandle>(array),
+        static_cast<int32_t>(offset),
+        static_cast<int32_t>(length),
+        reinterpret_cast<void*>(module.w2c_memory.data + to_ptr)
+    );
+}
+u64 w2c_env_getMethodAddresss(struct w2c_env*, u32 a) {
+    return imports->getMethodAddresss(static_cast<FFIInterface::MethodHandle>(a));
+}
+u64 w2c_env_getObjectAddress(struct w2c_env*, u32 a) {
+    return imports->getObjectAddress(static_cast<FFIInterface::ObjectHandle>(a));
+}
+u32 w2c_env_gcCreateHandle(struct w2c_env*, u32 object, u32 pinned) {
+    return static_cast<u32>(imports->gcCreateHandle(
+        static_cast<FFIInterface::ObjectHandle>(object),
+        static_cast<int32_t>(pinned)
+    ));
+}
+void w2c_env_gcDeleteHandle(struct w2c_env*, u32 a) {
+    imports->gcDeleteHandle(static_cast<FFIInterface::GCHandle>(a));
+}
+u32 w2c_env_call2(struct w2c_env*, u32 a, u32 argCount, u32 returnsStruct) {
+    return imports->call2(
+        static_cast<FFIInterface::MethodHandle>(a),
+        static_cast<int32_t>(argCount),
+        static_cast<FFIInterface::WIBool>(returnsStruct)
+    );
+}
+u32 w2c_env_getFtableItemCount(struct w2c_env*) {
+    return static_cast<u32>(imports->getFtableItemCount());
+}
