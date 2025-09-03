@@ -5,6 +5,12 @@
 #include <type_traits>
 #include <cstdint>
 #include <cstddef>
+#ifndef FFI_NOSTL_CONTAINERS
+#include <string>
+#include <vector>
+#include <optional>
+#include <memory>
+#endif
 #else
 #include <stdint.h>
 #include <stddef.h>
@@ -46,7 +52,7 @@ namespace Signatures {
 UP_API void dropObject(ObjectHandle);
 /**
  * @brief Check if given handle is a valid C# object
- * @return 1 if handle is valid, otherwise 0
+ * @return 1 if handle is valid, otherwisewise 0
  */
 UP_API WIBool isValidObject(ObjectHandle);
 /**
@@ -513,6 +519,101 @@ template <StringLiteral identifier, typename returnT, typename... Args> returnT 
     FFI_USE_FTABLE dropObject(byteArray);
     return fres;
 }
+
+#ifndef FFI_NOSTL_CONTAINERS
+class GameHook {
+    FFIInterface::MethodHandle method;
+    std::string callback_name;
+    bool active;
+
+public:
+    static std::optional<GameHook> create(FFIInterface::MethodHandle method, const char *callback) {
+        if (FFI_USE_FTABLE hook(method, callback)) {
+            return GameHook(method, callback);
+        }
+        return std::nullopt;
+    }
+
+    ~GameHook() { release(); }
+
+    // Move only
+    GameHook(GameHook&& o) noexcept : method(o.method), callback_name(std::move(o.callback_name)), active(o.active) { o.active = false; }
+
+    GameHook& operator=(GameHook&& o) noexcept {
+        if (this != &o) {
+            release();
+            method = o.method;
+            callback_name = std::move(o.callback_name);
+            active = o.active;
+            o.active = false;
+        }
+        return *this;
+    }
+
+    bool release() {
+        if (active) {
+            active = !FFI_USE_FTABLE unhook(method);
+            return !active;
+        }
+        return false;
+    }
+
+    bool restore() {
+        if (!active) {
+            active = FFI_USE_FTABLE hook(method, callback_name.c_str());
+            return active;
+        }
+        return false;
+    }
+
+    FFIInterface::MethodHandle target() const { return method; }
+    bool isActive() const { return active; }
+
+private:
+    GameHook(FFIInterface::MethodHandle method, const char *callback) : method(method), callback_name(callback), active(true) {}
+};
+
+class GameHookPool {
+    std::vector<std::shared_ptr<GameHook>> hooks;
+
+public:
+    std::shared_ptr<GameHook> add(FFIInterface::MethodHandle method, const char *callback) {
+        auto hook = GameHook::create(method, callback);
+        if (hook) {
+            auto ptr = std::make_shared<GameHook>(std::move(*hook));
+            hooks.push_back(ptr);
+            return ptr;
+        }
+        return nullptr;
+    }
+
+    template <StringLiteral identifier> std::shared_ptr<GameHook> add(const char *callback) {
+        auto hook = GameHook::create(getMethodCached<identifier>(), callback);
+        if (hook) {
+            auto ptr = std::make_shared<GameHook>(std::move(*hook));
+            hooks.push_back(ptr);
+            return ptr;
+        }
+        return nullptr;
+    }
+
+    std::shared_ptr<GameHook> get(FFIInterface::MethodHandle method) const {
+        for (auto& hook : hooks) {
+            if (hook->target() == method) {
+                return hook;
+            }
+        }
+        return nullptr;
+    }
+
+    void remove(FFIInterface::MethodHandle method) {
+        auto it = std::remove_if(hooks.begin(), hooks.end(), [method](const auto& hook) { return hook->target() == method; });
+        hooks.erase(it, hooks.end());
+    }
+
+    void clear() { hooks.clear(); }
+};
+#endif
 
 namespace Literals {
 inline FFIInterface::ObjectHandle operator"" _cs(const char *str, size_t len) { return FFI_USE_FTABLE toCsStringWithLength(str, len); }

@@ -27,6 +27,8 @@ IPLCoordinateSpace3 playerCoord;
 Statistics stats;
 } // namespace GlobalState
 
+GameHookPool hooks;
+
 namespace Interface {
 STEAMAUDIOIMPL_EXPORT void onAudioSourcePlay() {
     using namespace PhononPlayback;
@@ -281,63 +283,33 @@ STEAMAUDIOIMPL_EXPORT void onLoad() {
         ma_device_start(&GlobalState::maDevice);
     }
 
-    FFI hook(getMethodCached<"void UnityEngine_AudioSource__Play (UnityEngine_AudioSource_o* __this, const MethodInfo* method);">(), "onAudioSourcePlay");
-    FFI hook(getMethodCached<
-                 "void UnityEngine_AudioSource__PlayOneShot (UnityEngine_AudioSource_o* __this, UnityEngine_AudioClip_o* clip, const MethodInfo* method);">(),
-             "onAudioSourcePlay");
-    FFI hook(getMethodCached<"void UnityEngine_AudioSource__PlayOneShot (UnityEngine_AudioSource_o* __this, UnityEngine_AudioClip_o* clip, float volumeScale, "
-                             "const MethodInfo* method);">(),
-             "onAudioSourcePlay");
-    FFI hook(getMethodCached<"void UnityEngine_AudioSource__Play (UnityEngine_AudioSource_o* __this, double delay, const MethodInfo* method);">(),
-             "onAudioSourcePlay");
-    FFI hook(getMethodCached<"void UnityEngine_AudioSource__Play (UnityEngine_AudioSource_o* __this, uint64_t delay, const MethodInfo* method);">(),
-             "onAudioSourcePlay");
+    hooks.add<"void UnityEngine_AudioSource__Play (UnityEngine_AudioSource_o* __this, const MethodInfo* method);">("onAudioSourcePlay");
+    hooks.add<"void UnityEngine_AudioSource__PlayOneShot (UnityEngine_AudioSource_o* __this, UnityEngine_AudioClip_o* clip, const MethodInfo* method);">(
+        "onAudioSourcePlay");
+    hooks.add<"void UnityEngine_AudioSource__PlayOneShot (UnityEngine_AudioSource_o* __this, UnityEngine_AudioClip_o* clip, float volumeScale, "
+              "const MethodInfo* method);">("onAudioSourcePlay");
+    hooks.add<"void UnityEngine_AudioSource__Play (UnityEngine_AudioSource_o* __this, double delay, const MethodInfo* method);">("onAudioSourcePlay");
+    hooks.add<"void UnityEngine_AudioSource__Play (UnityEngine_AudioSource_o* __this, uint64_t delay, const MethodInfo* method);">("onAudioSourcePlay");
 
-    FFI hook(getMethodCached<"void UnityEngine_AudioSource__Stop (UnityEngine_AudioSource_o* __this, const MethodInfo* method);">(), "onAudioSourceStop");
-    FFI hook(getMethodCached<"void UnityEngine_AudioSource__Stop (UnityEngine_AudioSource_o* __this, bool stopOneShots, const MethodInfo* method);">(),
-             "onAudioSourceStop");
+    hooks.add<"void UnityEngine_AudioSource__Stop (UnityEngine_AudioSource_o* __this, const MethodInfo* method);">("onAudioSourceStop");
+    hooks.add<"void UnityEngine_AudioSource__Stop (UnityEngine_AudioSource_o* __this, bool stopOneShots, const MethodInfo* method);">("onAudioSourceStop");
 
-    FFI hook(getMethodCached<"UnityEngine.AudioSource$$get_isPlaying">(), "onAudioSourceGetIsPlaying");
-    // FFI hook(getMethodCached<"UnityEngine.AudioSource$$set_volume">(), "onAudioSourceSetVolume");
-    FFI hook(getMethodCached<"UnityEngine.AudioSource$$set_clip">(), "onAudioSourceSetClip");
-    FFI hook(getMethodCached<"UnityEngine.AudioSource$$set_loop">(), "onAudioSourceSetLoop");
-    FFI hook(getMethodCached<"UnityEngine.AudioSource$$set_rolloffMode">(), "onAudioSourceSetRolloffMode");
+    hooks.add<"UnityEngine.AudioSource$$get_isPlaying">("onAudioSourceGetIsPlaying");
+    // hooks.add<"UnityEngine.AudioSource$$set_volume">(), "onAudioSourceSetVolume");
+    hooks.add<"UnityEngine.AudioSource$$set_clip">("onAudioSourceSetClip");
+    hooks.add<"UnityEngine.AudioSource$$set_loop">("onAudioSourceSetLoop");
+    hooks.add<"UnityEngine.AudioSource$$set_rolloffMode">("onAudioSourceSetRolloffMode");
 }
 
 STEAMAUDIOIMPL_EXPORT void onUnload() {
+    hooks.clear();
+
     FFI logInfo("Unloading miniaudio..."_cs);
     ma_device_uninit(&GlobalState::maDevice);
 
     FFI logInfo("Unloading Steam Audio..."_cs);
     PhononPlayback::env.reset();
     iplContextRelease(&GlobalState::phononCtx);
-
-    FFI unhook(getMethodCached<"void UnityEngine_AudioSource__Play (UnityEngine_AudioSource_o* "
-                               "__this, const MethodInfo* method);">());
-    FFI unhook(getMethodCached<"void UnityEngine_AudioSource__PlayOneShot "
-                               "(UnityEngine_AudioSource_o* __this, UnityEngine_AudioClip_o* "
-                               "clip, const MethodInfo* method);">());
-    FFI unhook(getMethodCached<"void UnityEngine_AudioSource__PlayOneShot "
-                               "(UnityEngine_AudioSource_o* __this, UnityEngine_AudioClip_o* "
-                               "clip, float volumeScale, const MethodInfo* method);">());
-    FFI unhook(getMethodCached<"void UnityEngine_AudioSource__Play (UnityEngine_AudioSource_o* "
-                               "__this, double delay, const MethodInfo* method);">());
-    FFI unhook(getMethodCached<"void UnityEngine_AudioSource__Play (UnityEngine_AudioSource_o* "
-                               "__this, uint64_t delay, const MethodInfo* method);">());
-
-    FFI unhook(getMethodCached<"void UnityEngine_AudioSource__Stop "
-                               "(UnityEngine_AudioSource_o* __this, const "
-                               "MethodInfo* method);">());
-    FFI unhook(getMethodCached<"void UnityEngine_AudioSource__Stop "
-                               "(UnityEngine_AudioSource_o* "
-                               "__this, bool stopOneShots, const MethodInfo* "
-                               "method);">());
-
-    FFI unhook(getMethodCached<"UnityEngine.AudioSource$$get_isPlaying">());
-    // FFI unhook(getMethodCached<"UnityEngine.AudioSource$$set_volume">());
-    FFI unhook(getMethodCached<"UnityEngine.AudioSource$$set_clip">());
-    FFI unhook(getMethodCached<"UnityEngine.AudioSource$$set_loop">());
-    FFI unhook(getMethodCached<"UnityEngine.AudioSource$$set_rolloffMode">());
 }
 
 STEAMAUDIOIMPL_EXPORT void onUiUpdate() {
