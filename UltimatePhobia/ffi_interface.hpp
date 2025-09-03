@@ -29,6 +29,10 @@
 #endif
 #endif
 
+#ifndef UP_DEPRECATED
+#define UP_DEPRECATED(message)
+#endif
+
 namespace FFIInterface {
 #ifdef FFI_EXT
 enum class ObjectHandle : int32_t { Null = 0, Invalid = -1 };
@@ -311,9 +315,10 @@ UP_API MethodHandle getOriginal();
 UP_API void ImGuiBegin(const char *name = "");
 UP_API void ImGuiEnd();
 UP_API void ImGuiText(ObjectHandle text);
-UP_API void ImGuiCheckbox(const char *label, bool *v);
+UP_DEPRECATED("Unsafe! Use ImGuiCheckbox2 instead.") UP_API void ImGuiCheckbox(const char *label, bool *v);
 UP_API WIBool ImGuiCheckbox2(const char *label, WIBool v);
-UP_API WIBool ImGuiCheckbox3(const char *label, bool *v);
+UP_DEPRECATED("Unsafe! Use ImGuiCheckbox4 instead.") UP_API WIBool ImGuiCheckbox3(const char *label, bool *v);
+UP_API int32_t ImGuiCheckbox4(const char *label, WIBool v);
 UP_API WIBool ImGuiButton(const char *label);
 UP_API void ImGuiSeparator();
 UP_API void ImGuiSeparatorText(const char *label);
@@ -377,7 +382,8 @@ UP_API void abort(const char *message, const char *filename, int32_t lineNumber,
     FFI_FUNCTION_LIST_ENTRY(WIBool, call2, (MethodHandle a, int32_t argCount, WIBool returnsStruct), a, argCount, returnsStruct)                               \
     FFI_FUNCTION_LIST_ENTRY(WIBool, ImGuiCheckbox2, (const char *label, WIBool v), label, v)                                                                   \
     FFI_FUNCTION_LIST_ENTRY(WIBool, ImGuiCheckbox3, (const char *label, bool *v), label, v)                                                                    \
-    FFI_FUNCTION_LIST_ENTRY(int32_t, getFtableItemCount, (), )
+    FFI_FUNCTION_LIST_ENTRY(int32_t, getFtableItemCount, (), )                                                                                                 \
+    FFI_FUNCTION_LIST_ENTRY(int32_t, ImGuiCheckbox4, (const char *label, WIBool v), label, v)
 
 // Make sure signatures match
 #ifndef FFI_NOSTL
@@ -461,6 +467,12 @@ template <size_t N> struct StringLiteral {
 };
 
 FFIInterface::ObjectHandle createCsString() { return FFI_USE_FTABLE toCsStringWithLength(nullptr, 0); }
+
+bool ImGuiCheckbox(const char *label, bool *state) {
+    const uint8_t fres = FFI_USE_FTABLE ImGuiCheckbox4(label, *state);
+    *state = fres & 0b01;
+    return fres & 0b10;
+}
 
 void addArg(int32_t v) { FFI_USE_FTABLE addArgI32(v); }
 void addArg(int64_t v) { FFI_USE_FTABLE addArgI64(v); }
@@ -625,7 +637,7 @@ public:
 };
 
 bool hookToggle(const char *description, std::optional<GameHook>& hook, bool& boolean, FFIInterface::MethodHandle method, const char *hookFnc) {
-    if (FFI_USE_FTABLE ImGuiCheckbox3(description, &boolean)) {
+    if (ImGuiCheckbox(description, &boolean)) {
         if (boolean) {
             auto newHook = GameHook(method, hookFnc);
             if (!newHook.isActive()) {
@@ -642,7 +654,7 @@ bool hookToggle(const char *description, std::optional<GameHook>& hook, bool& bo
 }
 
 bool hookToggle(const char *description, GameHookPool& hookPool, bool& boolean, FFIInterface::MethodHandle method, const char *hookFnc) {
-    if (FFI_USE_FTABLE ImGuiCheckbox3(description, &boolean)) {
+    if (ImGuiCheckbox(description, &boolean)) {
         if (boolean)
             boolean = hookPool.add(method, hookFnc) != nullptr;
         else

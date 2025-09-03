@@ -321,6 +321,11 @@ WIBool ImGuiCheckbox2(const char *label, WIBool v) {
     return fres;
 }
 WIBool ImGuiCheckbox3(const char *label, bool *v) { return ImGui::Checkbox(label, v); }
+int32_t ImGuiCheckbox4(const char *label, WIBool v) {
+    bool state = v;
+    bool fres = ImGui::Checkbox(label, &state);
+    return (state ? 0b01 : 0) | (fres ? 0b10 : 0);
+}
 WIBool ImGuiButton(const char *label) { return ImGui::Button(label); }
 void ImGuiSeparator() { ImGui::Separator(); }
 void ImGuiSeparatorText(const char *label) { ImGui::SeparatorText(label); }

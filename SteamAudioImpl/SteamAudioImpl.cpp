@@ -321,7 +321,7 @@ STEAMAUDIOIMPL_EXPORT void onUiUpdate() {
     // Display settings
     FFI ImGuiBegin("Steam Audio");
     static bool showStats = true;
-    FFI ImGuiCheckbox("Show stats", &showStats);
+    ImGuiCheckbox("Show stats", &showStats);
     FFI ImGuiEnd();
 
     // Get current camera position and direction
