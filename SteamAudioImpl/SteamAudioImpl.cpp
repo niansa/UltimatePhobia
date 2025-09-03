@@ -259,6 +259,9 @@ STEAMAUDIOIMPL_EXPORT void onAudioSourceSetClip() {
 STEAMAUDIOIMPL_EXPORT void initImports(const FFIInterface::Imports *imports) { ::imports = imports; }
 
 STEAMAUDIOIMPL_EXPORT void onLoad() {
+    if (FFI getFtableItemCount() < getLocalFtableItemCount())
+        FFI abort("UltimatePhobia runtime too old!", __FILE_NAME__, __LINE__, 0);
+
     FFI logInfo("Initializing Steam Audio..."_cs);
     {
         IPLContextSettings contextSettings{};

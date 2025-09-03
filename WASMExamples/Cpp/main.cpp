@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <wasm32sdk.h>
+
 #include "ffi_interface.hpp"
 
 using namespace FFIInterface;

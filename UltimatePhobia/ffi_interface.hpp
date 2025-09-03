@@ -12,6 +12,7 @@
 #include <memory>
 #endif
 #else
+#define FFI_NOSTL_CONTAINERS
 #include <stdint.h>
 #include <stddef.h>
 #endif
@@ -30,24 +31,29 @@
 
 namespace FFIInterface {
 #ifdef FFI_EXT
-enum class ObjectHandle : int { Null = 0, Invalid = -1 };
-enum class MethodHandle : int { Invalid = -1 };
-enum class GCHandle : int { Invalid = -1 };
+enum class ObjectHandle : int32_t { Null = 0, Invalid = -1 };
+enum class MethodHandle : int32_t { Invalid = -1 };
+enum class GCHandle : int32_t { Invalid = -1 };
 #else
-using ObjectHandle = int;
-using MethodHandle = int;
-using GCHandle = int;
+using ObjectHandle = int32_t;
+using MethodHandle = int32_t;
+using GCHandle = int32_t;
 #endif
-using WIBool = int;
-constexpr int unknownArgCount = 0x6D616E63;
+using WIBool = int32_t;
+constexpr int32_t unknownArgCount = 0x6D616E63;
 
 #ifdef FFI_USES_FTABLE
 namespace Signatures {
 #endif
 
 /**
- * @brief Invalidates given handle to C# object allowing it to be garbage
- * collected
+ * @brief Gets current ftable size to ensure runtime is recent enough
+ * @return Amount of items in ftable
+ */
+UP_API int32_t getFtableItemCount();
+
+/**
+ * @brief Invalidates given handle to C# object allowing it to be garbage collected
  */
 UP_API void dropObject(ObjectHandle);
 /**
@@ -75,14 +81,14 @@ UP_API ObjectHandle toCsString(const char *str);
  * @param str C string
  * @param length Length of C string
  */
-UP_API ObjectHandle toCsStringWithLength(const char *str, int length);
+UP_API ObjectHandle toCsStringWithLength(const char *str, int32_t length);
 /**
  * @brief Converts given string to C string (including null terminator)
  * @param str System.String object
  * @param buf Buffer to write string to
  * @param maxlen Length of buffer
  */
-UP_API void toCString(ObjectHandle str, char *buf, int maxlen);
+UP_API void toCString(ObjectHandle str, char *buf, int32_t maxlen);
 
 /**
  * @brief Gets corlib image handle
@@ -126,7 +132,7 @@ UP_API void copyArrayBytes(ObjectHandle array, int32_t offset, int32_t length, v
  * @param pinned If object should be pinned
  * @return Handle that has to be deleted later
  */
-UP_API GCHandle gcCreateHandle(ObjectHandle object, int pinned);
+UP_API GCHandle gcCreateHandle(ObjectHandle object, WIBool pinned);
 /**
  * @brief Deletes garbage collection handle
  */
@@ -227,39 +233,39 @@ UP_API void clearArgs();
 /**
  * @brief Returns amount of arguments
  */
-UP_API int getArgCount();
+UP_API int32_t getArgCount();
 /**
  * @brief Moves last argument to specified index replacing its value
  * @param index New argument index or negative value to replace return value
  * @return 1 on success, 0 on error (if argument list empty or index out of
  * range)
  */
-UP_API WIBool moveArg(int index);
+UP_API WIBool moveArg(int32_t index);
 /**
  * @brief Gets 32 bit integer stored in argument list or return value
  * @param index argument index or -1 for return value
  */
-UP_API int32_t getValueI32(int index = -1);
+UP_API int32_t getValueI32(int32_t index = -1);
 /**
  * @brief Gets 64 bit integer stored in argument list or return value
  * @param index argument index or -1 for return value
  */
-UP_API int64_t getValueI64(int index = -1);
+UP_API int64_t getValueI64(int32_t index = -1);
 /**
  * @brief Gets float stored in argument list or return value
  * @param index argument index or -1 for return value
  */
-UP_API float getValueFloat(int index = -1);
+UP_API float getValueFloat(int32_t index = -1);
 /**
  * @brief Gets double stored in argument list or return value
  * @param index argument index or -1 for return value
  */
-UP_API double getValueDouble(int index = -1);
+UP_API double getValueDouble(int32_t index = -1);
 /**
  * @brief Gets C# object stored in argument list or return value
  * @param index argument index or -1 for return value
  */
-UP_API ObjectHandle getValueObject(int index = -1);
+UP_API ObjectHandle getValueObject(int32_t index = -1);
 /**
  * @brief Gets error message from call function
  * @return System.String object
@@ -272,7 +278,7 @@ UP_API ObjectHandle getCallError();
  * unknownArgCount)
  * @return 1 on success, 0 on failure (use getCallError to get error string)
  */
-UP_API WIBool call(MethodHandle, int argCount);
+UP_API WIBool call(MethodHandle, int32_t argCount);
 /**
  * @brief Calls given method with previously added arguments (also clears them
  * if function call was able to be initiated)
@@ -281,7 +287,7 @@ UP_API WIBool call(MethodHandle, int argCount);
  * @param returnsStruct Set to true if function returns struct
  * @return 1 on success, 0 on failure (use getCallError to get error string)
  */
-UP_API WIBool call2(MethodHandle, int argCount, WIBool returnsStruct = false);
+UP_API WIBool call2(MethodHandle, int32_t argCount, WIBool returnsStruct = false);
 
 /**
  * @brief Hooks given method
@@ -307,19 +313,20 @@ UP_API void ImGuiEnd();
 UP_API void ImGuiText(ObjectHandle text);
 UP_API void ImGuiCheckbox(const char *label, bool *v);
 UP_API WIBool ImGuiCheckbox2(const char *label, WIBool v);
+UP_API WIBool ImGuiCheckbox3(const char *label, bool *v);
 UP_API WIBool ImGuiButton(const char *label);
 UP_API void ImGuiSeparator();
 UP_API void ImGuiSeparatorText(const char *label);
 
-UP_API void abort(const char *message, const char *filename, int lineNumber, int columnNumber);
+UP_API void abort(const char *message, const char *filename, int32_t lineNumber, int32_t columnNumber);
 
 #define FFI_FUNCTION_LIST                                                                                                                                      \
     FFI_FUNCTION_LIST_ENTRY(void, dropObject, (ObjectHandle a), a)                                                                                             \
     FFI_FUNCTION_LIST_ENTRY(WIBool, isValidObject, (ObjectHandle a), a)                                                                                        \
     FFI_FUNCTION_LIST_ENTRY(ObjectHandle, getNull, (), )                                                                                                       \
     FFI_FUNCTION_LIST_ENTRY(ObjectHandle, toCsString, (const char *str), str)                                                                                  \
-    FFI_FUNCTION_LIST_ENTRY(ObjectHandle, toCsStringWithLength, (const char *str, int length), str, length)                                                    \
-    FFI_FUNCTION_LIST_ENTRY(void, toCString, (ObjectHandle str, char *buf, int maxlen), str, buf, maxlen)                                                      \
+    FFI_FUNCTION_LIST_ENTRY(ObjectHandle, toCsStringWithLength, (const char *str, int32_t length), str, length)                                                \
+    FFI_FUNCTION_LIST_ENTRY(void, toCString, (ObjectHandle str, char *buf, int32_t maxlen), str, buf, maxlen)                                                  \
     FFI_FUNCTION_LIST_ENTRY(void, logTrace, (ObjectHandle message), message)                                                                                   \
     FFI_FUNCTION_LIST_ENTRY(void, logDebug, (ObjectHandle message), message)                                                                                   \
     FFI_FUNCTION_LIST_ENTRY(void, logInfo, (ObjectHandle message), message)                                                                                    \
@@ -337,15 +344,15 @@ UP_API void abort(const char *message, const char *filename, int lineNumber, int
     FFI_FUNCTION_LIST_ENTRY(void, addArgObject, (ObjectHandle v), v)                                                                                           \
     FFI_FUNCTION_LIST_ENTRY(void, addArgNull, (), )                                                                                                            \
     FFI_FUNCTION_LIST_ENTRY(void, clearArgs, (), )                                                                                                             \
-    FFI_FUNCTION_LIST_ENTRY(int, getArgCount, (), )                                                                                                            \
-    FFI_FUNCTION_LIST_ENTRY(WIBool, moveArg, (int index), index)                                                                                               \
-    FFI_FUNCTION_LIST_ENTRY(int32_t, getValueI32, (int index), index)                                                                                          \
-    FFI_FUNCTION_LIST_ENTRY(int64_t, getValueI64, (int index), index)                                                                                          \
-    FFI_FUNCTION_LIST_ENTRY(float, getValueFloat, (int index), index)                                                                                          \
-    FFI_FUNCTION_LIST_ENTRY(double, getValueDouble, (int index), index)                                                                                        \
-    FFI_FUNCTION_LIST_ENTRY(ObjectHandle, getValueObject, (int index), index)                                                                                  \
+    FFI_FUNCTION_LIST_ENTRY(int32_t, getArgCount, (), )                                                                                                        \
+    FFI_FUNCTION_LIST_ENTRY(WIBool, moveArg, (int32_t index), index)                                                                                           \
+    FFI_FUNCTION_LIST_ENTRY(int32_t, getValueI32, (int32_t index), index)                                                                                      \
+    FFI_FUNCTION_LIST_ENTRY(int64_t, getValueI64, (int32_t index), index)                                                                                      \
+    FFI_FUNCTION_LIST_ENTRY(float, getValueFloat, (int32_t index), index)                                                                                      \
+    FFI_FUNCTION_LIST_ENTRY(double, getValueDouble, (int32_t index), index)                                                                                    \
+    FFI_FUNCTION_LIST_ENTRY(ObjectHandle, getValueObject, (int32_t index), index)                                                                              \
     FFI_FUNCTION_LIST_ENTRY(ObjectHandle, getCallError, (), )                                                                                                  \
-    FFI_FUNCTION_LIST_ENTRY(WIBool, call, (MethodHandle a, int argCount), a, argCount)                                                                         \
+    FFI_FUNCTION_LIST_ENTRY(WIBool, call, (MethodHandle a, int32_t argCount), a, argCount)                                                                     \
     FFI_FUNCTION_LIST_ENTRY(WIBool, hook, (MethodHandle a, const char *callback), a, callback)                                                                 \
     FFI_FUNCTION_LIST_ENTRY(WIBool, unhook, (MethodHandle a), a)                                                                                               \
     FFI_FUNCTION_LIST_ENTRY(MethodHandle, getOriginal, (), )                                                                                                   \
@@ -356,7 +363,7 @@ UP_API void abort(const char *message, const char *filename, int lineNumber, int
     FFI_FUNCTION_LIST_ENTRY(WIBool, ImGuiButton, (const char *label), label)                                                                                   \
     FFI_FUNCTION_LIST_ENTRY(void, ImGuiSeparator, (), )                                                                                                        \
     FFI_FUNCTION_LIST_ENTRY(void, ImGuiSeparatorText, (const char *label), label)                                                                              \
-    FFI_FUNCTION_LIST_ENTRY(void, abort, (const char *message, const char *filename, int lineNumber, int columnNumber), message, filename, lineNumber,         \
+    FFI_FUNCTION_LIST_ENTRY(void, abort, (const char *message, const char *filename, int32_t lineNumber, int32_t columnNumber), message, filename, lineNumber, \
                             columnNumber)                                                                                                                      \
     FFI_FUNCTION_LIST_ENTRY(ObjectHandle, getImageCorlib, (), )                                                                                                \
     FFI_FUNCTION_LIST_ENTRY(ObjectHandle, getClassFromName, (ObjectHandle image, const char *namespaze, const char *name), image, namespaze, name)             \
@@ -365,10 +372,12 @@ UP_API void abort(const char *message, const char *filename, int lineNumber, int
     FFI_FUNCTION_LIST_ENTRY(void, copyArrayBytes, (ObjectHandle array, int32_t offset, int32_t length, void *to), array, offset, length, to)                   \
     FFI_FUNCTION_LIST_ENTRY(int64_t, getMethodAddresss, (MethodHandle a), a)                                                                                   \
     FFI_FUNCTION_LIST_ENTRY(int64_t, getObjectAddress, (ObjectHandle a), a)                                                                                    \
-    FFI_FUNCTION_LIST_ENTRY(GCHandle, gcCreateHandle, (ObjectHandle object, int pinned), object, pinned)                                                       \
+    FFI_FUNCTION_LIST_ENTRY(GCHandle, gcCreateHandle, (ObjectHandle object, int32_t pinned), object, pinned)                                                   \
     FFI_FUNCTION_LIST_ENTRY(void, gcDeleteHandle, (GCHandle a), a)                                                                                             \
-    FFI_FUNCTION_LIST_ENTRY(WIBool, call2, (MethodHandle a, int argCount, WIBool returnsStruct), a, argCount, returnsStruct)                                   \
-    FFI_FUNCTION_LIST_ENTRY(WIBool, ImGuiCheckbox2, (const char *label, WIBool v), label, v)
+    FFI_FUNCTION_LIST_ENTRY(WIBool, call2, (MethodHandle a, int32_t argCount, WIBool returnsStruct), a, argCount, returnsStruct)                               \
+    FFI_FUNCTION_LIST_ENTRY(WIBool, ImGuiCheckbox2, (const char *label, WIBool v), label, v)                                                                   \
+    FFI_FUNCTION_LIST_ENTRY(WIBool, ImGuiCheckbox3, (const char *label, bool *v), label, v)                                                                    \
+    FFI_FUNCTION_LIST_ENTRY(int32_t, getFtableItemCount, (), )
 
 // Make sure signatures match
 #ifndef FFI_NOSTL
@@ -381,6 +390,15 @@ FFI_FUNCTION_LIST
 #ifdef FFI_USES_FTABLE
 }
 #endif
+
+// Store local FFI function count
+constexpr static int32_t getLocalFtableItemCount() {
+    int32_t fres = 0;
+#define FFI_FUNCTION_LIST_ENTRY(return_type, fnc, arguments, ...) ++fres;
+    FFI_FUNCTION_LIST
+#undef FFI_FUNCTION_LIST_ENTRY
+    return fres;
+}
 
 #if !defined(FFI_EXT) || defined(FFI_USES_FTABLE)
 #ifndef FFI_EXT
@@ -613,6 +631,34 @@ public:
 
     void clear() { hooks.clear(); }
 };
+
+bool hookToggle(const char *description, std::optional<GameHook>& hook, bool& boolean, FFIInterface::MethodHandle method, const char *hookFnc) {
+    if (FFI_USE_FTABLE ImGuiCheckbox3(description, &boolean)) {
+        if (boolean) {
+            auto hook = GameHook::create(method, hookFnc);
+            if (!hook.has_value()) {
+                boolean = false;
+                return false;
+            }
+            hook.emplace(GameHook(std::move(*hook)));
+        } else {
+            hook.reset();
+        }
+        return true;
+    }
+    return false;
+}
+
+bool hookToggle(const char *description, GameHookPool& hookPool, bool& boolean, FFIInterface::MethodHandle method, const char *hookFnc) {
+    if (FFI_USE_FTABLE ImGuiCheckbox3(description, &boolean)) {
+        if (boolean)
+            boolean = hookPool.add(method, hookFnc) != nullptr;
+        else
+            hookPool.remove(method);
+        return true;
+    }
+    return false;
+}
 #endif
 
 namespace Literals {

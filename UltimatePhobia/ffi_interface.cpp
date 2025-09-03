@@ -15,6 +15,8 @@
 using namespace AnyCall;
 
 namespace FFIInterface {
+int32_t getFtableItemCount() { return getLocalFtableItemCount(); }
+
 namespace {
 std::map<ObjectHandle, void *> objects;
 
@@ -48,13 +50,13 @@ void dropObject(ObjectHandle id) {
     if (id > 0)
         objects.erase(id);
 }
-int isValidObject(ObjectHandle id) { return id == 0 || objects.find(id) != objects.end(); }
+WIBool isValidObject(ObjectHandle id) { return id == 0 || objects.find(id) != objects.end(); }
 int64_t getObjectAddress(ObjectHandle id) { return reinterpret_cast<uintptr_t>(getObject(id)); }
 ObjectHandle getNull() { return 0; }
 
 ObjectHandle toCsString(const char *str) { return addObject(Il2Cpp::CppInterop::ToCsString(str)); }
-ObjectHandle toCsStringWithLength(const char *str, int length) { return addObject(Il2Cpp::CppInterop::ToCsString({str, static_cast<size_t>(length)})); }
-void toCString(ObjectHandle str, char *buf, int maxlen) { Il2Cpp::CppInterop::ToCString(reinterpret_cast<System_String_o *>(getObject(str)), buf, maxlen); }
+ObjectHandle toCsStringWithLength(const char *str, int32_t length) { return addObject(Il2Cpp::CppInterop::ToCsString({str, static_cast<size_t>(length)})); }
+void toCString(ObjectHandle str, char *buf, int32_t maxlen) { Il2Cpp::CppInterop::ToCString(reinterpret_cast<System_String_o *>(getObject(str)), buf, maxlen); }
 
 ObjectHandle getImageCorlib() { return addObject(const_cast<void *>(reinterpret_cast<const void *>(Il2Cpp::API::il2cpp_get_corlib()))); }
 ObjectHandle getClassFromName(ObjectHandle image, const char *namespaze, const char *name) {
@@ -73,7 +75,7 @@ void copyArrayBytes(ObjectHandle array, int32_t offset, int32_t length, void *to
     memcpy(to, csArray->m_Items + offset, length);
 }
 
-GCHandle gcCreateHandle(ObjectHandle object, int pinned) {
+GCHandle gcCreateHandle(ObjectHandle object, WIBool pinned) {
     auto ptr = getObject(object);
     if (ptr == nullptr)
         return -1;
@@ -118,7 +120,7 @@ std::vector<void *> call_args;
 void *return_value;
 std::string call_error;
 
-void *getValue(int index) {
+void *getValue(int32_t index) {
     if (index < 0)
         return return_value;
     if (index > call_args.size())
@@ -135,8 +137,8 @@ void addArgObject(ObjectHandle v) { call_args.push_back(getObject(v)); }
 void addArgNull() { call_args.push_back(nullptr); }
 void clearArgs() { call_args.clear(); }
 
-int getArgCount() { return call_args.size(); }
-WIBool moveArg(int index) {
+int32_t getArgCount() { return call_args.size(); }
+WIBool moveArg(int32_t index) {
     if (call_args.empty() || static_cast<int>(call_args.size()) < index)
         return false;
     if (index >= 0) {
@@ -148,17 +150,17 @@ WIBool moveArg(int index) {
     return true;
 }
 
-int32_t getValueI32(int index) { return bit_cast<int32_t>(getValue(index)); }
-int64_t getValueI64(int index) { return bit_cast<int64_t>(getValue(index)); }
-float getValueFloat(int index) {
+int32_t getValueI32(int32_t index) { return bit_cast<int32_t>(getValue(index)); }
+int64_t getValueI64(int32_t index) { return bit_cast<int64_t>(getValue(index)); }
+float getValueFloat(int32_t index) {
     void *value = getValue(index);
     return bit_cast<float>(value);
 }
-double getValueDouble(int index) {
+double getValueDouble(int32_t index) {
     void *value = getValue(index);
     return bit_cast<double>(value);
 }
-ObjectHandle getValueObject(int index) { return addObject(getValue(index)); }
+ObjectHandle getValueObject(int32_t index) { return addObject(getValue(index)); }
 ObjectHandle getCallError() { return addObject(Il2Cpp::CppInterop::ToCsString(call_error)); }
 
 namespace {
@@ -168,7 +170,7 @@ void logBadCall(MethodHandle index) {
 }
 } // namespace
 
-WIBool call2(MethodHandle index, int argCount, WIBool returnsStruct) {
+WIBool call2(MethodHandle index, int32_t argCount, WIBool returnsStruct) {
     // Handle unknown argument count
     if (argCount == unknownArgCount)
         argCount = call_args.size();
@@ -234,7 +236,7 @@ WIBool call2(MethodHandle index, int argCount, WIBool returnsStruct) {
     // Everything seems to have gone well
     return fres;
 }
-WIBool call(MethodHandle index, int argCount) { return call2(index, argCount, false); }
+WIBool call(MethodHandle index, int32_t argCount) { return call2(index, argCount, false); }
 
 namespace {
 struct FFIGameHookInfo {
@@ -318,11 +320,12 @@ WIBool ImGuiCheckbox2(const char *label, WIBool v) {
     ImGui::Checkbox(label, &fres);
     return fres;
 }
+WIBool ImGuiCheckbox3(const char *label, bool *v) { return ImGui::Checkbox(label, v); }
 WIBool ImGuiButton(const char *label) { return ImGui::Button(label); }
 void ImGuiSeparator() { ImGui::Separator(); }
 void ImGuiSeparatorText(const char *label) { ImGui::SeparatorText(label); }
 
-void abort(const char *message, const char *filename, int lineNumber, int columnNumber) {
+void abort(const char *message, const char *filename, int32_t lineNumber, int32_t columnNumber) {
     auto modInfo = FFILoader::FFIMod::getCurrent();
     const auto msg = fmt::format("FFI module {} has called abort()!\n - Message: "
                                  "{}\n - Filename: {}\n - Line: {}\n - Column: {}",
