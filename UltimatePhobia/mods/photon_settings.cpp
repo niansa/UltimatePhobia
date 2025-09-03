@@ -68,13 +68,17 @@ void PhotonSettings::uiUpdate() {
     End();
 }
 
-void PhotonSettings::setAppIdRealtime(std::string_view value) {
-    if (value.size() >= sizeof(settings.AppIdRealtime))
-        value = value.substr(0, sizeof(settings.AppIdRealtime) - 1);
-    memcpy(settings.AppIdRealtime, value.data(), value.size());
-    settings.AppIdRealtime[value.size()] = '\0';
-    settings.override_AppIdRealtime = true;
-}
+#define DEFINE_SETTER(field)                                                                                                                                   \
+    void PhotonSettings::set##field(std::string_view value) {                                                                                                  \
+        if (value.size() >= sizeof(settings.field))                                                                                                            \
+            value = value.substr(0, sizeof(settings.field) - 1);                                                                                               \
+        memcpy(settings.field, value.data(), value.size());                                                                                                    \
+        settings.field[value.size()] = '\0';                                                                                                                   \
+        settings.override_##field = true;                                                                                                                      \
+    }
+
+DEFINE_SETTER(AppIdRealtime)
+DEFINE_SETTER(Server)
 
 void PhotonSettings::fromIl2CppClass(const Photon_Realtime_AppSettings_Fields& o) {
 #define OVERRIDER(field) if (!settings.override_##field)
@@ -103,11 +107,14 @@ ModInfo photonSettingsInfo {
     false,
     []() { return std::make_unique<PhotonSettings>(); },
     []() {
+        auto mod = photonSettingsInfo.get<PhotonSettings>();
+        mod->setServer("photon.tuxifan.net");
+
         std::fstream file("..\\photon-realtime-app-id.txt");
         if (!file)
             return;
         std::string id;
         std::getline(file, id);
-        photonSettingsInfo.get<PhotonSettings>()->setAppIdRealtime(id);
+        mod->setAppIdRealtime(id);
     }
 };

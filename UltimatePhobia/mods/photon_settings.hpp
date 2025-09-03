@@ -47,6 +47,7 @@ public:
     void uiUpdate() override;
 
     void setAppIdRealtime(std::string_view value);
+    void setServer(std::string_view value);
     void fromIl2CppClass(const Photon_Realtime_AppSettings_Fields& o);
     void toIl2CppClass(Photon_Realtime_AppSettings_Fields& o);
 };
