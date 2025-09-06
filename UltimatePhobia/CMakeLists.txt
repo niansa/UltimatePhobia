@@ -11,18 +11,34 @@ if (ULTIMATEPHOBIA_CHEATS)
     option(ULTIMATEPHOBIA_EXTRA_CHEATS "Build extra cheats module" OFF)
 endif()
 
+set(SDL_SHARED OFF)
+set(SDL_STATIC ON)
+set(SDL_VIDEO ON)
+set(SDL_RENDER ON)
+set(SDL_AUDIO OFF)
+set(SDL_GPU OFF)
+set(SDL_CAMERA OFF)
+set(SDL_JOYSTICK OFF)
+set(SDL_HAPTIC OFF)
+set(SDL_HIDAPI OFF)
+set(SDL_POWER OFF)
+set(SDL_SENSOR OFF)
+set(SDL_DIALOG OFF)
+set(SDL_TESTS OFF)
+
 add_subdirectory(../deps/commoncpp commoncpp)
 add_subdirectory(../deps/detours Detours)
 add_subdirectory(../deps/spdlog spdlog)
 add_subdirectory(../deps/simdjson simdjson)
 add_subdirectory(../deps/wasm3/source wasm3)
 add_subdirectory(../deps/wasm3/platforms/cpp/wasm3_cpp wasm3_cpp)
+add_subdirectory(../deps/SDL sdl3)
 
 add_library(imgui STATIC
     ../deps/imgui/imgui.cpp ../deps/imgui/imgui_draw.cpp ../deps/imgui/imgui_tables.cpp ../deps/imgui/imgui_widgets.cpp
-    ../deps/imgui/backends/imgui_impl_win32.cpp ../deps/imgui/backends/imgui_impl_opengl3.cpp
+    ../deps/imgui/backends/imgui_impl_sdl3.cpp ../deps/imgui/backends/imgui_impl_sdlrenderer3.cpp
 )
-target_link_libraries(imgui PUBLIC opengl32)
+target_link_libraries(imgui PUBLIC SDL3::SDL3-static)
 target_include_directories(imgui PUBLIC ../deps/imgui/ ../deps/imgui/backends/)
 
 add_executable(UltimatePhobia WIN32 main.cpp icon.rc
