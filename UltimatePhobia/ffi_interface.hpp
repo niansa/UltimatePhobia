@@ -57,7 +57,7 @@ namespace Signatures {
 UP_API int32_t getFtableItemCount();
 
 /**
- * @brief Invalidates given handle to C# object allowing it to be garbage collected
+ * @brief Invalidates given handle to C# object allowing it to be reused
  */
 UP_API void dropObject(ObjectHandle);
 /**
@@ -138,7 +138,7 @@ UP_API void copyArrayBytes(ObjectHandle array, int32_t offset, int32_t length, v
  */
 UP_API GCHandle gcCreateHandle(ObjectHandle object, WIBool pinned);
 /**
- * @brief Deletes garbage collection handle
+ * @brief Deletes garbage collection handle allowing the underlaying object to be garbage collected
  */
 UP_API void gcDeleteHandle(GCHandle);
 
@@ -315,9 +315,11 @@ UP_API MethodHandle getOriginal();
 UP_API void ImGuiBegin(const char *name = "");
 UP_API void ImGuiEnd();
 UP_API void ImGuiText(ObjectHandle text);
-UP_DEPRECATED("Unsafe! Use ImGuiCheckbox2 instead.") UP_API void ImGuiCheckbox(const char *label, bool *v);
+UP_DEPRECATED("Unsafe! Use ImGuiCheckbox2 instead.")
+UP_API void ImGuiCheckbox(const char *label, bool *v);
 UP_API WIBool ImGuiCheckbox2(const char *label, WIBool v);
-UP_DEPRECATED("Unsafe! Use ImGuiCheckbox4 instead.") UP_API WIBool ImGuiCheckbox3(const char *label, bool *v);
+UP_DEPRECATED("Unsafe! Use ImGuiCheckbox4 instead.")
+UP_API WIBool ImGuiCheckbox3(const char *label, bool *v);
 UP_API int32_t ImGuiCheckbox4(const char *label, WIBool v);
 UP_API WIBool ImGuiButton(const char *label);
 UP_API void ImGuiSeparator();
