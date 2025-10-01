@@ -4,30 +4,30 @@ import re
 import json
 
 if len(argv) < 4:
-    print(f"Usage: {argv[0]} <script.json file> <output dir> <WASM mode?> [filter list]")
+    print(f"Usage: {argv[0]} <script.json file> <output dir> <FFI mode?> [filter list]")
     exit(1)
 
 
 script_json = argv[1]
 output_dir = argv[2]
-wasm_mode = argv[3].lower() in ['true', '1', 't', 'y', 'yes', 'true', 'on']
+ffi_mode = argv[3].lower() in ['true', '1', 't', 'y', 'yes', 'true', 'on']
 filter_list = None
 try:
     filter_list = json.load(open(argv[4], "r"))
 except IndexError:
     pass
 
-if not wasm_mode:
+if not ffi_mode:
     output_hpp = open(output_dir+"/il2cpp.hpp", "w")
     output_cpp = open(output_dir+"/il2cpp.cpp", "w")
 else:
-    output_hpp = open(output_dir+"/il2cpp_wasm.hpp", "w")
-    output_cpp = open(output_dir+"/il2cpp_wasm.cpp", "w")
+    output_hpp = open(output_dir+"/il2cpp_ffi.hpp", "w")
+    output_cpp = open(output_dir+"/il2cpp_ffi.cpp", "w")
 
-if not wasm_mode:
+if not ffi_mode:
     method_pointer = "void *"
 else:
-    method_pointer = "::WASMInterface::MethodHandle "
+    method_pointer = "::FFIInterface::MethodHandle "
 
 def write_hpp(v):
     output_hpp.write(v)
@@ -38,12 +38,12 @@ def write_both(v):
     output_cpp.write(v)
 
 write_hpp("#pragma once\n\n")
-if not wasm_mode:
+if not ffi_mode:
     write_cpp(f"#include \"il2cpp.hpp\"\n")
     write_cpp(f"#include \"global_state.hpp\"\n")
 else:
-    write_cpp(f"#include \"il2cpp_wasm.hpp\"\n")
-    write_both(f"#include \"../wasm_interface.hpp\"\n")
+    write_cpp(f"#include \"base.hpp\"\n")
+    write_both(f"#include \"ffi_interface.hpp\"\n")
 
 write_both("""
 
@@ -86,13 +86,13 @@ def enter_namespace(namespace):
 def leave_namespace(namespace):
     return "}"*len(namespace)+"\n"
 
-if wasm_mode:
+if ffi_mode:
     def translate_type(type_name):
         type_name = type_name.strip()
         if type_name in ["void", "bool", "int32_t", "int64_t", "float", "double"]:
             return type_name
-        elif type_name.count("*") == 1:
-            return "::WASMInterface::ObjectHandle"
+        elif type_name.count("*") > 0:
+            return "::FFIInterface::ObjectHandle"
         else:
             print(f"Unsupported type: {type_name}!")
             return None
@@ -186,20 +186,20 @@ for data in methods:
     else:
         write_both(f"{method_pointer}{name}_getPtr()")
     write_hpp(";\n")
-    if not wasm_mode:
+    if not ffi_mode:
         write_cpp(f" {{return reinterpret_cast<void *>({address}ul + g.base);}}\n")
     else:
-        write_cpp(f" {{return ::WASMInterface::getMethodByIdentifier({json.dumps(raw_signature)});}}\n")
+        write_cpp(f" {{return FFI_USE_FTABLE getMethodByIdentifier({json.dumps(raw_signature)});}}\n")
 
     # Generate function
     write_hpp(f"/**\n * Name: {json.dumps(raw_name)}\n * Signature: {json.dumps(raw_signature)}\n */\n")
     write_both(f"{return_type} {name}({arguments}")
-    if not wasm_mode:
+    if not ffi_mode:
         write_hpp(" = nullptr);\n")
         write_cpp(f") {{return reinterpret_cast<{return_type} (*) ({args_types})>(reinterpret_cast<void *>(({address}ul + ::g.base)))({args_names});}}\n")
     else:
-        write_hpp(" = ::WASMInterface::ObjectHandle::Null);\n")
-        write_cpp(f") {{return ::Helpers::call<{json.dumps(raw_signature)}, {return_type}>({args_names});}}\n")
+        write_hpp(" = ::FFIInterface::ObjectHandle::Null);\n")
+        write_cpp(f") {{return ::FFIInterface::Helpers::call<{json.dumps(raw_signature)}, {return_type}>({args_names});}}\n")
 
     write_both(leave_namespace(namespace))
     write_cpp("\n")
