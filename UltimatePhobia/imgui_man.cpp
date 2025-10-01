@@ -36,6 +36,7 @@ void init() {
 
     // Create renderer
     renderer = SDL_CreateRenderer(window, nullptr);
+    g.logger->info("Using {} renderer", SDL_GetRendererName(renderer));
     if (!renderer) {
         g.logger->error("SDL_CreateRenderer Error: {}", SDL_GetError());
         SDL_DestroyWindow(window);
