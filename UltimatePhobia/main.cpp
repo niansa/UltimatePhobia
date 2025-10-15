@@ -14,7 +14,6 @@
 #include <filesystem>
 #include <windows.h>
 #include <psapi.h>
-#include <detours.h>
 #include <spdlog/spdlog.h>
 #include <spdlog/sinks/basic_file_sink.h>
 
@@ -73,10 +72,6 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
     g.logger->flush_on(spdlog::level::err);
     g.logger->info("PID: {} - Module name: {}", GetCurrentProcessId(), szFileName);
     g.logger->info("Safe path determined to be at {}", safePath.string());
-
-    // Set up detours
-    g.logger->info("Initializing Microsoft Detours...", szFileName);
-    DetourRestoreAfterWith();
 
     // Load UltimatePhobia
     g.logger->info("Loading UltimatePhobia...", szFileName);

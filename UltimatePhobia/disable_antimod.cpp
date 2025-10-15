@@ -2,14 +2,13 @@
 #include "global_state.hpp"
 #include "il2cpp_cppinterop.hpp"
 #include "game_hook.hpp"
-#include "detours_helpers.hpp"
 #include "generated/il2cpp.hpp"
 
 #include <algorithm>
 #include <string_view>
 #include <windows.h>
 
-std::optional<GameHook> file$$ExistsHook, directory$$ExistsHook, path$$GetFileNameHook;
+std::optional<GameHook> file$$ExistsHook, directory$$ExistsHook, path$$GetFileNameHook, GetModuleHandleAHook;
 
 static void fixPath(std::string& path) {
     for (char& c : path)
@@ -60,8 +59,7 @@ static void *tryCheckFnc(System_String_o *path, const MethodInfo *method) {
 }
 GAMEHOOK_TRAMPOLINE(tryCheckFnc)
 
-auto *getModuleHandleOrig = GetModuleHandleA;
-HMODULE getModuleHandleFnc(LPCSTR lpModuleName) {
+HMODULE GetModuleHandleAFnc(LPCSTR lpModuleName) {
     g.logger->debug("Game is trying to check if {} is loaded!", lpModuleName);
     g.logger->flush();
 
@@ -72,21 +70,19 @@ HMODULE getModuleHandleFnc(LPCSTR lpModuleName) {
     }
 
     // Run original function
-    return getModuleHandleOrig(lpModuleName);
+    GameHookRelease GHR(*GetModuleHandleAHook);
+    return GetModuleHandleA(lpModuleName);
 }
 
 void disableAntiMod() {
     g.logger->info("Disabling mod detection...");
 
     using namespace Il2Cpp;
+
     GameHook::safeCreate(file$$ExistsHook, System::IO::File::Exists_getPtr(), reinterpret_cast<void *>(hookTrampoline_tryCheckFnc), true);
-
     GameHook::safeCreate(directory$$ExistsHook, System::IO::Directory::Exists_getPtr(), reinterpret_cast<void *>(hookTrampoline_tryCheckFnc), true);
-
     GameHook::safeCreate(path$$GetFileNameHook, System::IO::Path::GetFileName_getPtr(), reinterpret_cast<void *>(hookTrampoline_tryCheckFnc), true);
-
-    DetoursTransaction DT;
-    DetourAttach(&reinterpret_cast<PVOID&>(getModuleHandleOrig), reinterpret_cast<void *>(getModuleHandleFnc));
+    GameHook::safeCreate(GetModuleHandleAHook, reinterpret_cast<void *>(GetModuleHandleA), reinterpret_cast<void *>(GetModuleHandleAFnc));
 
     return;
 }

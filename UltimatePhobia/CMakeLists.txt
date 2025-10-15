@@ -14,6 +14,10 @@ if (ULTIMATEPHOBIA_CHEATS)
     option(ULTIMATEPHOBIA_EXTRA_CHEATS "Build extra cheats module" OFF)
 endif()
 
+if (MINGW)
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fdata-sections -ffunction-sections")
+endif()
+
 set(SDL_SHARED OFF)
 set(SDL_STATIC ON)
 set(SDL_VIDEO ON)
@@ -30,7 +34,6 @@ set(SDL_DIALOG OFF)
 set(SDL_TESTS OFF)
 
 add_subdirectory(../deps/commoncpp commoncpp)
-add_subdirectory(../deps/detours Detours)
 add_subdirectory(../deps/spdlog spdlog)
 add_subdirectory(../deps/simdjson simdjson)
 add_subdirectory(../deps/wasm3/source wasm3)
@@ -45,7 +48,6 @@ target_link_libraries(imgui PUBLIC SDL3::SDL3-static)
 target_include_directories(imgui PUBLIC ../deps/imgui/ ../deps/imgui/backends/)
 
 add_executable(UltimatePhobia WIN32 main.cpp icon.rc
-    detours_helpers.hpp
     global_state.hpp global_state.cpp
     getbaseaddr.hpp getbaseaddr.cpp
     misc_utils.hpp misc_utils.cpp
@@ -82,7 +84,7 @@ add_executable(UltimatePhobia WIN32 main.cpp icon.rc
     anycall.hpp
     generated/anycall.cpp
 )
-target_link_libraries(UltimatePhobia PRIVATE dbghelp commoncpp Detours spdlog imgui simdjson m3 wasm3_cpp ws2_32)
+target_link_libraries(UltimatePhobia PRIVATE dbghelp commoncpp spdlog imgui simdjson m3 wasm3_cpp ws2_32)
 target_include_directories(UltimatePhobia PRIVATE . ../il2cpp_dump)
 target_precompile_headers(UltimatePhobia PRIVATE ../il2cpp_dump/il2cpp.h generated/il2cpp.hpp)
 target_compile_definitions(UltimatePhobia PUBLIC _CRT_SECURE_NO_WARNINGS)
@@ -97,7 +99,7 @@ if (LINKER_CAN_SELECT_SUBSYSTEM)
     target_link_options(UltimatePhobia PRIVATE -Wl,--subsystem,windows)
 endif()
 if (MINGW)
-    target_link_options(UltimatePhobia PRIVATE -static-libstdc++)
+    target_link_options(UltimatePhobia PRIVATE -Wl,--gc-sections -static-libstdc++)
     target_link_libraries(UltimatePhobia PRIVATE libunwind.a)
 endif()
 

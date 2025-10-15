@@ -1,16 +1,18 @@
 #include "getbaseaddr.hpp"
+#include "game_hook.hpp"
 #include "global_state.hpp"
-#include "detours_helpers.hpp"
 #include "misc_utils.hpp"
 
-#include <detours.h>
+#include <windows.h>
 
-static decltype(&LoadLibraryW) trueLoadLibraryW;
-std::function<void()> finalCallback;
+static std::function<void()> finalCallback;
+static std::optional<GameHook> LoadLibraryWHook;
 
-static HMODULE detourLoadLibraryW(LPWSTR lpLibFileName) {
+static HMODULE LoadLibraryWFnc(LPWSTR lpLibFileName) {
+    GameHookRelease GHR(*LoadLibraryWHook);
+
     const std::string lpLibFileNameA = utf8Encode(lpLibFileName);
-    const HMODULE fres = trueLoadLibraryW(lpLibFileName);
+    const HMODULE fres = LoadLibraryW(lpLibFileName);
 
     g.logger->debug("Loading module {}...", lpLibFileNameA);
     if (lpLibFileNameA == "GameAssembly.dll") {
@@ -24,7 +26,5 @@ static HMODULE detourLoadLibraryW(LPWSTR lpLibFileName) {
 
 void getBaseAddr(const std::function<void()>& callback) {
     finalCallback = callback;
-    DetoursTransaction DT;
-    trueLoadLibraryW = LoadLibraryW;
-    DetourAttach(&reinterpret_cast<PVOID&>(trueLoadLibraryW), reinterpret_cast<void *>(detourLoadLibraryW));
+    GameHook::safeCreate(LoadLibraryWHook, reinterpret_cast<void *>(LoadLibraryW), reinterpret_cast<void *>(LoadLibraryWFnc));
 }
