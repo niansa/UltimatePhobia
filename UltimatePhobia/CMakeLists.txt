@@ -14,6 +14,51 @@ if (ULTIMATEPHOBIA_CHEATS)
     option(ULTIMATEPHOBIA_EXTRA_CHEATS "Build extra cheats module" OFF)
 endif()
 
+function(extract_first_line input_string output_var)
+    # Replace newlines with semicolons to create a list
+    string(REPLACE "\n" ";" lines_list "${input_string}")
+
+    # Get the first element (first line)
+    list(GET lines_list 0 first_line)
+
+    set(${output_var} "${first_line}" PARENT_SCOPE)
+endfunction()
+
+function(get_compiler_info)
+    # Get compiler ID and version
+    set(COMPILER_ID ${CMAKE_CXX_COMPILER_ID})
+    set(COMPILER_VERSION ${CMAKE_CXX_COMPILER_VERSION})
+
+    # Try to get full version string
+    if(COMPILER_ID STREQUAL "GNU")
+        execute_process(
+            COMMAND ${CMAKE_CXX_COMPILER} --version
+            OUTPUT_VARIABLE VERSION_STRING
+            OUTPUT_STRIP_TRAILING_WHITESPACE
+        )
+    elseif(COMPILER_ID STREQUAL "Clang")
+        execute_process(
+            COMMAND ${CMAKE_CXX_COMPILER} --version
+            OUTPUT_VARIABLE VERSION_STRING
+            OUTPUT_STRIP_TRAILING_WHITESPACE
+        )
+    elseif(COMPILER_ID STREQUAL "MSVC")
+        # MSVC version is already in CMAKE_CXX_COMPILER_VERSION
+        set(VERSION_STRING "Microsoft Visual C++ ${COMPILER_VERSION}")
+    else()
+        set(VERSION_STRING "Unknown compiler: ${COMPILER_ID} ${COMPILER_VERSION}")
+    endif()
+
+    extract_first_line("${VERSION_STRING}" VERSION_STRING)
+
+    message("Compiler: ${COMPILER_ID}")
+    message("Version: ${COMPILER_VERSION}")
+    message("Full version string: ${VERSION_STRING}")
+
+    set(COMPILER_INFO "${VERSION_STRING}" PARENT_SCOPE)
+endfunction()
+get_compiler_info()
+
 if (MINGW)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fdata-sections -ffunction-sections")
 endif()
@@ -87,7 +132,7 @@ add_executable(UltimatePhobia WIN32 main.cpp icon.rc
 target_link_libraries(UltimatePhobia PRIVATE dbghelp commoncpp spdlog imgui simdjson m3 wasm3_cpp ws2_32)
 target_include_directories(UltimatePhobia PRIVATE . ../il2cpp_dump)
 target_precompile_headers(UltimatePhobia PRIVATE ../il2cpp_dump/il2cpp.h generated/il2cpp.hpp)
-target_compile_definitions(UltimatePhobia PUBLIC _CRT_SECURE_NO_WARNINGS)
+target_compile_definitions(UltimatePhobia PUBLIC _CRT_SECURE_NO_WARNINGS COMPILER_INFO="${COMPILER_INFO}")
 if (ULTIMATEPHOBIA_CHEATS)
     target_compile_definitions(UltimatePhobia PRIVATE MOD_ENABLE_CHEATS)
     if (ULTIMATEPHOBIA_EXTRA_CHEATS)

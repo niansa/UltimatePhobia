@@ -71,6 +71,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
     g.logger->set_level(spdlog::level::debug);
     g.logger->flush_on(spdlog::level::err);
     g.logger->info("PID: {} - Module name: {}", GetCurrentProcessId(), szFileName);
+    g.logger->info("Compiled using {}", COMPILER_INFO);
     g.logger->info("Safe path determined to be at {}", safePath.string());
 
     // Load UltimatePhobia
