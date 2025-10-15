@@ -1,5 +1,6 @@
 #include "global_state.hpp"
 #include "getbaseaddr.hpp"
+#include "misc_utils.hpp"
 #include "disable_antimod.hpp"
 #include "disable_splashscreen.hpp"
 #include "configure_persistentdatapath.hpp"
@@ -12,7 +13,7 @@
 
 #include <filesystem>
 #include <windows.h>
-#include <Psapi.h>
+#include <psapi.h>
 #include <detours.h>
 #include <spdlog/spdlog.h>
 #include <spdlog/sinks/basic_file_sink.h>
@@ -49,7 +50,11 @@ static std::string lastErrorString() {
     return message;
 }
 
+#ifdef _MSC_VER
 int wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR lpCmdLine, int nShowCmd) {
+#else
+int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nShowCmd) {
+#endif
     // Get file name
     TCHAR szFileName[MAX_PATH];
     GetModuleFileName(NULL, szFileName, MAX_PATH);
@@ -88,7 +93,14 @@ int wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR lpCmdLine, int
     if (unityMain == nullptr) {
         g.logger->critical("Failed to get Unity Player entry point: {}", lastErrorString());
     }
-    unityMain(hInstance, hPrevInstance, lpCmdLine, nShowCmd);
+    std::wstring cmdLine =
+#ifdef _MSC_VER
+        lpCmdLine
+#else
+        utf8Decode(lpCmdLine).data()
+#endif
+        ;
+    unityMain(hInstance, hPrevInstance, cmdLine.data(), nShowCmd);
 
     // Unload everything
     g.logger->info("UltimatePhobia is about to be unloaded.", szFileName);

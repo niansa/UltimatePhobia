@@ -94,5 +94,18 @@ public:
     }
 };
 
+#ifdef _MSC_VER
 #define GAMEHOOK_TRAMPOLINE(hook)                                                                                                                              \
     __attribute__((naked)) static void hookTrampoline_##hook() { __asm pop r10 __asm mov GameHookCallerRip, r10 __asm jmp hook }
+#else
+#define GAMEHOOK_TRAMPOLINE(hook)                                                                                                                              \
+    __attribute__((naked)) static void hookTrampoline_##hook() {                                                                                               \
+        asm volatile("pop %%r10\n"                                                                                                                             \
+                     "lea GameHookCallerRip(%%rip), %%r11\n"                                                                                                   \
+                     "mov %%r10, (%%r11)\n"                                                                                                                    \
+                     "jmp %P0\n"                                                                                                                               \
+                     :                                                                                                                                         \
+                     : "i"(hook)                                                                                                                               \
+                     : "r10", "r11");                                                                                                                          \
+    }
+#endif

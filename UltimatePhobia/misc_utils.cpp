@@ -17,6 +17,15 @@ std::string utf8Encode(std::wstring_view wstr) {
     WideCharToMultiByte(CP_UTF8, 0, &wstr[0], (int)wstr.size(), &strTo[0], len, nullptr, nullptr);
     return strTo;
 }
+std::wstring utf8Decode(std::string_view str) {
+    if (str.empty())
+        return {};
+
+    int len = MultiByteToWideChar(CP_UTF8, 0, &str[0], (int)str.size(), nullptr, 0);
+    std::wstring wstrTo(len, 0);
+    MultiByteToWideChar(CP_UTF8, 0, &str[0], (int)str.size(), &wstrTo[0], len);
+    return wstrTo;
+}
 
 std::string lastWinErrorString() {
     auto errorMessageID = GetLastError();

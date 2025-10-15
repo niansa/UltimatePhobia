@@ -1,10 +1,13 @@
 cmake_minimum_required(VERSION 3.16)
+set(CMAKE_POLICY_DEFAULT_CMP0069 NEW)
 
 project(UltimatePhobia LANGUAGES RC CXX)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_INTERPROCEDURAL_OPTIMIZATION ON)
+
+include(CheckLinkerFlag)
 
 option(ULTIMATEPHOBIA_CHEATS "Build cheats module" ON)
 if (ULTIMATEPHOBIA_CHEATS)
@@ -88,6 +91,14 @@ if (ULTIMATEPHOBIA_CHEATS)
     if (ULTIMATEPHOBIA_EXTRA_CHEATS)
         target_compile_definitions(UltimatePhobia PRIVATE MOD_ENABLE_CHEATS_EXTRA)
     endif()
+endif()
+check_linker_flag(CXX -Wl,--subsystem,windows LINKER_CAN_SELECT_SUBSYSTEM)
+if (LINKER_CAN_SELECT_SUBSYSTEM)
+    target_link_options(UltimatePhobia PRIVATE -Wl,--subsystem,windows)
+endif()
+if (MINGW)
+    target_link_options(UltimatePhobia PRIVATE -static-libstdc++)
+    target_link_libraries(UltimatePhobia PRIVATE libunwind.a)
 endif()
 
 add_custom_command(OUTPUT ${CMAKE_CURRENT_SOURCE_DIR}/generated/il2cpp.hpp ${CMAKE_CURRENT_SOURCE_DIR}/generated/il2cpp.cpp
