@@ -44,28 +44,29 @@ private:
     };
 
     // Data caches
-    std::vector<Il2Cpp::API::Assembly> assemblies_;
-    int selectedAssembly_ = -1;
+    std::vector<Il2Cpp::API::Assembly> assemblies;
+    int selectedAssembly = -1;
 
-    std::vector<ClassEntry> classList_; // for selected assembly
-    int selectedClass_ = -1;            // index in classList_
+    std::vector<ClassEntry> classList; // for selected assembly
+    int selectedClass = -1;            // index in classList_
 
-    Il2Cpp::API::Method selectedMethod_{};
-    Il2Cpp::API::Property selectedProperty_{};
-    CallState callState_{};
-    PropertyState propertyState_{};
+    Il2Cpp::API::Method selectedMethod{};
+    Il2Cpp::API::Property selectedProperty{};
+    CallState callState{};
+    PropertyState propertyState{};
 
-    std::vector<InstanceEntry> instances_; // user-created instances
-    int selectedInstance_ = -1;
+    std::vector<InstanceEntry> instances; // user-created instances
+    int selectedInstance = -1;
 
     // Helpers for corlib boxing
-    Il2Cpp::API::Image corlib_{};
-    Il2Cpp::API::Class sysBoolean_{};
-    Il2Cpp::API::Class sysInt32_{};
-    Il2Cpp::API::Class sysInt64_{};
-    Il2Cpp::API::Class sysDouble_{};
-    Il2Cpp::API::Class sysSingle_{};
-    Il2Cpp::API::Class sysString_{};
+    Il2Cpp::API::Image corlib{};
+    Il2Cpp::API::Class sysObject{};
+    Il2Cpp::API::Class sysBoolean{};
+    Il2Cpp::API::Class sysInt32{};
+    Il2Cpp::API::Class sysInt64{};
+    Il2Cpp::API::Class sysDouble{};
+    Il2Cpp::API::Class sysSingle{};
+    Il2Cpp::API::Class sysString{};
 
     // Build/refresh
     void refreshAssemblies();
@@ -88,7 +89,7 @@ private:
 
     // Creation/Invocation
     void createDefaultInstance();
-    bool parseAndBoxArg(const Il2Cpp::API::Type& paramType, const std::string& text, Il2CppObject *& outObj, std::string& err);
+    bool parseAndBoxArg(const Il2Cpp::API::Type& paramType, const std::string& text, Il2Cpp::API::Object& outObj, std::string& err);
     void invokeSelectedMethod();
     static bool isStringClass(const Il2Cpp::API::Class& c);
 };

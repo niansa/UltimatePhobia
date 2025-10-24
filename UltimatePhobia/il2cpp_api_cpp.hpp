@@ -313,10 +313,10 @@ struct Method {
 
     // Invoke using void** args (pointers to values/objects depending on signature).
     // Throws ManagedException if the target throws.
-    Object invoke(Il2CppObject *obj, std::span<void *> args) const;
+    Object invoke(Object obj, std::span<void *> args) const;
 
     // Invoke with argument conversion (Il2CppObject** params).
-    Object invoke_convert(Il2CppObject *obj, std::span<Il2CppObject *> args) const;
+    Object invoke_convert(Object obj, std::span<Il2CppObject *> args) const;
 };
 
 struct Field {
@@ -371,6 +371,15 @@ struct Object {
     Class klass() const { return Class{il2cpp_object_get_class(ptr)}; }
     uint32_t size() const { return il2cpp_object_get_size(ptr); }
     const MethodInfo *get_virtual_method(const MethodInfo *m) const { return il2cpp_object_get_virtual_method(ptr, m); }
+    void *unboxIfValue() {
+        if (ptr == nullptr)
+            return nullptr;
+
+        if (klass().is_value_type())
+            return il2cpp_object_unbox(ptr);
+
+        return reinterpret_cast<void *>(ptr);
+    }
 };
 
 struct String : Object {
@@ -456,17 +465,17 @@ inline std::vector<Property> Class::properties() const {
     return out;
 }
 
-inline Object Method::invoke(Il2CppObject *obj, std::span<void *> args) const {
+inline Object Method::invoke(Object obj, std::span<void *> args) const {
     Il2CppException *exc = nullptr;
-    Il2CppObject *ret = il2cpp_runtime_invoke(ptr, obj, const_cast<void **>(args.data()), &exc);
+    Il2CppObject *ret = il2cpp_runtime_invoke(ptr, obj.unboxIfValue(), const_cast<void **>(args.data()), &exc);
     if (exc)
         throw ManagedException(format_exception(exc) + "\n" + format_stacktrace(exc), exc);
     return Object{ret};
 }
 
-inline Object Method::invoke_convert(Il2CppObject *obj, std::span<Il2CppObject *> args) const {
+inline Object Method::invoke_convert(Object obj, std::span<Il2CppObject *> args) const {
     Il2CppException *exc = nullptr;
-    Il2CppObject *ret = il2cpp_runtime_invoke_convert_args(ptr, obj, args.data(), static_cast<int>(args.size()), &exc);
+    Il2CppObject *ret = il2cpp_runtime_invoke_convert_args(ptr, obj.unboxIfValue(), args.data(), static_cast<int>(args.size()), &exc);
     if (exc)
         throw ManagedException(format_exception(exc) + "\n" + format_stacktrace(exc), exc);
     return Object{ret};
@@ -527,9 +536,9 @@ inline void class_init(Class c) { il2cpp_runtime_class_init(c.ptr); }
 
 inline Object object_new(Class c) { return Object{il2cpp_object_new(c.ptr)}; }
 
-template <class T> inline Il2CppObject *value_box(Class c, const T& value) { return il2cpp_value_box(c.ptr, const_cast<T *>(&value)); }
+template <class T> inline Object value_box(Class c, const T& value) { return Object{il2cpp_value_box(c.ptr, const_cast<T *>(&value))}; }
 
-template <class T> inline T *object_unbox(Il2CppObject *o) { return static_cast<T *>(il2cpp_object_unbox(o)); }
+template <class T> inline T *object_unbox(Object o) { return static_cast<T *>(il2cpp_object_unbox(o.ptr)); }
 
 // Raise a managed exception (no return)
 [[noreturn]]
@@ -542,7 +551,7 @@ inline Il2CppException *exception_from_name(const Image& img, const char *ns, co
     return il2cpp_exception_from_name_msg(img.ptr, ns, name, msg);
 }
 
-template <class T> inline T invoke_unbox(Method m, Il2CppObject *instance, std::span<void *> args) {
+template <class T> inline T invoke_unbox(Method m, Object instance, std::span<void *> args) {
     static_assert(std::is_trivially_copyable_v<T>, "T must be trivially copyable");
     Object ret = m.invoke(instance, args);
     if (!ret.ptr)

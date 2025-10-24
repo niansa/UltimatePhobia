@@ -22,40 +22,41 @@ std::string Explorer::InstanceEntry::getLabel() const {
 }
 
 Explorer::Explorer() {
-    corlib_ = Image::get_corlib();
-    sysBoolean_ = class_from_name(corlib_, "System", "Boolean");
-    sysInt32_ = class_from_name(corlib_, "System", "Int32");
-    sysInt64_ = class_from_name(corlib_, "System", "Int64");
-    sysDouble_ = class_from_name(corlib_, "System", "Double");
-    sysSingle_ = class_from_name(corlib_, "System", "Single");
-    sysString_ = class_from_name(corlib_, "System", "String");
+    corlib = Image::get_corlib();
+    sysObject = class_from_name(corlib, "System", "Object");
+    sysBoolean = class_from_name(corlib, "System", "Boolean");
+    sysInt32 = class_from_name(corlib, "System", "Int32");
+    sysInt64 = class_from_name(corlib, "System", "Int64");
+    sysDouble = class_from_name(corlib, "System", "Double");
+    sysSingle = class_from_name(corlib, "System", "Single");
+    sysString = class_from_name(corlib, "System", "String");
 }
 
 void Explorer::uiUpdate() { drawWindow(); }
 
 void Explorer::refreshAssemblies() {
-    assemblies_.clear();
+    assemblies.clear();
     auto d = Domain::get();
-    assemblies_ = d.get_assemblies();
+    assemblies = d.get_assemblies();
 }
 
 void Explorer::rebuildClassList() {
-    classList_.clear();
-    selectedClass_ = -1;
-    selectedMethod_ = Method{};
-    selectedProperty_ = Property{};
-    callState_ = CallState{};
+    classList.clear();
+    selectedClass = -1;
+    selectedMethod = Method{};
+    selectedProperty = Property{};
+    callState = CallState{};
 
-    if (selectedAssembly_ < 0)
+    if (selectedAssembly < 0)
         return;
-    if (selectedAssembly_ >= static_cast<int>(assemblies_.size())) {
-        selectedAssembly_ = -1;
+    if (selectedAssembly >= static_cast<int>(assemblies.size())) {
+        selectedAssembly = -1;
         return;
     }
 
-    auto img = assemblies_[selectedAssembly_].image();
+    auto img = assemblies[selectedAssembly].image();
     const auto classCount = img.class_count();
-    classList_.reserve(classCount);
+    classList.reserve(classCount);
     for (size_t i = 0; i < classCount; ++i) {
         Class c = img.get_class(i);
         if (!c)
@@ -63,17 +64,17 @@ void Explorer::rebuildClassList() {
         ClassEntry e;
         e.klass = c;
         e.fullname = fullClassName(c);
-        classList_.push_back(std::move(e));
+        classList.push_back(std::move(e));
     }
 
-    std::sort(classList_.begin(), classList_.end(), [](const ClassEntry& a, const ClassEntry& b) { return a.fullname < b.fullname; });
+    std::sort(classList.begin(), classList.end(), [](const ClassEntry& a, const ClassEntry& b) { return a.fullname < b.fullname; });
 }
 
 void Explorer::drawWindow() {
     if (!open_)
         return;
 
-    if (assemblies_.empty())
+    if (assemblies.empty())
         refreshAssemblies();
 
     if (!ImGui::Begin("IL2CPP Explorer", &open_)) {
@@ -116,19 +117,19 @@ void Explorer::drawAssembliesPane() {
 
     ImGui::Separator();
     if (ImGui::BeginListBox("##AsmList", ImVec2(-1, -1))) {
-        for (int i = 0; i < static_cast<int>(assemblies_.size()); ++i) {
+        for (int i = 0; i < static_cast<int>(assemblies.size()); ++i) {
             ImGui::PushID(i);
 
-            auto img = assemblies_[i].image();
+            auto img = assemblies[i].image();
             std::string name = std::string(img.name());
             std::string file = std::string(img.filename());
             if (asmFilter_[0] != '\0') {
                 if (!icontains(name, asmFilter_) && !icontains(file, asmFilter_))
                     continue;
             }
-            bool sel = (i == selectedAssembly_);
+            bool sel = (i == selectedAssembly);
             if (ImGui::Selectable(name.c_str(), sel)) {
-                selectedAssembly_ = i;
+                selectedAssembly = i;
                 rebuildClassList();
             }
 
@@ -145,21 +146,21 @@ void Explorer::drawClassesPane() {
 
     ImGui::Separator();
     if (ImGui::BeginListBox("##ClassList", ImVec2(-1, -1))) {
-        for (int i = 0; i < static_cast<int>(classList_.size()); ++i) {
+        for (int i = 0; i < static_cast<int>(classList.size()); ++i) {
             ImGui::PushID(i);
 
-            const auto& e = classList_[i];
+            const auto& e = classList[i];
             if (classFilter_[0] != '\0') {
                 if (!icontains(e.fullname, classFilter_)) {
                     ImGui::PopID();
                     continue;
                 }
             }
-            bool sel = (i == selectedClass_);
+            bool sel = (i == selectedClass);
             if (ImGui::Selectable(e.fullname.c_str(), sel)) {
-                selectedClass_ = i;
-                selectedMethod_ = Method{};
-                callState_ = CallState{};
+                selectedClass = i;
+                selectedMethod = Method{};
+                callState = CallState{};
             }
 
             ImGui::PopID();
@@ -174,12 +175,12 @@ void Explorer::drawClassDetailPane() {
     ImGui::Text("Details");
     ImGui::Separator();
 
-    if (selectedClass_ < 0 || selectedClass_ >= static_cast<int>(classList_.size())) {
+    if (selectedClass < 0 || selectedClass >= static_cast<int>(classList.size())) {
         ImGui::TextUnformatted("Select a class to inspect.");
         return;
     }
 
-    Class c = classList_[selectedClass_].klass;
+    Class c = classList[selectedClass].klass;
 
     ImGui::Text("Name: %s", c.name().data());
     ImGui::Text("Namespace: %s", c.namespaze().data());
@@ -208,8 +209,8 @@ void Explorer::drawClassDetailPane() {
 
             // Try read value (static only here; instance via Instances pane)
             Il2CppObject *fv = nullptr;
-            if (selectedInstance_ >= 0 && instances_[selectedInstance_].handle.target()->klass == c.ptr)
-                fv = f.get_value_object(instances_[selectedInstance_].handle.target());
+            if (selectedInstance >= 0 && instances[selectedInstance].handle.target()->klass == c.ptr)
+                fv = f.get_value_object(instances[selectedInstance].handle.target());
             try {
                 std::string s = fv ? objectToString(Object{fv}) : std::string("null");
                 s = fmt::format("{} = {}{}", f.name().data(), s, (f.flags() & 0x0010) ? " [static]" : "");
@@ -230,7 +231,7 @@ void Explorer::drawClassDetailPane() {
 
             ImGui::PushID(std::string(p.name()).c_str());
 
-            bool sel = (p.ptr == selectedProperty_.ptr);
+            bool sel = (p.ptr == selectedProperty.ptr);
             if (ImGui::Selectable(std::string(p.name()).c_str(), sel))
                 setSelectedProperty(p);
 
@@ -246,7 +247,7 @@ void Explorer::drawClassDetailPane() {
             std::string sig = methodSignature(m);
             ImGui::PushID(sig.c_str());
 
-            bool sel = (m.ptr == selectedMethod_.ptr);
+            bool sel = (m.ptr == selectedMethod.ptr);
             if (ImGui::Selectable(sig.c_str(), sel))
                 setSelectedMethod(m);
 
@@ -258,60 +259,70 @@ void Explorer::drawClassDetailPane() {
         createDefaultInstance();
 
     ImGui::SeparatorText("Invoke");
-    if (selectedMethod_) {
+    if (selectedMethod) {
+        ImGui::Text("Method: %s", methodSignature(selectedMethod).c_str());
+
         // Instance selection for instance methods
-        if (selectedMethod_.is_instance()) {
+        if (selectedMethod.is_instance()) {
+            const bool hasValidSelection = (selectedInstance >= 0 && selectedInstance < static_cast<int>(instances.size()));
             ImGui::TextUnformatted("This method is an instance method.");
-            ImGui::Text("Selected instance: %s", (selectedInstance_ >= 0 && selectedInstance_ < static_cast<int>(instances_.size()))
-                                                     ? instances_[selectedInstance_].getLabel().c_str()
-                                                     : "(none)");
-            ImGui::SameLine();
-            if (ImGui::Button("Clear selection"))
-                selectedInstance_ = -1;
+            ImGui::Text("Selected instance: %s", hasValidSelection ? instances[selectedInstance].getLabel().c_str() : "(none)");
+            if (hasValidSelection) {
+                ImGui::SameLine();
+                if (ImGui::Button("Clear selection"))
+                    selectedInstance = -1;
+            }
         }
 
         // Argument inputs
-        uint32_t argc = selectedMethod_.param_count();
-        while (callState_.argTexts.size() < argc)
-            callState_.argTexts.emplace_back();
+        uint32_t argc = selectedMethod.param_count();
+        while (callState.argTexts.size() < argc)
+            callState.argTexts.emplace_back();
 
         for (uint32_t i = 0; i < argc; ++i) {
             ImGui::PushID(i);
 
-            auto pt = selectedMethod_.param(i);
-            auto pname = selectedMethod_.param_name(i);
+            auto pt = selectedMethod.param(i);
+            auto pname = selectedMethod.param_name(i);
             std::string label = std::string(pname) + " : " + typeName(pt);
 
             std::array<char, 512> input{};
-            std::strncpy(input.data(), callState_.argTexts[i].c_str(), input.size() - 1);
+            std::strncpy(input.data(), callState.argTexts[i].c_str(), input.size() - 1);
 
             ImGui::SetNextItemWidth(-1);
             if (ImGui::InputText(label.c_str(), input.data(), input.size()))
-                callState_.argTexts[i] = input.data();
+                callState.argTexts[i] = input.data();
 
             ImGui::PopID();
         }
 
         if (ImGui::Button("Invoke"))
             invokeSelectedMethod();
-        if (!callState_.lastError.empty())
-            ImGui::Text("Last error: %s", callState_.lastError.c_str());
-        else if (!callState_.lastReturn.empty())
-            ImGui::Text("Return: %s", callState_.lastReturn.c_str());
+        if (!callState.lastError.empty()) {
+            ImGui::Text("Last error: %s", callState.lastError.c_str());
+        } else if (!callState.lastReturn.empty()) {
+            ImGui::Text("Return: %s", callState.lastReturn.c_str());
+            if (callState.lastReturnObject) {
+                if (ImGui::Button("Take")) {
+                    selectedInstance = instances.size();
+                    instances.emplace_back(InstanceEntry{std::move(callState.lastReturnObject)});
+                }
+            }
+        }
     } else {
         ImGui::TextUnformatted("Select a method to prepare invocation.");
     }
 
     ImGui::SeparatorText("Inspect Property");
-    if (selectedProperty_) {
-        ImGui::Text("Type: %s", selectedProperty_.getter().return_type().name_owned().c_str());
-        if (auto m = selectedProperty_.getter())
+    if (selectedProperty) {
+        ImGui::Text("Type: %s", selectedProperty.getter().return_type().name_owned().c_str());
+        if (auto m = selectedProperty.getter())
             if (ImGui::Button("Select getter"))
-                selectedMethod_ = m;
+                selectedMethod = m;
 
-        if (auto m = selectedProperty_.setter())
+        if (auto m = selectedProperty.setter())
             if (ImGui::Button("Select setter"))
-                selectedMethod_ = m;
+                selectedMethod = m;
     } else {
         ImGui::TextUnformatted("Select a property to inspect.");
     }
@@ -322,21 +333,21 @@ void Explorer::drawInstancesPane() {
     ImGui::Separator();
 
     // List instances
-    for (int i = 0; i < static_cast<int>(instances_.size()); ++i) {
+    for (int i = 0; i < static_cast<int>(instances.size()); ++i) {
         ImGui::PushID(i);
 
-        auto& e = instances_[i];
-        bool selected = (i == selectedInstance_);
+        auto& e = instances[i];
+        bool selected = (i == selectedInstance);
         if (ImGui::Selectable(e.getLabel().c_str(), selected)) {
-            selectedInstance_ = i;
+            selectedInstance = i;
         }
         ImGui::SameLine();
         if (ImGui::Button("Release")) {
-            instances_.erase(instances_.begin() + i);
-            if (selectedInstance_ == i)
-                selectedInstance_ = -1;
-            if (selectedInstance_ > i)
-                selectedInstance_--;
+            instances.erase(instances.begin() + i);
+            if (selectedInstance == i)
+                selectedInstance = -1;
+            if (selectedInstance > i)
+                selectedInstance--;
             --i;
         }
 
@@ -389,7 +400,7 @@ std::string Explorer::objectToString(Object obj) {
     try {
         auto toStr = obj.klass().get_method("ToString", 0);
         if (toStr) {
-            Object s = toStr.invoke(obj.ptr, {});
+            Object s = toStr.invoke(obj, {});
             if (s) {
                 String ss(reinterpret_cast<Il2CppString *>(s.ptr));
                 return ss.to_utf8();
@@ -402,201 +413,228 @@ std::string Explorer::objectToString(Object obj) {
 }
 
 void Explorer::setSelectedMethod(Method m) {
-    selectedMethod_ = m;
-    callState_ = CallState{m};
-    callState_.argTexts.resize(m.param_count());
+    selectedMethod = m;
+    callState = CallState{m};
+    callState.argTexts.resize(m.param_count());
 }
 
 void Explorer::setSelectedProperty(Il2Cpp::API::Property p) {
-    selectedProperty_ = p;
-    propertyState_ = PropertyState{p};
+    selectedProperty = p;
+    propertyState = PropertyState{p};
 }
 
 void Explorer::createDefaultInstance() {
-    if (selectedClass_ < 0 || selectedClass_ >= static_cast<int>(classList_.size()))
+    if (selectedClass < 0 || selectedClass >= static_cast<int>(classList.size()))
         return;
-    Class c = classList_[selectedClass_].klass;
+    Class c = classList[selectedClass].klass;
 
     try {
         Object o = object_new(c);
         // Try call default .ctor if present
         auto ctor = c.get_method(".ctor", 0);
         if (ctor)
-            ctor.invoke(o.ptr, {});
+            ctor.invoke(o, {});
         InstanceEntry e;
         e.handle = GcHandle(o.ptr);
-        instances_.push_back(std::move(e));
-        selectedInstance_ = static_cast<int>(instances_.size() - 1);
+        instances.push_back(std::move(e));
+        selectedInstance = static_cast<int>(instances.size() - 1);
     } catch (const ManagedException& e) {
-        callState_.lastError = std::string("Creating instance failed: ") + e.what();
+        callState.lastError = std::string("Creating instance failed: ") + e.what();
     } catch (const std::exception& e) {
-        callState_.lastError = std::string("Creating instance failed: ") + e.what();
+        callState.lastError = std::string("Creating instance failed: ") + e.what();
     }
 }
 
-bool Explorer::parseAndBoxArg(const Type& paramType, const std::string& text, Il2CppObject *& outObj, std::string& err) {
-    outObj = nullptr;
+bool Explorer::parseAndBoxArg(const Type& paramType, const std::string& text, Il2Cpp::API::Object& outObj, std::string& err) {
+    outObj.ptr = nullptr;
     const Class pc = paramType.class_or_element();
     if (!pc) {
         err = "Invalid parameter type.";
         return false;
     }
 
-    // "null" literal
+    // Handle null/empty input
     if (text == "null" || text == "(null)" || text.empty()) {
-        // allow null for reference types and string; for value types this will likely be invalid but runtime may allow default
         if (!pc.is_value_type() || isStringClass(pc)) {
-            outObj = nullptr;
-            return true;
+            return true; // Null is valid for reference types and strings
         } else {
-            // Provide default(T) via boxing zero
-            if (pc.is_enum()) {
-                const int32_t v = 0;
-                outObj = value_box<int32_t>(pc, v);
-                return true;
-            }
-            // Try zero for numeric primitives and floats
-            // We'll just box Int32 zero and let runtime convert if needed
-            const int32_t v = 0;
-            outObj = value_box<int32_t>(sysInt32_, v);
+            // Box default value for value types
+            if (pc.is_enum())
+                outObj = value_box<int32_t>(pc, 0);
+            else
+                outObj = value_box<int32_t>(sysInt32, 0);
             return true;
         }
     }
 
-    // If expected string
-    if (isStringClass(pc)) {
-        outObj = make_string(text).ptr;
+    // Define parsing lambdas
+    auto parseString = [&]() -> bool {
+        outObj = make_string(text);
         return true;
-    }
+    };
 
-    // Try boolean literals
-    if (pc.namespaze() == std::string_view("System") && pc.name() == std::string_view("Boolean")) {
-        bool v = false;
-        if (text == "true" || text == "True" || text == "1")
-            v = true;
-        else if (text == "false" || text == "False" || text == "0")
-            v = false;
-        else {
+    auto parseBoolean = [&]() -> bool {
+        if (text == "true" || text == "True" || text == "1") {
+            outObj = value_box<bool>(sysBoolean, true);
+        } else if (text == "false" || text == "False" || text == "0") {
+            outObj = value_box<bool>(sysBoolean, false);
+        } else {
             err = "Expected Boolean (true/false).";
             return false;
         }
-        outObj = value_box<bool>(sysBoolean_, v);
         return true;
-    }
-
-    // Numbers: detect hex, float, int
-    const auto isHex = [](const std::string& s) { return s.size() > 2 && s[0] == '0' && (s[1] == 'x' || s[1] == 'X'); };
-    const auto isFloatLike = [](const std::string& s) {
-        return s.find('.') != std::string::npos || s.find('e') != std::string::npos || s.find('E') != std::string::npos;
     };
 
-    if (isHex(text)) {
-        // Parse as unsigned 64 then box Int64
+    auto parseHex = [&]() -> bool {
         uint64_t val = 0;
-        const auto sv = std::string_view(text).substr(2);
+        auto sv = std::string_view(text).substr(2);
         for (char ch : sv) {
             val <<= 4;
-            if (ch >= '0' && ch <= '9')
-                val |= static_cast<uint64_t>(ch - '0');
-            else if (ch >= 'a' && ch <= 'f')
-                val |= static_cast<uint64_t>(ch - 'a' + 10);
-            else if (ch >= 'A' && ch <= 'F')
-                val |= static_cast<uint64_t>(ch - 'A' + 10);
-            else {
+            if (ch >= '0' && ch <= '9') {
+                val |= (ch - '0');
+            } else if (ch >= 'a' && ch <= 'f') {
+                val |= (ch - 'a' + 10);
+            } else if (ch >= 'A' && ch <= 'F') {
+                val |= (ch - 'A' + 10);
+            } else {
                 err = "Invalid hex number.";
                 return false;
             }
         }
-        const int64_t i64 = static_cast<int64_t>(val);
-        outObj = value_box<int64_t>(sysInt64_, i64);
+        outObj = value_box<int64_t>(sysInt64, static_cast<int64_t>(val));
         return true;
-    }
+    };
 
-    if (isFloatLike(text)) {
+    auto parseFloat = [&]() -> bool {
         char *end = nullptr;
-        const double dv = std::strtod(text.c_str(), &end);
-        if (!end || *end != '\0') {
+        double dv = std::strtod(text.c_str(), &end);
+        if (end == text.c_str() || *end != '\0') {
             err = "Invalid floating number.";
             return false;
         }
-        outObj = value_box<double>(sysDouble_, dv);
+        if (pc.ptr == sysSingle.ptr)
+            outObj = value_box<float>(sysSingle, static_cast<float>(dv));
+        else
+            outObj = value_box<double>(sysDouble, dv);
         return true;
-    } else {
-        // Integer
+    };
+
+    auto parseInteger = [&]() -> bool {
         char *end = nullptr;
-        const long long iv = std::strtoll(text.c_str(), &end, 10);
-        if (!end || *end != '\0') {
+        long long iv = std::strtoll(text.c_str(), &end, 10);
+        if (end == text.c_str() || *end != '\0') {
             err = "Invalid integer.";
             return false;
         }
-        if (iv >= std::numeric_limits<int32_t>::min() && iv <= std::numeric_limits<int32_t>::max())
-            outObj = value_box<int32_t>(sysInt32_, static_cast<int32_t>(iv));
+        if (pc.ptr == sysInt32.ptr)
+            outObj = value_box<int32_t>(sysInt32, static_cast<int32_t>(iv));
         else
-            outObj = value_box<int64_t>(sysInt64_, static_cast<int64_t>(iv));
+            outObj = value_box<int64_t>(sysInt64, static_cast<int64_t>(iv));
         return true;
+    };
+
+    // Type-specific parsing
+    if (isStringClass(pc))
+        return parseString();
+
+    if (pc.ptr == sysBoolean.ptr)
+        return parseBoolean();
+
+    // For sysObject_, try parsers in specified order
+    if (pc.ptr == sysObject.ptr) {
+        if (parseInteger())
+            return true;
+        if (parseFloat())
+            return true;
+        if (parseHex())
+            return true;
+        if (parseString())
+            return true;
+        err = "Failed to parse input as Integer, Float, Hex, or String.";
+        return false;
     }
+
+    // For other types, use original logic
+    auto isHex = [](const std::string& s) { return s.size() > 2 && s[0] == '0' && (s[1] == 'x' || s[1] == 'X'); };
+    auto isFloatLike = [](const std::string& s) {
+        return s.find('.') != std::string::npos || s.find('e') != std::string::npos || s.find('E') != std::string::npos;
+    };
+
+    if (isHex(text))
+        return parseHex();
+    else if (isFloatLike(text))
+        return parseFloat();
+    else
+        return parseInteger();
 }
 
 void Explorer::invokeSelectedMethod() {
-    callState_.lastError.clear();
-    callState_.lastReturn.clear();
-    callState_.lastReturnObject = GcHandle();
+    callState.lastError.clear();
+    callState.lastReturn.clear();
+    callState.lastReturnObject = GcHandle();
 
-    if (!selectedMethod_) {
-        callState_.lastError = "No method selected.";
+    if (!selectedMethod) {
+        callState.lastError = "No method selected.";
         return;
     }
 
     try {
-        auto& instance = instances_[selectedInstance_];
+        auto& instance = instances[selectedInstance];
 
         // Prepare args
-        uint32_t argc = selectedMethod_.param_count();
-        std::vector<Il2CppObject *> args(argc, nullptr);
+        uint32_t argc = selectedMethod.param_count();
+        std::vector<Object> args(argc);
         for (uint32_t i = 0; i < argc; ++i) {
             std::string err;
-            if (!parseAndBoxArg(selectedMethod_.param(i), callState_.argTexts[i], args[i], err)) {
-                callState_.lastError = "Arg " + std::to_string(i) + ": " + err;
+            if (!parseAndBoxArg(selectedMethod.param(i), callState.argTexts[i], args[i], err)) {
+                callState.lastError = "Arg " + std::to_string(i) + ": " + err;
                 return;
             }
         }
 
-        Il2CppObject *thisObj = nullptr;
-        if (selectedMethod_.is_instance()) {
-            if (selectedInstance_ < 0 || selectedInstance_ >= static_cast<int>(instances_.size())) {
-                callState_.lastError = "No instance selected for instance method.";
+        Object thisObj;
+        if (selectedMethod.is_instance()) {
+            if (selectedInstance < 0 || selectedInstance >= static_cast<int>(instances.size())) {
+                callState.lastError = "No instance selected for instance method.";
                 return;
             }
-            thisObj = instance.handle.target();
+            thisObj = Object{instance.handle.target()};
             if (!thisObj) {
-                callState_.lastError = "Selected instance was collected or invalid.";
+                callState.lastError = "Selected instance was collected or invalid.";
                 return;
             }
 
             // Make sure the instance type is compatible with declaring type
             Class instK = Object{thisObj}.klass();
-            Class declK = selectedMethod_.declaring_type();
+            Class declK = selectedMethod.declaring_type();
             if (!declK.is_assignable_from(instK)) {
-                callState_.lastError = "Selected instance is not assignable to method's declaring type.";
+                callState.lastError = "Selected instance is not assignable to method's declaring type.";
                 return;
             }
         }
 
-        Object ret = selectedMethod_.invoke_convert(thisObj, args);
+        Object ret = selectedMethod.invoke_convert(thisObj, [args]() mutable {
+            // Little bit of a hack, but it's really fast
+            std::span<Object> ospan(args);
+            std::span<Il2CppObject *>& fres = *reinterpret_cast<std::span<Il2CppObject *> *>(&ospan);
+            static_assert(sizeof(ospan[0]) == sizeof(fres[0]));
+            return fres;
+        }());
         if (ret) {
-            callState_.lastReturn = objectToString(ret);
-            callState_.lastReturnObject = GcHandle(ret.ptr); // keep alive for inspection if needed
+            callState.lastReturn = objectToString(ret);
+            callState.lastReturnObject = GcHandle(ret.ptr); // keep alive for inspection if needed
 
             // Set new object if called object is constructor
-            if (selectedMethod_.name() == ".ctor")
+            if (selectedMethod.name() == ".ctor")
                 instance.handle = GcHandle(ret.ptr);
         } else {
-            callState_.lastReturn = "null";
+            callState.lastReturn = "null";
+            callState.lastReturnObject = {};
         }
     } catch (const ManagedException& e) {
-        callState_.lastError = std::string("Managed exception:\n") + e.what();
+        callState.lastError = std::string("Managed exception:\n") + e.what();
     } catch (const std::exception& e) {
-        callState_.lastError = std::string("Native exception: ") + e.what();
+        callState.lastError = std::string("Native exception: ") + e.what();
     }
 }
 
