@@ -93,8 +93,6 @@ void Explorer::drawWindow() {
     ImGui::BeginChild("InstancesPane", ImVec2(0, 180), true);
     drawInstancesPane();
     ImGui::EndChild();
-
-    ImGui::End();
 }
 
 void Explorer::drawAssembliesPane() {
