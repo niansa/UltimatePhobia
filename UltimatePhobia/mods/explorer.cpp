@@ -434,10 +434,12 @@ void Explorer::createDefaultInstance() {
         auto ctor = c.get_method(".ctor", 0);
         if (ctor)
             ctor.invoke(o, {});
-        InstanceEntry e;
-        e.handle = GcHandle(o.ptr);
-        instances.push_back(std::move(e));
-        selectedInstance = static_cast<int>(instances.size() - 1);
+        if (o) {
+            InstanceEntry e;
+            e.handle = GcHandle(o.ptr);
+            instances.push_back(std::move(e));
+            selectedInstance = static_cast<int>(instances.size() - 1);
+        }
     } catch (const ManagedException& e) {
         callState.lastError = std::string("Creating instance failed: ") + e.what();
     } catch (const std::exception& e) {
@@ -625,7 +627,7 @@ void Explorer::invokeSelectedMethod() {
             callState.lastReturnObject = GcHandle(ret.ptr); // keep alive for inspection if needed
 
             // Set new object if called object is constructor
-            if (selectedMethod.name() == ".ctor")
+            if (selectedMethod.name() == ".ctor" && selectedMethod.return_type())
                 instance.handle = GcHandle(ret.ptr);
         } else {
             callState.lastReturn = "null";
