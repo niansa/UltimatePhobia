@@ -1,10 +1,7 @@
 #include "explorer.hpp"
 
-#include <unordered_map>
 #include <memory>
 #include <algorithm>
-#include <charconv>
-#include <limits>
 #include <sstream>
 #include <cstring>
 #include <imgui.h>
@@ -71,16 +68,11 @@ void Explorer::rebuildClassList() {
 }
 
 void Explorer::drawWindow() {
-    if (!open_)
+    if (!open)
         return;
 
     if (assemblies.empty())
         refreshAssemblies();
-
-    if (!ImGui::Begin("IL2CPP Explorer", &open_)) {
-        ImGui::End();
-        return;
-    }
 
     // Layout: 3 panes horizontally
     ImGui::BeginChild("AssembliesPane", ImVec2(260, 0), true);
@@ -108,7 +100,7 @@ void Explorer::drawWindow() {
 void Explorer::drawAssembliesPane() {
     ImGui::Text("Assemblies");
     ImGui::SetNextItemWidth(-1);
-    ImGui::InputText("##AsmFilter", asmFilter_, sizeof(asmFilter_));
+    ImGui::InputText("##AsmFilter", asmFilter, sizeof(asmFilter));
 
     if (ImGui::Button("Refresh")) {
         refreshAssemblies();
@@ -123,8 +115,8 @@ void Explorer::drawAssembliesPane() {
             auto img = assemblies[i].image();
             std::string name = std::string(img.name());
             std::string file = std::string(img.filename());
-            if (asmFilter_[0] != '\0') {
-                if (!icontains(name, asmFilter_) && !icontains(file, asmFilter_))
+            if (asmFilter[0] != '\0') {
+                if (!icontains(name, asmFilter) && !icontains(file, asmFilter))
                     continue;
             }
             bool sel = (i == selectedAssembly);
@@ -142,7 +134,7 @@ void Explorer::drawAssembliesPane() {
 void Explorer::drawClassesPane() {
     ImGui::Text("Classes");
     ImGui::SetNextItemWidth(-1);
-    ImGui::InputText("##ClassFilter", classFilter_, sizeof(classFilter_));
+    ImGui::InputText("##ClassFilter", classFilter, sizeof(classFilter));
 
     ImGui::Separator();
     if (ImGui::BeginListBox("##ClassList", ImVec2(-1, -1))) {
@@ -150,8 +142,8 @@ void Explorer::drawClassesPane() {
             ImGui::PushID(i);
 
             const auto& e = classList[i];
-            if (classFilter_[0] != '\0') {
-                if (!icontains(e.fullname, classFilter_)) {
+            if (classFilter[0] != '\0') {
+                if (!icontains(e.fullname, classFilter)) {
                     ImGui::PopID();
                     continue;
                 }
@@ -194,14 +186,14 @@ void Explorer::drawClassDetailPane() {
     ImGui::Separator();
 
     ImGui::SetNextItemWidth(-1);
-    ImGui::InputText("Filter Members", memberFilter_, sizeof(memberFilter_));
+    ImGui::InputText("Filter Members", memberFilter, sizeof(memberFilter));
 
     if (ImGui::CollapsingHeader("Fields", 0)) {
         auto fields = c.fields();
         for (auto& f : fields) {
             auto ft = typeName(f.type());
             std::string line = ft + " " + std::string(f.name());
-            if (memberFilter_[0] != '\0' && !icontains(line, memberFilter_))
+            if (memberFilter[0] != '\0' && !icontains(line, memberFilter))
                 continue;
 
             ImGui::PushID(std::string(f.name()).c_str());
@@ -226,7 +218,7 @@ void Explorer::drawClassDetailPane() {
 
     if (ImGui::CollapsingHeader("Properties", 0)) {
         for (auto& p : c.properties()) {
-            if (memberFilter_[0] != '\0' && !icontains(p.name(), memberFilter_))
+            if (memberFilter[0] != '\0' && !icontains(p.name(), memberFilter))
                 continue;
 
             ImGui::PushID(std::string(p.name()).c_str());
@@ -241,7 +233,7 @@ void Explorer::drawClassDetailPane() {
 
     if (ImGui::CollapsingHeader("Methods", 0)) {
         for (auto& m : c.methods()) {
-            if (memberFilter_[0] != '\0' && !icontains(m.name(), memberFilter_))
+            if (memberFilter[0] != '\0' && !icontains(m.name(), memberFilter))
                 continue;
 
             std::string sig = methodSignature(m);

@@ -14,10 +14,10 @@ public:
 
 private:
     // UI state
-    bool open_ = true;
-    char asmFilter_[128]{};
-    char classFilter_[256]{};
-    char memberFilter_[256]{};
+    bool open = true;
+    char asmFilter[128]{};
+    char classFilter[256]{};
+    char memberFilter[256]{};
 
     struct ClassEntry {
         Il2Cpp::API::Class klass{};
