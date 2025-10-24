@@ -1,4 +1,5 @@
 #include "il2cpp_dynamic.hpp"
+#include "il2cpp_api.hpp"
 #include "global_state.hpp"
 #include "safe_path.hpp"
 #include "generated/il2cpp.hpp"
@@ -14,6 +15,7 @@ namespace Il2Cpp::Dynamic {
 namespace {
 std::vector<Method> methods;
 std::mutex methods_mutex; // Intentionally used only very loosely
+std::vector<std::string> icall_strings;
 } // namespace
 
 void init() {
@@ -87,15 +89,13 @@ bool isLoaded() {
 }
 
 Method getMethod(std::string_view identifier, bool noError) {
-    for (const Method& method : methods) {
+    for (const Method& method : methods)
         if (method.signature == identifier)
             return method;
-    }
 
-    for (const Method& method : methods) {
+    for (const Method& method : methods)
         if (method.name == identifier)
             return method;
-    }
 
     if (!noError)
         g.logger->error("Failed to find method by identifier: {}", identifier);
@@ -159,4 +159,29 @@ std::vector<Method> searchMethods(std::string_view identifier) {
 }
 
 const std::vector<Method>& getMethods() { return methods; }
+
+bool registerICall(const char *name, std::string_view typeSignature) {
+    // Validate typeSignature
+    const std::string_view validChars = "ijfd";
+    for (size_t idx = 0; idx != typeSignature.size(); ++idx) {
+        const char c = typeSignature[idx];
+        if (validChars.find(c) == validChars.npos && !(idx == 0 && c == 'v'))
+            return false;
+    }
+
+    // Replace $ with : for icall name syntax
+    std::string iname(name);
+    for (char& c : iname)
+        if (c == '$')
+            c = ':';
+
+    // Get function pointer
+    const uintptr_t fptr = reinterpret_cast<uintptr_t>(Il2Cpp::API::il2cpp_resolve_icall(iname.c_str()));
+    if (fptr == 0)
+        return false;
+
+    // Register method
+    methods.emplace_back(Method{fptr, icall_strings.emplace_back(name), "", icall_strings.emplace_back(typeSignature), static_cast<int>(methods.size())});
+    return true;
+}
 } // namespace Il2Cpp::Dynamic

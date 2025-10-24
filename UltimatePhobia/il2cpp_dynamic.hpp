@@ -27,4 +27,5 @@ Method getMethod(void *addr, bool noError = false);
 Method getMethod(unsigned idx, bool noError = false);
 std::vector<Method> searchMethods(std::string_view identifier);
 const std::vector<Method>& getMethods();
+bool registerICall(const char *name, std::string_view typeSignature);
 } // namespace Il2Cpp::Dynamic

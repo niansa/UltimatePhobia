@@ -10,6 +10,7 @@
 
 #include "mods/global_instance_manager.hpp"
 #include "mods/tracer.hpp"
+#include "mods/explorer.hpp"
 #include "mods/photon_settings.hpp"
 #include "mods/save_file_manager.hpp"
 #include "mods/player_manager.hpp"
@@ -56,7 +57,7 @@ struct ApplicationHooks {
 Application::Application() {
     currentApplication = this;
     mods = {
-        &photonSettingsInfo, &saveFileManagerInfo, &fixesInfo, &playerManagerInfo, &goldbergEmuManagerInfo, &tracerInfo, &improvementsInfo,
+        &photonSettingsInfo, &saveFileManagerInfo, &fixesInfo, &playerManagerInfo, &goldbergEmuManagerInfo, &tracerInfo, &explorerInfo, &improvementsInfo,
 #ifdef MOD_ENABLE_CHEATS
         &cheatsInfo,
 #endif

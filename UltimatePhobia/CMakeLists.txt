@@ -3,7 +3,7 @@ set(CMAKE_POLICY_DEFAULT_CMP0069 NEW)
 
 project(UltimatePhobia LANGUAGES RC CXX)
 
-set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_INTERPROCEDURAL_OPTIMIZATION ON)
 
@@ -128,6 +128,8 @@ add_executable(UltimatePhobia WIN32 main.cpp icon.rc
     il2cpp_api.hpp il2cpp_api.cpp
     anycall.hpp
     generated/anycall.cpp
+    il2cpp_api_cpp.hpp
+    mods/explorer.hpp mods/explorer.cpp
 )
 target_link_libraries(UltimatePhobia PRIVATE dbghelp commoncpp spdlog imgui simdjson m3 wasm3_cpp ws2_32)
 target_include_directories(UltimatePhobia PRIVATE . ../il2cpp_dump)

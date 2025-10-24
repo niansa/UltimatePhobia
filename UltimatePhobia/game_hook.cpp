@@ -49,7 +49,7 @@ void GameHook::safeCreate(std::optional<GameHook>& fres, void *fnc, void *hook, 
 GameHook GameHook::safeCreateOrPanic(ModInfo& mod, void *fnc, void *hook, bool useTrampoline) {
     auto fres = safeCreate(fnc, hook, useTrampoline);
     if (!fres.has_value())
-        throw ModPanic(mod, fmt::format("Failed to set mandatory hook at {}"));
+        throw ModPanic(mod, fmt::format("Failed to set mandatory hook at {}", fnc));
     return std::move(*fres);
 }
 

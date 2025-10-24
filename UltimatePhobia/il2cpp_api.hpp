@@ -51,7 +51,7 @@ typedef enum {
     IL2CPP_PROFILE_STATISTICAL = 1 << 15,
     IL2CPP_PROFILE_METHOD_EVENTS = 1 << 16,
     IL2CPP_PROFILE_MONITOR_EVENTS = 1 << 17,
-    IL2CPP_PROFILE_IOMAP_EVENTS = 1 << 18, /* this should likely be removed, too */
+    IL2CPP_PROFILE_IOMAP_EVENTS = 1 << 18,
     IL2CPP_PROFILE_GC_MOVES = 1 << 19,
     IL2CPP_PROFILE_FILEIO = 1 << 20
 } Il2CppProfileFlags;

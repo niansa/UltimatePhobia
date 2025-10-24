@@ -72,7 +72,8 @@ ObjectHandle createArray(ObjectHandle elementClass, int32_t length) {
 }
 void copyArrayBytes(ObjectHandle array, int32_t offset, int32_t length, void *to) {
     auto csArray = reinterpret_cast<System_Byte_array *>(getObject(array));
-    memcpy(to, csArray->m_Items + offset, length);
+    if (csArray)
+        memcpy(to, csArray->m_Items + offset, length);
 }
 
 GCHandle gcCreateHandle(ObjectHandle object, WIBool pinned) {
@@ -113,6 +114,11 @@ int64_t getMethodAddresss(MethodHandle index) {
     if (index < 0)
         return 0;
     return reinterpret_cast<uintptr_t>(Dynamic::getMethod(index).getFullAddress());
+}
+WIBool registerICallMethod(const char *identifier, const char *typeSignature) {
+    if (!Dynamic::getMethod(identifier, true).isValid())
+        return Dynamic::registerICall(identifier, typeSignature);
+    return true;
 }
 
 namespace {
@@ -166,7 +172,8 @@ ObjectHandle getCallError() { return addObject(Il2Cpp::CppInterop::ToCsString(ca
 namespace {
 void logBadCall(MethodHandle index) {
     const auto& method = Il2Cpp::Dynamic::getMethod(index);
-    g.logger->warn("FFI` interface failed to call function '{}': {}", method.isValid() ? method.signature : "<invalid>", call_error);
+    g.logger->warn("FFI` interface failed to call function '{}': {}",
+                   method.isValid() ? method.signature.empty() ? method.name : method.signature : "<invalid>", call_error);
 }
 } // namespace
 

@@ -200,6 +200,13 @@ UP_API ObjectHandle getMethodSignature(MethodHandle);
  * @return System.String object
  */
 UP_API int64_t getMethodAddresss(MethodHandle);
+/**
+ * @brief Registers an icall
+ * @param identifier Name in format "Namspace.Class$$Method"
+ * @param typeSignature Signature in format as given in script.json
+ * @return true if success or method already known
+ */
+UP_API WIBool registerICallMethod(const char *identifier, const char *typeSignature);
 
 /**
  * @brief Adds 32 bit integer to argument list
@@ -385,12 +392,13 @@ UP_API void abort(const char *message, const char *filename, int32_t lineNumber,
     FFI_FUNCTION_LIST_ENTRY(WIBool, ImGuiCheckbox2, (const char *label, WIBool v), label, v)                                                                   \
     FFI_FUNCTION_LIST_ENTRY(WIBool, ImGuiCheckbox3, (const char *label, bool *v), label, v)                                                                    \
     FFI_FUNCTION_LIST_ENTRY(int32_t, getFtableItemCount, (), )                                                                                                 \
-    FFI_FUNCTION_LIST_ENTRY(int32_t, ImGuiCheckbox4, (const char *label, WIBool v), label, v)
+    FFI_FUNCTION_LIST_ENTRY(int32_t, ImGuiCheckbox4, (const char *label, WIBool v), label, v)                                                                  \
+    FFI_FUNCTION_LIST_ENTRY(WIBool, registerICallMethod, (const char *identifier, const char *typeSignature), identifier, typeSignature)
 
 // Make sure signatures match
 #ifndef FFI_NOSTL
 #define FFI_FUNCTION_LIST_ENTRY(return_type, fnc, arguments, ...)                                                                                              \
-    static_assert(std::is_same<decltype(fnc), return_type arguments>(), "Signature of FFI function " #fnc " does not match that in list");
+    static_assert(std::is_same<decltype(fnc), return_type arguments>(), "Signature of FFI function " #fnc " does not match that in function list");
 FFI_FUNCTION_LIST
 #undef FFI_FUNCTION_LIST_ENTRY
 #endif
