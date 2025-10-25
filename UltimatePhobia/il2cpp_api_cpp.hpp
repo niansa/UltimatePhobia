@@ -225,6 +225,7 @@ struct Image {
     const MethodInfo *entry_point() const { return ptr ? il2cpp_image_get_entry_point(ptr) : nullptr; }
     size_t class_count() const { return ptr ? il2cpp_image_get_class_count(ptr) : 0; }
     Class get_class(size_t index) const;
+    Assembly get_assembly() const { return Assembly{il2cpp_image_get_assembly(ptr)}; }
 };
 
 struct Type {

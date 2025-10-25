@@ -327,9 +327,36 @@ void Explorer::drawInstancesPane() {
         ImGui::PushID(i);
 
         auto& e = instances[i];
-        bool selected = (i == selectedInstance);
-        if (ImGui::Selectable(e.getLabel().c_str(), selected)) {
+        const bool selected = (i == selectedInstance);
+        if (ImGui::Selectable(e.getLabel().c_str(), selected))
             selectedInstance = i;
+        ImGui::SameLine();
+        if (ImGui::Button("Inspect class")) {
+            Class klass{e.handle.target()->klass};
+
+            // Find assembly in class list and select it
+            {
+                Assembly instanceAssembly = klass.image().get_assembly();
+                auto it = std::find_if(assemblies.begin(), assemblies.end(),
+                                       [&instanceAssembly](const Assembly& entry) { return entry.ptr == instanceAssembly.ptr; });
+
+                if (it != assemblies.end()) {
+                    selectedAssembly = std::distance(assemblies.begin(), it);
+                    rebuildClassList();
+                }
+            }
+
+            // Find the class in the class list and select it
+            {
+                auto it = std::find_if(classList.begin(), classList.end(), [&klass](const ClassEntry& entry) { return entry.klass.ptr == klass.ptr; });
+
+                if (it != classList.end()) {
+                    selectedClass = std::distance(classList.begin(), it);
+                    selectedMethod = Method{};
+                    selectedProperty = Property{};
+                    callState = CallState{};
+                }
+            }
         }
         ImGui::SameLine();
         if (ImGui::Button("Release")) {
