@@ -18,11 +18,11 @@ namespace FFIInterface {
 int32_t getFtableItemCount() { return getLocalFtableItemCount(); }
 
 namespace {
-template <std::integral HandleT> class HandleCollection {
-    std::map<HandleT, void *> objects;
+template <std::integral HandleT, typename PtrT> class HandleCollection {
+    std::map<HandleT, PtrT *> objects;
 
 public:
-    HandleT add(void *ptr) {
+    HandleT add(PtrT *ptr) {
         if (ptr == nullptr)
             return 0;
         // Find empty handle ID
@@ -38,7 +38,7 @@ public:
         objects[fres] = ptr;
         return fres;
     }
-    void *get(HandleT id) const {
+    PtrT *get(HandleT id) const {
         if (id == 0)
             return nullptr;
         auto res = objects.find(id);
@@ -57,14 +57,21 @@ public:
     static inline HandleT getNull() { return 0; }
 };
 
-HandleCollection<ObjectHandle> objectHandles;
+HandleCollection<ObjectHandle, void /*Il2Cpp::API::Il2CppObject*/> objectHandles;
+HandleCollection<ImageHandle, Il2Cpp::API::Il2CppImage> imageHandles;
+HandleCollection<ClassHandle, Il2Cpp::API::Il2CppClass> classHandles;
 } // namespace
+
+ObjectHandle getNull() { return 0; }
 
 // Object handle management
 void dropObject(ObjectHandle id) { objectHandles.drop(id); }
 WIBool isValidObject(ObjectHandle id) { return objectHandles.isValid(id); }
 int64_t getObjectAddress(ObjectHandle id) { return objectHandles.getAddress(id); }
-ObjectHandle getNull() { return 0; }
+
+// Misc handle management
+void dropImage(ImageHandle id) { imageHandles.drop(id); }
+void dropClass(ClassHandle id) { classHandles.drop(id); }
 
 // String creation
 ObjectHandle toCsString(const char *str) { return objectHandles.add(Il2Cpp::CppInterop::ToCsString(str)); }
@@ -76,18 +83,21 @@ void toCString(ObjectHandle str, char *buf, int32_t maxlen) {
 }
 
 // C# runtime wrappers
-ObjectHandle getImageCorlib() { return objectHandles.add(const_cast<void *>(reinterpret_cast<const void *>(Il2Cpp::API::il2cpp_get_corlib()))); }
-ObjectHandle getClassFromName(ObjectHandle image, const char *namespaze, const char *name) {
-    return objectHandles.add(
-        reinterpret_cast<void *>(Il2Cpp::API::il2cpp_class_from_name(reinterpret_cast<Il2Cpp::API::Il2CppImage *>(objectHandles.get(image)), namespaze, name)));
+ImageHandle getImageCorlib() {
+    return imageHandles.add(const_cast<Il2Cpp::API::Il2CppImage *>(
+        reinterpret_cast<const Il2Cpp::API::Il2CppImage *>(reinterpret_cast<const void *>(Il2Cpp::API::il2cpp_get_corlib()))));
 }
-ObjectHandle getArrayFromClass(ObjectHandle elementClass, int32_t rank) {
-    return objectHandles.add(
-        reinterpret_cast<void *>(Il2Cpp::API::il2cpp_array_class_get(reinterpret_cast<Il2Cpp::API::Il2CppClass *>(objectHandles.get(elementClass)), rank)));
+ClassHandle getClassFromName(ImageHandle image, const char *namespaze, const char *name) {
+    return classHandles.add(reinterpret_cast<Il2Cpp::API::Il2CppClass *>(
+        Il2Cpp::API::il2cpp_class_from_name(reinterpret_cast<Il2Cpp::API::Il2CppImage *>(imageHandles.get(image)), namespaze, name)));
 }
-ObjectHandle createArray(ObjectHandle elementClass, int32_t length) {
+ObjectHandle getArrayFromClass(ClassHandle elementClass, int32_t rank) {
     return objectHandles.add(
-        reinterpret_cast<void *>(Il2Cpp::API::il2cpp_array_new(reinterpret_cast<Il2Cpp::API::Il2CppClass *>(objectHandles.get(elementClass)), length)));
+        reinterpret_cast<void *>(Il2Cpp::API::il2cpp_array_class_get(reinterpret_cast<Il2Cpp::API::Il2CppClass *>(classHandles.get(elementClass)), rank)));
+}
+ObjectHandle createArray(ClassHandle elementClass, int32_t length) {
+    return objectHandles.add(
+        reinterpret_cast<void *>(Il2Cpp::API::il2cpp_array_new(reinterpret_cast<Il2Cpp::API::Il2CppClass *>(classHandles.get(elementClass)), length)));
 }
 void copyArrayBytes(ObjectHandle array, int32_t offset, int32_t length, void *to) {
     auto csArray = reinterpret_cast<System_Byte_array *>(objectHandles.get(array));

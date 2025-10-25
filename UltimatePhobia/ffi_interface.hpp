@@ -35,14 +35,18 @@
 
 namespace FFIInterface {
 #ifdef FFI_EXT
-enum class ObjectHandle : int32_t { Null = 0, Invalid = -1 };
+#define FFI_DEFINE_GENERIC_HANDLE_TYPE(name) enum class name : int32_t { Null = 0, Invalid = -1 }
+enum class ImageHandle : int32_t { Null = 0, Invalid = -1 };
 enum class MethodHandle : int32_t { Invalid = -1 };
 enum class GCHandle : int32_t { Invalid = -1 };
 #else
-using ObjectHandle = int32_t;
+#define FFI_DEFINE_GENERIC_HANDLE_TYPE(name) using name = int32_t
 using MethodHandle = int32_t;
 using GCHandle = int32_t;
 #endif
+FFI_DEFINE_GENERIC_HANDLE_TYPE(ObjectHandle);
+FFI_DEFINE_GENERIC_HANDLE_TYPE(ImageHandle);
+FFI_DEFINE_GENERIC_HANDLE_TYPE(ClassHandle);
 using WIBool = int32_t;
 constexpr int32_t unknownArgCount = 0x6D616E63;
 
@@ -57,9 +61,11 @@ namespace Signatures {
 UP_API int32_t getFtableItemCount();
 
 /**
- * @brief Invalidates given handle to C# object allowing it to be reused
+ * @brief Invalidates given handle allowing it to be reused
  */
 UP_API void dropObject(ObjectHandle);
+UP_API void dropImage(ImageHandle);
+UP_API void dropClass(ClassHandle);
 /**
  * @brief Check if given handle is a valid C# object
  * @return 1 if handle is valid, otherwisewise 0
@@ -98,7 +104,7 @@ UP_API void toCString(ObjectHandle str, char *buf, int32_t maxlen);
  * @brief Gets corlib image handle
  * @return Image handle
  */
-UP_API ObjectHandle getImageCorlib();
+UP_API ImageHandle getImageCorlib();
 /**
  * @brief Gets specified class handle
  * @param image Handle of image to load class from
@@ -106,21 +112,21 @@ UP_API ObjectHandle getImageCorlib();
  * @param name Name of class to load
  * @return Class handle
  */
-UP_API ObjectHandle getClassFromName(ObjectHandle image, const char *namespaze, const char *name);
+UP_API ClassHandle getClassFromName(ImageHandle image, const char *namespaze, const char *name);
 /**
  * @brief Gets array class from class
  * @param elementClass Element type
  * @param rank ??? = 1
  * @return Class handle
  */
-UP_API ObjectHandle getArrayFromClass(ObjectHandle elementClass, int32_t rank);
+UP_API ObjectHandle getArrayFromClass(ClassHandle elementClass, int32_t rank);
 /**
  * @brief Create an array
  * @param elementClass Element type
  * @param length Length of array
  * @return Handle of new array object
  */
-UP_API ObjectHandle createArray(ObjectHandle elementClass, int32_t length);
+UP_API ObjectHandle createArray(ClassHandle elementClass, int32_t length);
 /**
  * @brief Copies an array into memory
  * @param array Array to copy from
@@ -379,10 +385,10 @@ UP_API void abort(const char *message, const char *filename, int32_t lineNumber,
     FFI_FUNCTION_LIST_ENTRY(void, ImGuiSeparatorText, (const char *label), label)                                                                              \
     FFI_FUNCTION_LIST_ENTRY(void, abort, (const char *message, const char *filename, int32_t lineNumber, int32_t columnNumber), message, filename, lineNumber, \
                             columnNumber)                                                                                                                      \
-    FFI_FUNCTION_LIST_ENTRY(ObjectHandle, getImageCorlib, (), )                                                                                                \
-    FFI_FUNCTION_LIST_ENTRY(ObjectHandle, getClassFromName, (ObjectHandle image, const char *namespaze, const char *name), image, namespaze, name)             \
-    FFI_FUNCTION_LIST_ENTRY(ObjectHandle, getArrayFromClass, (ObjectHandle elementClass, int32_t rank), elementClass, rank)                                    \
-    FFI_FUNCTION_LIST_ENTRY(ObjectHandle, createArray, (ObjectHandle elementClass, int32_t length), elementClass, length)                                      \
+    FFI_FUNCTION_LIST_ENTRY(ImageHandle, getImageCorlib, (), )                                                                                                 \
+    FFI_FUNCTION_LIST_ENTRY(ClassHandle, getClassFromName, (ImageHandle image, const char *namespaze, const char *name), image, namespaze, name)               \
+    FFI_FUNCTION_LIST_ENTRY(ObjectHandle, getArrayFromClass, (ClassHandle elementClass, int32_t rank), elementClass, rank)                                     \
+    FFI_FUNCTION_LIST_ENTRY(ObjectHandle, createArray, (ClassHandle elementClass, int32_t length), elementClass, length)                                       \
     FFI_FUNCTION_LIST_ENTRY(void, copyArrayBytes, (ObjectHandle array, int32_t offset, int32_t length, void *to), array, offset, length, to)                   \
     FFI_FUNCTION_LIST_ENTRY(int64_t, getMethodAddresss, (MethodHandle a), a)                                                                                   \
     FFI_FUNCTION_LIST_ENTRY(int64_t, getObjectAddress, (ObjectHandle a), a)                                                                                    \
@@ -393,7 +399,9 @@ UP_API void abort(const char *message, const char *filename, int32_t lineNumber,
     FFI_FUNCTION_LIST_ENTRY(WIBool, ImGuiCheckbox3, (const char *label, bool *v), label, v)                                                                    \
     FFI_FUNCTION_LIST_ENTRY(int32_t, getFtableItemCount, (), )                                                                                                 \
     FFI_FUNCTION_LIST_ENTRY(int32_t, ImGuiCheckbox4, (const char *label, WIBool v), label, v)                                                                  \
-    FFI_FUNCTION_LIST_ENTRY(WIBool, registerICallMethod, (const char *identifier, const char *typeSignature), identifier, typeSignature)
+    FFI_FUNCTION_LIST_ENTRY(WIBool, registerICallMethod, (const char *identifier, const char *typeSignature), identifier, typeSignature)                       \
+    FFI_FUNCTION_LIST_ENTRY(void, dropImage, (ImageHandle a), a)                                                                                               \
+    FFI_FUNCTION_LIST_ENTRY(void, dropClass, (ClassHandle a), a)
 
 // Make sure signatures match
 #ifndef FFI_NOSTL
