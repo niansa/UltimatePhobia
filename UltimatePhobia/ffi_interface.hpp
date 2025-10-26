@@ -1719,9 +1719,9 @@ struct Type {
 
     explicit operator bool() const { return ptr != TypeHandle{}; }
 
-    bool is_byref() const { return FFI_USE_FTABLE typeIsByRef(ptr) != 0; }
-    bool is_static() const { return FFI_USE_FTABLE typeIsStatic(ptr) != 0; }
-    bool is_pointer() const { return FFI_USE_FTABLE typeIsPointerType(ptr) != 0; }
+    bool is_byref() const { return FFI_USE_FTABLE typeIsByRef(ptr); }
+    bool is_static() const { return FFI_USE_FTABLE typeIsStatic(ptr); }
+    bool is_pointer() const { return FFI_USE_FTABLE typeIsPointerType(ptr); }
 
     uint32_t attrs() const { return FFI_USE_FTABLE typeGetAttrs(ptr); }
     int kind() const { return FFI_USE_FTABLE typeGetType(ptr); }
@@ -1746,7 +1746,7 @@ struct Type {
 
     Class class_or_element() const;
 
-    bool equals(Type other) const { return FFI_USE_FTABLE typeEquals(ptr, other.ptr) != 0; }
+    bool equals(Type other) const { return FFI_USE_FTABLE typeEquals(ptr, other.ptr); }
 };
 
 struct Class {
@@ -1802,13 +1802,13 @@ struct Class {
         return result;
     }
 
-    bool is_value_type() const { return FFI_USE_FTABLE classIsValueType(ptr) != 0; }
-    bool is_enum() const { return FFI_USE_FTABLE classIsEnum(ptr) != 0; }
-    bool is_abstract() const { return FFI_USE_FTABLE classIsAbstract(ptr) != 0; }
-    bool is_interface() const { return FFI_USE_FTABLE classIsInterface(ptr) != 0; }
-    bool is_generic() const { return FFI_USE_FTABLE classIsGeneric(ptr) != 0; }
-    bool is_inflated() const { return FFI_USE_FTABLE classIsInflated(ptr) != 0; }
-    bool has_references() const { return FFI_USE_FTABLE classHasReferences(ptr) != 0; }
+    bool is_value_type() const { return FFI_USE_FTABLE classIsValueType(ptr); }
+    bool is_enum() const { return FFI_USE_FTABLE classIsEnum(ptr); }
+    bool is_abstract() const { return FFI_USE_FTABLE classIsAbstract(ptr); }
+    bool is_interface() const { return FFI_USE_FTABLE classIsInterface(ptr); }
+    bool is_generic() const { return FFI_USE_FTABLE classIsGeneric(ptr); }
+    bool is_inflated() const { return FFI_USE_FTABLE classIsInflated(ptr); }
+    bool has_references() const { return FFI_USE_FTABLE classHasReferences(ptr); }
 
     int rank() const { return FFI_USE_FTABLE classGetRank(ptr); }
     int32_t instance_size() const { return FFI_USE_FTABLE classInstanceSize(ptr); }
@@ -1838,13 +1838,13 @@ struct Class {
     std::vector<Class> nested_types() const;
     std::vector<Property> properties() const;
 
-    bool has_attribute(Class attr_class) const { return FFI_USE_FTABLE classHasAttribute(ptr, attr_class.ptr) != 0; }
+    bool has_attribute(Class attr_class) const { return FFI_USE_FTABLE classHasAttribute(ptr, attr_class.ptr); }
 
-    bool is_assignable_from(Class other) const { return FFI_USE_FTABLE classIsAssignableFrom(ptr, other.ptr) != 0; }
+    bool is_assignable_from(Class other) const { return FFI_USE_FTABLE classIsAssignableFrom(ptr, other.ptr); }
 
-    bool is_subclass_of(Class klassc, bool check_interfaces) const { return FFI_USE_FTABLE classIsSubclassOf(ptr, klassc.ptr, check_interfaces ? 1 : 0) != 0; }
+    bool is_subclass_of(Class klassc, bool check_interfaces) const { return FFI_USE_FTABLE classIsSubclassOf(ptr, klassc.ptr, check_interfaces ? 1 : 0); }
 
-    bool has_parent(Class klassc) const { return FFI_USE_FTABLE classHasParent(ptr, klassc.ptr) != 0; }
+    bool has_parent(Class klassc) const { return FFI_USE_FTABLE classHasParent(ptr, klassc.ptr); }
 };
 
 struct Method {
@@ -1873,9 +1873,9 @@ struct Method {
         return result;
     }
 
-    bool is_generic() const { return FFI_USE_FTABLE methodInfoIsGeneric(ptr) != 0; }
-    bool is_inflated() const { return FFI_USE_FTABLE methodInfoIsInflated(ptr) != 0; }
-    bool is_instance() const { return FFI_USE_FTABLE methodInfoIsInstance(ptr) != 0; }
+    bool is_generic() const { return FFI_USE_FTABLE methodInfoIsGeneric(ptr); }
+    bool is_inflated() const { return FFI_USE_FTABLE methodInfoIsInflated(ptr); }
+    bool is_instance() const { return FFI_USE_FTABLE methodInfoIsInstance(ptr); }
 
     uint32_t param_count() const { return FFI_USE_FTABLE methodInfoGetParamCount(ptr); }
 
@@ -1910,7 +1910,7 @@ struct Method {
 
     uint32_t token() const { return FFI_USE_FTABLE methodInfoGetToken(ptr); }
 
-    bool has_attribute(Class attr_class) const { return FFI_USE_FTABLE methodInfoHasAttribute(ptr, attr_class.ptr) != 0; }
+    bool has_attribute(Class attr_class) const { return FFI_USE_FTABLE methodInfoHasAttribute(ptr, attr_class.ptr); }
 };
 
 struct Field {
@@ -1943,9 +1943,9 @@ struct Field {
         return result;
     }
 
-    bool has_attribute(Class attr_class) const { return FFI_USE_FTABLE fieldHasAttribute(ptr, attr_class.ptr) != 0; }
+    bool has_attribute(Class attr_class) const { return FFI_USE_FTABLE fieldHasAttribute(ptr, attr_class.ptr); }
 
-    bool is_literal() const { return FFI_USE_FTABLE fieldIsLiteral(ptr) != 0; }
+    bool is_literal() const { return FFI_USE_FTABLE fieldIsLiteral(ptr); }
 
     template <class T> T get_value(ObjectHandle obj) const;
     ObjectHandle get_value_object(ObjectHandle obj) const { return FFI_USE_FTABLE fieldGetValueObject(obj, ptr); }
@@ -1996,7 +1996,7 @@ struct Property {
 struct Object {
     ObjectHandle ptr{};
 
-    explicit operator bool() const { return ptr != ObjectHandle{} && FFI_USE_FTABLE isValidObject(ptr) != 0; }
+    explicit operator bool() const { return ptr != ObjectHandle{} && FFI_USE_FTABLE isValidObject(ptr); }
 
     Class klass() const {
         Class result;
@@ -2041,7 +2041,7 @@ struct String : Object {
 struct Array {
     ObjectHandle ptr{};
 
-    explicit operator bool() const { return ptr != ObjectHandle{} && FFI_USE_FTABLE isValidObject(ptr) != 0; }
+    explicit operator bool() const { return ptr != ObjectHandle{} && FFI_USE_FTABLE isValidObject(ptr); }
 
     static Array New(ClassHandle element, std::size_t length) {
         Array result;
