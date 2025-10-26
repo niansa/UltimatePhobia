@@ -10,6 +10,7 @@
 #include <vector>
 #include <optional>
 #include <memory>
+#include <algorithm>
 #endif
 #else
 #define FFI_NOSTL_CONTAINERS
