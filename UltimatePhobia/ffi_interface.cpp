@@ -58,6 +58,7 @@ public:
 };
 
 HandleCollection<ObjectHandle, void /*Il2Cpp::API::Il2CppObject*/> objectHandles;
+HandleCollection<ValueHandle, void> valueHandles;
 HandleCollection<ImageHandle, Il2Cpp::API::Il2CppImage> imageHandles;
 HandleCollection<ClassHandle, Il2Cpp::API::Il2CppClass> classHandles;
 HandleCollection<DomainHandle, Il2Cpp::API::Il2CppDomain> domainHandles;
@@ -77,6 +78,7 @@ WIBool isValidObject(ObjectHandle id) { return objectHandles.isValid(id); }
 int64_t getObjectAddress(ObjectHandle id) { return objectHandles.getAddress(id); }
 
 // Misc handle management
+void dropValue(ValueHandle id) { valueHandles.drop(id); }
 void dropImage(ImageHandle id) { imageHandles.drop(id); }
 void dropClass(ClassHandle id) { classHandles.drop(id); }
 void dropDomain(DomainHandle id) { domainHandles.drop(id); }
@@ -559,6 +561,9 @@ MethodInfoHandle objectGetVirtualMethod(ObjectHandle obj, MethodInfoHandle metho
 }
 ObjectHandle objectNew(ClassHandle klass) {
     return objectHandles.add(Il2Cpp::API::il2cpp_object_new(reinterpret_cast<const Il2Cpp::API::Il2CppClass *>(classHandles.get(klass))));
+}
+ValueHandle objectUnboxValue(ObjectHandle obj) {
+    return valueHandles.add(Il2Cpp::API::il2cpp_object_unbox(reinterpret_cast<Il2Cpp::API::Il2CppObject *>(objectHandles.get(obj))));
 }
 int32_t objectUnboxI32(ObjectHandle obj) {
     int32_t v = 0;

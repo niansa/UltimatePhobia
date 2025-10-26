@@ -45,6 +45,7 @@ using MethodHandle = int32_t;
 using GCHandle = int32_t;
 #endif
 FFI_DEFINE_GENERIC_HANDLE_TYPE(ObjectHandle);
+FFI_DEFINE_GENERIC_HANDLE_TYPE(ValueHandle);
 FFI_DEFINE_GENERIC_HANDLE_TYPE(ImageHandle);
 FFI_DEFINE_GENERIC_HANDLE_TYPE(ClassHandle);
 FFI_DEFINE_GENERIC_HANDLE_TYPE(DomainHandle);
@@ -71,6 +72,10 @@ UP_API int32_t getFtableItemCount();
  * @brief Invalidates given handle allowing it to be reused
  */
 UP_API void dropObject(ObjectHandle);
+/**
+ * @brief Invalidates given handle allowing it to be reused
+ */
+UP_API void dropValue(ValueHandle);
 /**
  * @brief Invalidates given handle allowing it to be reused
  */
@@ -730,6 +735,10 @@ UP_API MethodInfoHandle objectGetVirtualMethod(ObjectHandle obj, MethodInfoHandl
  */
 UP_API ObjectHandle objectNew(ClassHandle klass);
 /**
+ * @brief Unboxes to value
+ */
+UP_API ValueHandle objectUnboxValue(ObjectHandle obj);
+/**
  * @brief Unboxes to int32
  */
 UP_API int32_t objectUnboxI32(ObjectHandle obj);
@@ -1298,7 +1307,9 @@ UP_API void abort(const char *message, const char *filename, int32_t lineNumber,
     FFI_FUNCTION_LIST_ENTRY(void, dropMethodInfo, (MethodInfoHandle a), a)                                                                                     \
     FFI_FUNCTION_LIST_ENTRY(void, dropField, (FieldHandle a), a)                                                                                               \
     FFI_FUNCTION_LIST_ENTRY(void, dropProperty, (PropertyHandle a), a)                                                                                         \
-    FFI_FUNCTION_LIST_ENTRY(void, dropEvent, (EventHandle a), a)
+    FFI_FUNCTION_LIST_ENTRY(void, dropEvent, (EventHandle a), a)                                                                                               \
+    FFI_FUNCTION_LIST_ENTRY(void, dropValue, (ValueHandle a), a)                                                                                               \
+    FFI_FUNCTION_LIST_ENTRY(ValueHandle, objectUnboxValue, (ObjectHandle obj), obj)
 
 // Make sure signatures match
 #ifndef FFI_NOSTL
