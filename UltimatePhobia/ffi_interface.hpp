@@ -755,6 +755,10 @@ UP_API float objectUnboxFloat(ObjectHandle obj);
  */
 UP_API double objectUnboxDouble(ObjectHandle obj);
 /**
+ * @brief Boxes value
+ */
+UP_API ObjectHandle valueBox(ClassHandle klass, ValueHandle value);
+/**
  * @brief Boxes int32
  */
 UP_API ObjectHandle valueBoxI32(ClassHandle klass, int32_t value);
@@ -1309,7 +1313,8 @@ UP_API void abort(const char *message, const char *filename, int32_t lineNumber,
     FFI_FUNCTION_LIST_ENTRY(void, dropProperty, (PropertyHandle a), a)                                                                                         \
     FFI_FUNCTION_LIST_ENTRY(void, dropEvent, (EventHandle a), a)                                                                                               \
     FFI_FUNCTION_LIST_ENTRY(void, dropValue, (ValueHandle a), a)                                                                                               \
-    FFI_FUNCTION_LIST_ENTRY(ValueHandle, objectUnboxValue, (ObjectHandle obj), obj)
+    FFI_FUNCTION_LIST_ENTRY(ValueHandle, objectUnboxValue, (ObjectHandle obj), obj)                                                                            \
+    FFI_FUNCTION_LIST_ENTRY(ObjectHandle, valueBox, (ClassHandle klass, ValueHandle value), klass, value)
 
 // Make sure signatures match
 #ifndef FFI_NOSTL

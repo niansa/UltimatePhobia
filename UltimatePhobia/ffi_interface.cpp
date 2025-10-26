@@ -589,6 +589,9 @@ double objectUnboxDouble(ObjectHandle obj) {
         std::memcpy(&v, p, sizeof(v));
     return v;
 }
+ObjectHandle valueBox(ClassHandle klass, ValueHandle value) {
+    return objectHandles.add(Il2Cpp::API::il2cpp_value_box(reinterpret_cast<Il2Cpp::API::Il2CppClass *>(classHandles.get(klass)), valueHandles.get(value)));
+}
 ObjectHandle valueBoxI32(ClassHandle klass, int32_t v) {
     return objectHandles.add(Il2Cpp::API::il2cpp_value_box(reinterpret_cast<Il2Cpp::API::Il2CppClass *>(classHandles.get(klass)), &v));
 }
