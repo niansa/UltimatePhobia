@@ -735,7 +735,7 @@ UP_API MethodInfoHandle objectGetVirtualMethod(ObjectHandle obj, MethodInfoHandl
  */
 UP_API ObjectHandle objectNew(ClassHandle klass);
 /**
- * @brief Unboxes to value
+ * @brief Unboxes to value with same lifetime as object
  */
 UP_API ValueHandle objectUnboxValue(ObjectHandle obj);
 /**
