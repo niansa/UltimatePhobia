@@ -1720,13 +1720,10 @@ struct Type {
     explicit operator bool() const { return ptr != TypeHandle{}; }
 
     bool is_byref() const { return FFI_USE_FTABLE typeIsByRef(ptr) != 0; }
-
     bool is_static() const { return FFI_USE_FTABLE typeIsStatic(ptr) != 0; }
-
     bool is_pointer() const { return FFI_USE_FTABLE typeIsPointerType(ptr) != 0; }
 
     uint32_t attrs() const { return FFI_USE_FTABLE typeGetAttrs(ptr); }
-
     int kind() const { return FFI_USE_FTABLE typeGetType(ptr); }
 
     std::string name_owned() const {
@@ -1806,29 +1803,18 @@ struct Class {
     }
 
     bool is_value_type() const { return FFI_USE_FTABLE classIsValueType(ptr) != 0; }
-
     bool is_enum() const { return FFI_USE_FTABLE classIsEnum(ptr) != 0; }
-
     bool is_abstract() const { return FFI_USE_FTABLE classIsAbstract(ptr) != 0; }
-
     bool is_interface() const { return FFI_USE_FTABLE classIsInterface(ptr) != 0; }
-
     bool is_generic() const { return FFI_USE_FTABLE classIsGeneric(ptr) != 0; }
-
     bool is_inflated() const { return FFI_USE_FTABLE classIsInflated(ptr) != 0; }
-
     bool has_references() const { return FFI_USE_FTABLE classHasReferences(ptr) != 0; }
 
     int rank() const { return FFI_USE_FTABLE classGetRank(ptr); }
-
     int32_t instance_size() const { return FFI_USE_FTABLE classInstanceSize(ptr); }
-
     int array_element_size() const { return FFI_USE_FTABLE classArrayElementSize(ptr); }
-
     int flags() const { return FFI_USE_FTABLE classGetFlags(ptr); }
-
     uint32_t type_token() const { return FFI_USE_FTABLE classGetTypeToken(ptr); }
-
     uint32_t data_size() const { return FFI_USE_FTABLE classGetDataSize(ptr); }
 
     Type type() const {
@@ -1888,9 +1874,7 @@ struct Method {
     }
 
     bool is_generic() const { return FFI_USE_FTABLE methodInfoIsGeneric(ptr) != 0; }
-
     bool is_inflated() const { return FFI_USE_FTABLE methodInfoIsInflated(ptr) != 0; }
-
     bool is_instance() const { return FFI_USE_FTABLE methodInfoIsInstance(ptr) != 0; }
 
     uint32_t param_count() const { return FFI_USE_FTABLE methodInfoGetParamCount(ptr); }
@@ -2076,38 +2060,25 @@ struct Array {
 
 // Field value access template specializations
 template <> inline int32_t Field::get_value<int32_t>(ObjectHandle obj) const { return FFI_USE_FTABLE fieldGetValueI32(obj, ptr); }
-
 template <> inline int64_t Field::get_value<int64_t>(ObjectHandle obj) const { return FFI_USE_FTABLE fieldGetValueI64(obj, ptr); }
-
 template <> inline float Field::get_value<float>(ObjectHandle obj) const { return FFI_USE_FTABLE fieldGetValueFloat(obj, ptr); }
-
 template <> inline double Field::get_value<double>(ObjectHandle obj) const { return FFI_USE_FTABLE fieldGetValueDouble(obj, ptr); }
 
 template <> inline void Field::set_value<int32_t>(ObjectHandle obj, const int32_t& v) const { FFI_USE_FTABLE fieldSetValueI32(obj, ptr, v); }
-
 template <> inline void Field::set_value<int64_t>(ObjectHandle obj, const int64_t& v) const { FFI_USE_FTABLE fieldSetValueI64(obj, ptr, v); }
-
 template <> inline void Field::set_value<float>(ObjectHandle obj, const float& v) const { FFI_USE_FTABLE fieldSetValueFloat(obj, ptr, v); }
-
 template <> inline void Field::set_value<double>(ObjectHandle obj, const double& v) const { FFI_USE_FTABLE fieldSetValueDouble(obj, ptr, v); }
-
 template <> inline void Field::set_value<ObjectHandle>(ObjectHandle obj, const ObjectHandle& v) const { FFI_USE_FTABLE fieldSetValueObject(obj, ptr, v); }
 
 // Static field access template specializations
 template <> inline int32_t Field::static_get_value<int32_t>() const { return FFI_USE_FTABLE fieldStaticGetValueI32(ptr); }
-
 template <> inline int64_t Field::static_get_value<int64_t>() const { return FFI_USE_FTABLE fieldStaticGetValueI64(ptr); }
-
 template <> inline float Field::static_get_value<float>() const { return FFI_USE_FTABLE fieldStaticGetValueFloat(ptr); }
-
 template <> inline double Field::static_get_value<double>() const { return FFI_USE_FTABLE fieldStaticGetValueDouble(ptr); }
 
 template <> inline void Field::static_set_value<int32_t>(const int32_t& v) const { FFI_USE_FTABLE fieldStaticSetValueI32(ptr, v); }
-
 template <> inline void Field::static_set_value<int64_t>(const int64_t& v) const { FFI_USE_FTABLE fieldStaticSetValueI64(ptr, v); }
-
 template <> inline void Field::static_set_value<float>(const float& v) const { FFI_USE_FTABLE fieldStaticSetValueFloat(ptr, v); }
-
 template <> inline void Field::static_set_value<double>(const double& v) const { FFI_USE_FTABLE fieldStaticSetValueDouble(ptr, v); }
 
 // Implementations dependent on other wrappers
