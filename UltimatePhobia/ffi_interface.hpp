@@ -2012,9 +2012,16 @@ struct Object {
         return result;
     }
 
-    void *unboxIfValue() {
-        // Not directly supported by FFI, would need type-specific unboxing
-        return nullptr;
+    template <typename T> auto unbox() {
+        if constexpr (std::is_same<T, int32_t>())
+            return FFI_USE_FTABLE objectUnboxI32(ptr);
+        if constexpr (std::is_same<T, int64_t>())
+            return FFI_USE_FTABLE objectUnboxI64(ptr);
+        if constexpr (std::is_same<T, float>())
+            return FFI_USE_FTABLE objectUnboxFloat(ptr);
+        if constexpr (std::is_same<T, double>())
+            return FFI_USE_FTABLE objectUnboxDouble(ptr);
+        return ptr;
     }
 };
 
@@ -2029,11 +2036,6 @@ struct String : Object {
     }
 
     int32_t length() const { return FFI_USE_FTABLE stringGetLength(ptr); }
-
-    const char16_t *chars() const {
-        // Not directly accessible through FFI
-        return nullptr;
-    }
 };
 
 struct Array {
