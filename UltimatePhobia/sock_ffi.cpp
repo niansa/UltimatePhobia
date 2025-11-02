@@ -13,7 +13,7 @@
 #include <afunix.h>
 
 SockFFI::SockFFI(const std::filesystem::path& modPath) : path(modPath.string()) {
-    path.pop_back(); // Remove the 'i'
+    path.pop_back();           // Remove the 'i'
     DeleteFileA(path.c_str()); // Delete old socket file
 
     clientSocket = INVALID_SOCKET;

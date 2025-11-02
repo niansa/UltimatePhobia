@@ -3,6 +3,7 @@
 #include "global_state.hpp"
 #include "wasm_ffi.hpp"
 #include "dll_ffi.hpp"
+#include "elf_ffi.hpp"
 
 #include <string>
 #include <filesystem>
@@ -19,12 +20,14 @@ ModInfo *currentMod;
 FFIMod::FFIMod(const std::filesystem::path& base, std::string_view identifier, ModInfo *modInfo, unsigned memSize) : modInfo(modInfo) {
     const auto getPath = [&](const char *extension) { return base / fmt::format("{}.{}", identifier, extension); };
 
-    const auto wasmPath = getPath("wasm"), dllPath = getPath("dll"), sockPath = getPath("socki");
+    const auto wasmPath = getPath("wasm"), dllPath = getPath("dll"), elfPath = getPath("so"), sockPath = getPath("socki");
 
     if (std::filesystem::exists(wasmPath))
         ffi = std::make_unique<WASMFFI>(wasmPath, memSize);
     else if (std::filesystem::exists(dllPath))
         ffi = std::make_unique<DLLFFI>(dllPath);
+    else if (std::filesystem::exists(elfPath))
+        ffi = std::make_unique<ELFFFI>(elfPath);
     else if (std::filesystem::exists(sockPath))
         ffi = std::make_unique<SockFFI>(sockPath);
     else
