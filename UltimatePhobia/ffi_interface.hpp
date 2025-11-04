@@ -1035,7 +1035,7 @@ UP_API ObjectHandle getCallError();
 /**
  * @brief Calls given method with previously added arguments (also clears them
  * if function call was able to be initiated)
- * @param argCount Amount of arguments previously added (optional, may be
+ * @param argCount Amount of arguments previously added including this pointer (optional, may be
  * unknownArgCount)
  * @return 1 on success, 0 on failure (use getCallError to get error string)
  */
@@ -1043,7 +1043,7 @@ UP_API WIBool call(MethodHandle, int32_t argCount);
 /**
  * @brief Calls given method with previously added arguments (also clears them
  * if function call was able to be initiated)
- * @param argCount Amount of arguments previously added (optional, may be
+ * @param argCount Amount of arguments previously added including this pointer (optional, may be
  * unknownArgCount)
  * @param returnsStruct Set to true if function returns struct
  * @return 1 on success, 0 on failure (use getCallError to get error string)
@@ -1077,6 +1077,9 @@ UP_API void ImGuiCheckbox(const char *label, bool *v);
 UP_API WIBool ImGuiCheckbox2(const char *label, WIBool v);
 UP_DEPRECATED("Unsafe! Use ImGuiCheckbox4 instead.")
 UP_API WIBool ImGuiCheckbox3(const char *label, bool *v);
+/**
+ * @return bitmap [msb -> lsb: {..., interacted flag, new value}]
+ */
 UP_API int32_t ImGuiCheckbox4(const char *label, WIBool v);
 UP_API WIBool ImGuiButton(const char *label);
 UP_API void ImGuiSeparator();
