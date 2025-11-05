@@ -1,6 +1,7 @@
 #pragma once
 
 #ifndef FFI_NOSTL
+#ifndef FFI_USE_CLP
 #include <tuple>
 #include <type_traits>
 #include <cstdint>
@@ -11,6 +12,19 @@
 #include <optional>
 #include <memory>
 #include <algorithm>
+#endif
+#else
+#include <clp/tuple>
+#include <clp/type_traits>
+#include <cstdint>
+#include <cstddef>
+#ifndef FFI_NOSTL_CONTAINERS
+#include <clp/string>
+#include <clp/vector>
+#include <clp/optional>
+#include <clp/memory>
+#include <clp/algorithm>
+#endif
 #endif
 #else
 #define FFI_NOSTL_CONTAINERS
@@ -35,6 +49,12 @@
 #endif
 
 namespace FFIInterface {
+#ifndef FFI_USE_CLP
+namespace tl = std;
+#else
+namespace tl = clp;
+#endif
+
 #ifdef FFI_EXT
 #define FFI_DEFINE_GENERIC_HANDLE_TYPE(name) enum class name : int32_t { Null = 0, Invalid = -1 }
 enum class MethodHandle : int32_t { Invalid = -1 };
@@ -1322,7 +1342,7 @@ UP_API void abort(const char *message, const char *filename, int32_t lineNumber,
 // Make sure signatures match
 #ifndef FFI_NOSTL
 #define FFI_FUNCTION_LIST_ENTRY(return_type, fnc, arguments, ...)                                                                                              \
-    static_assert(std::is_same<decltype(fnc), return_type arguments>(), "Signature of FFI function " #fnc " does not match that in function list");
+    static_assert(tl::is_same<decltype(fnc), UP_API return_type arguments>(), "Signature of FFI function " #fnc " does not match that in function list");
 FFI_FUNCTION_LIST
 #undef FFI_FUNCTION_LIST_ENTRY
 #endif
@@ -1372,7 +1392,7 @@ const static
 #else
 constexpr
 #endif
-    std::tuple functions = {
+    tl::tuple functions = {
 #define FFI_FUNCTION_LIST_ENTRY(_, fnc, ...) &FFI_USE_FTABLE fnc,
         FFI_FUNCTION_LIST
 #undef FFI_FUNCTION_LIST_ENTRY
@@ -1530,30 +1550,30 @@ public:
 
 #ifndef FFI_NOSTL_CONTAINERS
 class GameHookPool {
-    std::vector<std::shared_ptr<GameHook>> hooks;
+    tl::vector<tl::shared_ptr<GameHook>> hooks;
 
 public:
-    std::shared_ptr<GameHook> add(FFIInterface::MethodHandle method, const char *callback) {
+    tl::shared_ptr<GameHook> add(FFIInterface::MethodHandle method, const char *callback) {
         auto hook = GameHook(method, callback);
         if (hook.isActive()) {
-            auto ptr = std::make_shared<GameHook>(std::move(hook));
+            auto ptr = tl::make_shared<GameHook>(tl::move(hook));
             hooks.push_back(ptr);
             return ptr;
         }
         return nullptr;
     }
 
-    template <StringLiteral identifier> std::shared_ptr<GameHook> add(const char *callback) {
+    template <StringLiteral identifier> tl::shared_ptr<GameHook> add(const char *callback) {
         auto hook = GameHook(getMethodCached<identifier>(), callback);
         if (hook.isActive()) {
-            auto ptr = std::make_shared<GameHook>(std::move(hook));
+            auto ptr = tl::make_shared<GameHook>(tl::move(hook));
             hooks.push_back(ptr);
             return ptr;
         }
         return nullptr;
     }
 
-    std::shared_ptr<GameHook> get(FFIInterface::MethodHandle method) const {
+    tl::shared_ptr<GameHook> get(FFIInterface::MethodHandle method) const {
         for (auto& hook : hooks) {
             if (hook->target() == method) {
                 return hook;
@@ -1563,14 +1583,14 @@ public:
     }
 
     void remove(FFIInterface::MethodHandle method) {
-        auto it = std::remove_if(hooks.begin(), hooks.end(), [method](const auto& hook) { return hook->target() == method; });
+        auto it = tl::remove_if(hooks.begin(), hooks.end(), [method](const auto& hook) { return hook->target() == method; });
         hooks.erase(it, hooks.end());
     }
 
     void clear() { hooks.clear(); }
 };
 
-bool hookToggle(const char *description, std::optional<GameHook>& hook, bool& boolean, FFIInterface::MethodHandle method, const char *hookFnc) {
+bool hookToggle(const char *description, tl::optional<GameHook>& hook, bool& boolean, FFIInterface::MethodHandle method, const char *hookFnc) {
     if (ImGuiCheckbox(description, &boolean)) {
         if (boolean) {
             auto newHook = GameHook(method, hookFnc);
@@ -1578,7 +1598,7 @@ bool hookToggle(const char *description, std::optional<GameHook>& hook, bool& bo
                 boolean = false;
                 return false;
             }
-            hook.emplace(std::move(newHook));
+            hook.emplace(tl::move(newHook));
         } else {
             hook.reset();
         }
@@ -1601,25 +1621,89 @@ bool hookToggle(const char *description, GameHookPool& hookPool, bool& boolean, 
 
 #ifndef FFI_NOSTL_CONTAINERS
 // Helper to format managed exceptions
-inline std::string format_exception(ObjectHandle ex) {
+inline tl::string format_exception(ObjectHandle ex) {
     ObjectHandle formatted = FFI_USE_FTABLE exceptionFormat(ex);
     int32_t len = FFI_USE_FTABLE stringGetLength(formatted);
-    std::string result(len, '\0');
-    FFI_USE_FTABLE toCString(formatted, result.data(), len + 1);
+    tl::string result(len, '\0');
+    FFI_USE_FTABLE toCString(formatted, result.data(), len);
     FFI_USE_FTABLE dropObject(formatted);
     return result;
 }
 
 // Helper to format managed stacktraces
-inline std::string format_stacktrace(ObjectHandle ex) {
+inline tl::string format_stacktrace(ObjectHandle ex) {
     ObjectHandle formatted = FFI_USE_FTABLE exceptionFormatStackTrace(ex);
     int32_t len = FFI_USE_FTABLE stringGetLength(formatted);
-    std::string result(len, '\0');
-    FFI_USE_FTABLE toCString(formatted, result.data(), len + 1);
+    tl::string result(len, '\0');
+    FFI_USE_FTABLE toCString(formatted, result.data(), len);
     FFI_USE_FTABLE dropObject(formatted);
     return result;
 }
 #endif
+
+// FFI handle deleters
+template <typename HandleT> struct UniqueHandleDeleter;
+
+#define FFI_DEFINE_DELETER(Handle, DropFunc)                                                                                                                   \
+    template <> struct UniqueHandleDeleter<Handle> {                                                                                                           \
+        void operator()(Handle h) const { FFI_USE_FTABLE DropFunc(h); }                                                                                        \
+    }
+FFI_DEFINE_DELETER(ObjectHandle, dropObject);
+FFI_DEFINE_DELETER(ValueHandle, dropValue);
+FFI_DEFINE_DELETER(ImageHandle, dropImage);
+FFI_DEFINE_DELETER(ClassHandle, dropClass);
+FFI_DEFINE_DELETER(DomainHandle, dropDomain);
+FFI_DEFINE_DELETER(AssemblyHandle, dropAssembly);
+FFI_DEFINE_DELETER(TypeHandle, dropType);
+FFI_DEFINE_DELETER(MethodInfoHandle, dropMethodInfo);
+FFI_DEFINE_DELETER(FieldHandle, dropField);
+FFI_DEFINE_DELETER(PropertyHandle, dropProperty);
+FFI_DEFINE_DELETER(EventHandle, dropEvent);
+#undef FFI_DEFINE_DELETER
+
+// FFI unique handle (like unique_ptr)
+template <typename HandleT, typename DeleterT = UniqueHandleDeleter<HandleT>> class UniqueHandle {
+    HandleT ptr{};
+    bool owned = true;
+
+public:
+    constexpr UniqueHandle() noexcept : ptr{} {}
+    constexpr UniqueHandle(HandleT ptr, bool own) noexcept : ptr(ptr), owned(own) {}
+
+    ~UniqueHandle() { reset(); }
+
+    UniqueHandle(const UniqueHandle&) = delete;
+    UniqueHandle& operator=(const UniqueHandle&) = delete;
+
+    UniqueHandle(UniqueHandle&& other) noexcept : ptr(other.release()) {}
+
+    explicit operator HandleT() const noexcept { return ptr; }
+    explicit operator bool() const noexcept { return ptr != HandleT{}; }
+
+    static inline UniqueHandle Own(HandleT handle) noexcept { return UniqueHandle{handle, true}; }
+    static inline UniqueHandle Lend(HandleT handle) noexcept { return UniqueHandle{handle, false}; }
+
+    UniqueHandle& operator=(UniqueHandle&& other) noexcept {
+        if (this != &other)
+            reset(other.release());
+        return *this;
+    }
+
+    HandleT release() noexcept {
+        HandleT oldHandle = ptr;
+        ptr = HandleT{};
+        return oldHandle;
+    }
+
+    void reset(HandleT handle = HandleT{}) noexcept {
+        HandleT oldHandle = ptr;
+        ptr = handle;
+        if (owned && oldHandle != HandleT{})
+            DeleterT{}(oldHandle);
+    }
+
+    HandleT get() const noexcept { return ptr; }
+};
 
 // GC handle wrapper
 struct GcHandle {
@@ -1674,177 +1758,177 @@ struct Domain;
 struct Assembly;
 
 struct Domain {
-    DomainHandle ptr{};
+    UniqueHandle<DomainHandle> ptr;
 
     static Domain get() {
         Domain result;
-        result.ptr = FFI_USE_FTABLE domainGet();
+        result.ptr.reset(FFI_USE_FTABLE domainGet());
         return result;
     }
 
-    explicit operator bool() const { return ptr != DomainHandle{}; }
+    explicit operator bool() const { return ptr && ptr.get() != DomainHandle{}; }
 
     Assembly open_assembly(const char *name);
-    std::vector<Assembly> get_assemblies() const;
+    tl::vector<Assembly> get_assemblies() const;
 };
 
 struct Assembly {
-    AssemblyHandle ptr{};
+    UniqueHandle<AssemblyHandle> ptr;
 
-    explicit operator bool() const { return ptr != AssemblyHandle{}; }
+    explicit operator bool() const { return ptr && ptr.get() != AssemblyHandle{}; }
 
     Image image() const;
 };
 
 struct Image {
-    ImageHandle ptr{};
+    UniqueHandle<ImageHandle> ptr;
 
-    explicit operator bool() const { return ptr != ImageHandle{}; }
+    explicit operator bool() const { return ptr && ptr.get() != ImageHandle{}; }
 
     static Image get_corlib() {
         Image result;
-        result.ptr = FFI_USE_FTABLE getImageCorlib();
+        result.ptr.reset(FFI_USE_FTABLE getImageCorlib());
         return result;
     }
 
-    std::string name() const {
-        ObjectHandle nameObj = FFI_USE_FTABLE imageGetName(ptr);
+    tl::string name() const {
+        ObjectHandle nameObj = FFI_USE_FTABLE imageGetName(ptr.get());
         int32_t len = FFI_USE_FTABLE stringGetLength(nameObj);
-        std::string result(len, '\0');
-        FFI_USE_FTABLE toCString(nameObj, result.data(), len + 1);
+        tl::string result(len, '\0');
+        FFI_USE_FTABLE toCString(nameObj, result.data(), len);
         FFI_USE_FTABLE dropObject(nameObj);
         return result;
     }
 
-    std::string filename() const {
-        ObjectHandle filenameObj = FFI_USE_FTABLE imageGetFilename(ptr);
+    tl::string filename() const {
+        ObjectHandle filenameObj = FFI_USE_FTABLE imageGetFilename(ptr.get());
         int32_t len = FFI_USE_FTABLE stringGetLength(filenameObj);
-        std::string result(len, '\0');
-        FFI_USE_FTABLE toCString(filenameObj, result.data(), len + 1);
+        tl::string result(len, '\0');
+        FFI_USE_FTABLE toCString(filenameObj, result.data(), len);
         FFI_USE_FTABLE dropObject(filenameObj);
         return result;
     }
 
-    MethodInfoHandle entry_point() const { return FFI_USE_FTABLE imageGetEntryPoint(ptr); }
+    MethodInfoHandle entry_point() const { return FFI_USE_FTABLE imageGetEntryPoint(ptr.get()); }
 
-    size_t class_count() const { return FFI_USE_FTABLE imageGetClassCount(ptr); }
+    size_t class_count() const { return FFI_USE_FTABLE imageGetClassCount(ptr.get()); }
 
     Class get_class(size_t index) const;
     Assembly get_assembly() const;
 };
 
 struct Type {
-    TypeHandle ptr{};
+    UniqueHandle<TypeHandle> ptr;
 
-    explicit operator bool() const { return ptr != TypeHandle{}; }
+    explicit operator bool() const { return ptr && ptr.get() != TypeHandle{}; }
 
-    bool is_byref() const { return FFI_USE_FTABLE typeIsByRef(ptr); }
-    bool is_static() const { return FFI_USE_FTABLE typeIsStatic(ptr); }
-    bool is_pointer() const { return FFI_USE_FTABLE typeIsPointerType(ptr); }
+    bool is_byref() const { return FFI_USE_FTABLE typeIsByRef(ptr.get()); }
+    bool is_static() const { return FFI_USE_FTABLE typeIsStatic(ptr.get()); }
+    bool is_pointer() const { return FFI_USE_FTABLE typeIsPointerType(ptr.get()); }
 
-    uint32_t attrs() const { return FFI_USE_FTABLE typeGetAttrs(ptr); }
-    int kind() const { return FFI_USE_FTABLE typeGetType(ptr); }
+    uint32_t attrs() const { return FFI_USE_FTABLE typeGetAttrs(ptr.get()); }
+    int kind() const { return FFI_USE_FTABLE typeGetType(ptr.get()); }
 
-    std::string name_owned() const {
-        ObjectHandle nameObj = FFI_USE_FTABLE typeGetName(ptr);
+    tl::string name_owned() const {
+        ObjectHandle nameObj = FFI_USE_FTABLE typeGetName(ptr.get());
         int32_t len = FFI_USE_FTABLE stringGetLength(nameObj);
-        std::string result(len, '\0');
-        FFI_USE_FTABLE toCString(nameObj, result.data(), len + 1);
+        tl::string result(len, '\0');
+        FFI_USE_FTABLE toCString(nameObj, result.data(), len);
         FFI_USE_FTABLE dropObject(nameObj);
         return result;
     }
 
-    std::string assembly_qualified_name_owned() const {
-        ObjectHandle nameObj = FFI_USE_FTABLE typeGetAssemblyQualifiedName(ptr);
+    tl::string assembly_qualified_name_owned() const {
+        ObjectHandle nameObj = FFI_USE_FTABLE typeGetAssemblyQualifiedName(ptr.get());
         int32_t len = FFI_USE_FTABLE stringGetLength(nameObj);
-        std::string result(len, '\0');
-        FFI_USE_FTABLE toCString(nameObj, result.data(), len + 1);
+        tl::string result(len, '\0');
+        FFI_USE_FTABLE toCString(nameObj, result.data(), len);
         FFI_USE_FTABLE dropObject(nameObj);
         return result;
     }
 
     Class class_or_element() const;
 
-    bool equals(Type other) const { return FFI_USE_FTABLE typeEquals(ptr, other.ptr); }
+    bool equals(Type other) const { return FFI_USE_FTABLE typeEquals(ptr.get(), other.ptr.get()); }
 };
 
 struct Class {
-    ClassHandle ptr{};
+    UniqueHandle<ClassHandle> ptr;
 
-    explicit operator bool() const { return ptr != ClassHandle{}; }
+    explicit operator bool() const { return ptr && ptr.get() != ClassHandle{}; }
 
     static Class from_type(TypeHandle t) {
         Class result;
-        result.ptr = FFI_USE_FTABLE getClassFromType(t);
+        result.ptr.reset(FFI_USE_FTABLE getClassFromType(t));
         return result;
     }
 
     static Class from_name(const Image& img, const char *ns, const char *name) {
         Class result;
-        result.ptr = FFI_USE_FTABLE getClassFromName(img.ptr, ns, name);
+        result.ptr.reset(FFI_USE_FTABLE getClassFromName(img.ptr.get(), ns, name));
         return result;
     }
 
-    std::string name() const {
-        ObjectHandle nameObj = FFI_USE_FTABLE classGetName(ptr);
+    tl::string name() const {
+        ObjectHandle nameObj = FFI_USE_FTABLE classGetName(ptr.get());
         int32_t len = FFI_USE_FTABLE stringGetLength(nameObj);
-        std::string result(len, '\0');
-        FFI_USE_FTABLE toCString(nameObj, result.data(), len + 1);
+        tl::string result(len, '\0');
+        FFI_USE_FTABLE toCString(nameObj, result.data(), len);
         FFI_USE_FTABLE dropObject(nameObj);
         return result;
     }
 
-    std::string namespaze() const {
-        ObjectHandle nsObj = FFI_USE_FTABLE classGetNamespace(ptr);
+    tl::string namespaze() const {
+        ObjectHandle nsObj = FFI_USE_FTABLE classGetNamespace(ptr.get());
         int32_t len = FFI_USE_FTABLE stringGetLength(nsObj);
-        std::string result(len, '\0');
-        FFI_USE_FTABLE toCString(nsObj, result.data(), len + 1);
+        tl::string result(len, '\0');
+        FFI_USE_FTABLE toCString(nsObj, result.data(), len);
         FFI_USE_FTABLE dropObject(nsObj);
         return result;
     }
 
     Image image() const {
         Image result;
-        result.ptr = FFI_USE_FTABLE classGetImage(ptr);
+        result.ptr.reset(FFI_USE_FTABLE classGetImage(ptr.get()));
         return result;
     }
 
     Class parent() const {
         Class result;
-        result.ptr = FFI_USE_FTABLE classGetParent(ptr);
+        result.ptr.reset(FFI_USE_FTABLE classGetParent(ptr.get()));
         return result;
     }
 
     Class declaring_type() const {
         Class result;
-        result.ptr = FFI_USE_FTABLE classGetDeclaringType(ptr);
+        result.ptr.reset(FFI_USE_FTABLE classGetDeclaringType(ptr.get()));
         return result;
     }
 
-    bool is_value_type() const { return FFI_USE_FTABLE classIsValueType(ptr); }
-    bool is_enum() const { return FFI_USE_FTABLE classIsEnum(ptr); }
-    bool is_abstract() const { return FFI_USE_FTABLE classIsAbstract(ptr); }
-    bool is_interface() const { return FFI_USE_FTABLE classIsInterface(ptr); }
-    bool is_generic() const { return FFI_USE_FTABLE classIsGeneric(ptr); }
-    bool is_inflated() const { return FFI_USE_FTABLE classIsInflated(ptr); }
-    bool has_references() const { return FFI_USE_FTABLE classHasReferences(ptr); }
+    bool is_value_type() const { return FFI_USE_FTABLE classIsValueType(ptr.get()); }
+    bool is_enum() const { return FFI_USE_FTABLE classIsEnum(ptr.get()); }
+    bool is_abstract() const { return FFI_USE_FTABLE classIsAbstract(ptr.get()); }
+    bool is_interface() const { return FFI_USE_FTABLE classIsInterface(ptr.get()); }
+    bool is_generic() const { return FFI_USE_FTABLE classIsGeneric(ptr.get()); }
+    bool is_inflated() const { return FFI_USE_FTABLE classIsInflated(ptr.get()); }
+    bool has_references() const { return FFI_USE_FTABLE classHasReferences(ptr.get()); }
 
-    int rank() const { return FFI_USE_FTABLE classGetRank(ptr); }
-    int32_t instance_size() const { return FFI_USE_FTABLE classInstanceSize(ptr); }
-    int array_element_size() const { return FFI_USE_FTABLE classArrayElementSize(ptr); }
-    int flags() const { return FFI_USE_FTABLE classGetFlags(ptr); }
-    uint32_t type_token() const { return FFI_USE_FTABLE classGetTypeToken(ptr); }
-    uint32_t data_size() const { return FFI_USE_FTABLE classGetDataSize(ptr); }
+    int rank() const { return FFI_USE_FTABLE classGetRank(ptr.get()); }
+    int32_t instance_size() const { return FFI_USE_FTABLE classInstanceSize(ptr.get()); }
+    int array_element_size() const { return FFI_USE_FTABLE classArrayElementSize(ptr.get()); }
+    int flags() const { return FFI_USE_FTABLE classGetFlags(ptr.get()); }
+    uint32_t type_token() const { return FFI_USE_FTABLE classGetTypeToken(ptr.get()); }
+    uint32_t data_size() const { return FFI_USE_FTABLE classGetDataSize(ptr.get()); }
 
     Type type() const {
         Type result;
-        result.ptr = FFI_USE_FTABLE classGetType(ptr);
+        result.ptr.reset(FFI_USE_FTABLE classGetType(ptr.get()));
         return result;
     }
 
     Class element_class() const {
         Class result;
-        result.ptr = FFI_USE_FTABLE classGetElementClass(ptr);
+        result.ptr.reset(FFI_USE_FTABLE classGetElementClass(ptr.get()));
         return result;
     }
 
@@ -1852,280 +1936,283 @@ struct Class {
     Method get_method(const char *name, int args) const;
     Property get_property(const char *name) const;
 
-    std::vector<Field> fields() const;
-    std::vector<Method> methods() const;
-    std::vector<Class> nested_types() const;
-    std::vector<Property> properties() const;
+    tl::vector<Field> fields() const;
+    tl::vector<Method> methods() const;
+    tl::vector<Class> nested_types() const;
+    tl::vector<Property> properties() const;
 
-    bool has_attribute(Class attr_class) const { return FFI_USE_FTABLE classHasAttribute(ptr, attr_class.ptr); }
+    bool has_attribute(Class attr_class) const { return FFI_USE_FTABLE classHasAttribute(ptr.get(), attr_class.ptr.get()); }
 
-    bool is_assignable_from(Class other) const { return FFI_USE_FTABLE classIsAssignableFrom(ptr, other.ptr); }
+    bool is_assignable_from(Class other) const { return FFI_USE_FTABLE classIsAssignableFrom(ptr.get(), other.ptr.get()); }
 
-    bool is_subclass_of(Class klassc, bool check_interfaces) const { return FFI_USE_FTABLE classIsSubclassOf(ptr, klassc.ptr, check_interfaces ? 1 : 0); }
+    bool is_subclass_of(Class klassc, bool check_interfaces) const {
+        return FFI_USE_FTABLE classIsSubclassOf(ptr.get(), klassc.ptr.get(), check_interfaces ? 1 : 0);
+    }
 
-    bool has_parent(Class klassc) const { return FFI_USE_FTABLE classHasParent(ptr, klassc.ptr); }
+    bool has_parent(Class klassc) const { return FFI_USE_FTABLE classHasParent(ptr.get(), klassc.ptr.get()); }
 };
 
 struct Method {
-    MethodInfoHandle ptr{};
+    UniqueHandle<MethodInfoHandle> ptr;
 
-    explicit operator bool() const { return ptr != MethodInfoHandle{}; }
+    explicit operator bool() const { return ptr && ptr.get() != MethodInfoHandle{}; }
 
-    std::string name() const {
-        ObjectHandle nameObj = FFI_USE_FTABLE methodInfoGetName(ptr);
+    tl::string name() const {
+        ObjectHandle nameObj = FFI_USE_FTABLE methodInfoGetName(ptr.get());
         int32_t len = FFI_USE_FTABLE stringGetLength(nameObj);
-        std::string result(len, '\0');
-        FFI_USE_FTABLE toCString(nameObj, result.data(), len + 1);
+        tl::string result(len, '\0');
+        FFI_USE_FTABLE toCString(nameObj, result.data(), len);
         FFI_USE_FTABLE dropObject(nameObj);
         return result;
     }
 
     Class declaring_type() const {
         Class result;
-        result.ptr = FFI_USE_FTABLE methodInfoGetDeclaringType(ptr);
+        result.ptr.reset(FFI_USE_FTABLE methodInfoGetDeclaringType(ptr.get()));
         return result;
     }
 
     Class klass() const {
         Class result;
-        result.ptr = FFI_USE_FTABLE methodInfoGetClass(ptr);
+        result.ptr.reset(FFI_USE_FTABLE methodInfoGetClass(ptr.get()));
         return result;
     }
 
-    bool is_generic() const { return FFI_USE_FTABLE methodInfoIsGeneric(ptr); }
-    bool is_inflated() const { return FFI_USE_FTABLE methodInfoIsInflated(ptr); }
-    bool is_instance() const { return FFI_USE_FTABLE methodInfoIsInstance(ptr); }
+    bool is_generic() const { return FFI_USE_FTABLE methodInfoIsGeneric(ptr.get()); }
+    bool is_inflated() const { return FFI_USE_FTABLE methodInfoIsInflated(ptr.get()); }
+    bool is_instance() const { return FFI_USE_FTABLE methodInfoIsInstance(ptr.get()); }
 
-    uint32_t param_count() const { return FFI_USE_FTABLE methodInfoGetParamCount(ptr); }
+    uint32_t param_count() const { return FFI_USE_FTABLE methodInfoGetParamCount(ptr.get()); }
 
     Type param(uint32_t index) const {
         Type result;
-        result.ptr = FFI_USE_FTABLE methodInfoGetParamType(ptr, index);
+        result.ptr.reset(FFI_USE_FTABLE methodInfoGetParamType(ptr.get(), index));
         return result;
     }
 
-    std::string param_name(uint32_t index) const {
-        ObjectHandle nameObj = FFI_USE_FTABLE methodInfoGetParamName(ptr, index);
+    tl::string param_name(uint32_t index) const {
+        ObjectHandle nameObj = FFI_USE_FTABLE methodInfoGetParamName(ptr.get(), index);
         int32_t len = FFI_USE_FTABLE stringGetLength(nameObj);
-        std::string result(len, '\0');
-        FFI_USE_FTABLE toCString(nameObj, result.data(), len + 1);
+        tl::string result(len, '\0');
+        FFI_USE_FTABLE toCString(nameObj, result.data(), len);
         FFI_USE_FTABLE dropObject(nameObj);
         return result;
     }
 
     Type return_type() const {
         Type result;
-        result.ptr = FFI_USE_FTABLE methodInfoGetReturnType(ptr);
+        result.ptr.reset(FFI_USE_FTABLE methodInfoGetReturnType(ptr.get()));
         return result;
     }
 
     uint32_t flags(uint32_t *iflags = nullptr) const {
-        uint32_t mainFlags = FFI_USE_FTABLE methodInfoGetFlags(ptr);
+        uint32_t mainFlags = FFI_USE_FTABLE methodInfoGetFlags(ptr.get());
         if (iflags) {
-            *iflags = FFI_USE_FTABLE methodInfoGetImplFlags(ptr);
+            *iflags = FFI_USE_FTABLE methodInfoGetImplFlags(ptr.get());
         }
         return mainFlags;
     }
 
-    uint32_t token() const { return FFI_USE_FTABLE methodInfoGetToken(ptr); }
+    uint32_t token() const { return FFI_USE_FTABLE methodInfoGetToken(ptr.get()); }
 
-    bool has_attribute(Class attr_class) const { return FFI_USE_FTABLE methodInfoHasAttribute(ptr, attr_class.ptr); }
+    bool has_attribute(Class attr_class) const { return FFI_USE_FTABLE methodInfoHasAttribute(ptr.get(), attr_class.ptr.get()); }
 };
 
 struct Field {
-    FieldHandle ptr{};
+    UniqueHandle<FieldHandle> ptr;
 
-    explicit operator bool() const { return ptr != FieldHandle{}; }
+    explicit operator bool() const { return ptr && ptr.get() != FieldHandle{}; }
 
-    std::string name() const {
-        ObjectHandle nameObj = FFI_USE_FTABLE fieldGetName(ptr);
+    tl::string name() const {
+        ObjectHandle nameObj = FFI_USE_FTABLE fieldGetName(ptr.get());
         int32_t len = FFI_USE_FTABLE stringGetLength(nameObj);
-        std::string result(len, '\0');
-        FFI_USE_FTABLE toCString(nameObj, result.data(), len + 1);
+        tl::string result(len, '\0');
+        FFI_USE_FTABLE toCString(nameObj, result.data(), len);
         FFI_USE_FTABLE dropObject(nameObj);
         return result;
     }
 
-    uint32_t flags() const { return FFI_USE_FTABLE fieldGetFlags(ptr); }
+    uint32_t flags() const { return FFI_USE_FTABLE fieldGetFlags(ptr.get()); }
 
     Class parent() const {
         Class result;
-        result.ptr = FFI_USE_FTABLE fieldGetParent(ptr);
+        result.ptr.reset(FFI_USE_FTABLE fieldGetParent(ptr.get()));
         return result;
     }
 
-    size_t offset() const { return FFI_USE_FTABLE fieldGetOffset(ptr); }
+    size_t offset() const { return FFI_USE_FTABLE fieldGetOffset(ptr.get()); }
 
     Type type() const {
         Type result;
-        result.ptr = FFI_USE_FTABLE fieldGetType(ptr);
+        result.ptr.reset(FFI_USE_FTABLE fieldGetType(ptr.get()));
         return result;
     }
 
-    bool has_attribute(Class attr_class) const { return FFI_USE_FTABLE fieldHasAttribute(ptr, attr_class.ptr); }
+    bool has_attribute(Class attr_class) const { return FFI_USE_FTABLE fieldHasAttribute(ptr.get(), attr_class.ptr.get()); }
 
-    bool is_literal() const { return FFI_USE_FTABLE fieldIsLiteral(ptr); }
+    bool is_literal() const { return FFI_USE_FTABLE fieldIsLiteral(ptr.get()); }
 
     template <class T> T get_value(ObjectHandle obj) const;
-    ObjectHandle get_value_object(ObjectHandle obj) const { return FFI_USE_FTABLE fieldGetValueObject(obj, ptr); }
+    ObjectHandle get_value_object(ObjectHandle obj) const { return FFI_USE_FTABLE fieldGetValueObject(obj, ptr.get()); }
 
     template <class T> void set_value(ObjectHandle obj, const T& v) const;
 
     template <class T> T static_get_value() const;
     template <class T> void static_set_value(const T& v) const;
 
-    void set_value_object(ObjectHandle obj, ObjectHandle value) const { FFI_USE_FTABLE fieldSetValueObject(obj, ptr, value); }
+    void set_value_object(ObjectHandle obj, ObjectHandle value) const { FFI_USE_FTABLE fieldSetValueObject(obj, ptr.get(), value); }
 };
 
 struct Property {
-    PropertyHandle ptr{};
+    UniqueHandle<PropertyHandle> ptr;
 
-    explicit operator bool() const { return ptr != PropertyHandle{}; }
+    explicit operator bool() const { return ptr && ptr.get() != PropertyHandle{}; }
 
-    std::string name() const {
-        ObjectHandle nameObj = FFI_USE_FTABLE propertyGetName(ptr);
+    tl::string name() const {
+        ObjectHandle nameObj = FFI_USE_FTABLE propertyGetName(ptr.get());
         int32_t len = FFI_USE_FTABLE stringGetLength(nameObj);
-        std::string result(len, '\0');
-        FFI_USE_FTABLE toCString(nameObj, result.data(), len + 1);
+        tl::string result(len, '\0');
+        FFI_USE_FTABLE toCString(nameObj, result.data(), len);
         FFI_USE_FTABLE dropObject(nameObj);
         return result;
     }
 
     Class parent() const {
         Class result;
-        result.ptr = FFI_USE_FTABLE propertyGetParent(ptr);
+        result.ptr.reset(FFI_USE_FTABLE propertyGetParent(ptr.get()));
         return result;
     }
 
-    uint32_t flags() const { return FFI_USE_FTABLE propertyGetFlags(ptr); }
+    uint32_t flags() const { return FFI_USE_FTABLE propertyGetFlags(ptr.get()); }
 
     Method getter() const {
         Method result;
-        result.ptr = FFI_USE_FTABLE propertyGetGetMethod(ptr);
+        result.ptr.reset(FFI_USE_FTABLE propertyGetGetMethod(ptr.get()));
         return result;
     }
 
     Method setter() const {
         Method result;
-        result.ptr = FFI_USE_FTABLE propertyGetSetMethod(ptr);
+        result.ptr.reset(FFI_USE_FTABLE propertyGetSetMethod(ptr.get()));
         return result;
     }
 };
 
 struct Object {
-    ObjectHandle ptr{};
+    UniqueHandle<ObjectHandle> ptr;
 
-    explicit operator bool() const { return ptr != ObjectHandle{} && FFI_USE_FTABLE isValidObject(ptr); }
+    explicit operator bool() const { return ptr && ptr.get() != ObjectHandle{} && FFI isValidObject(ptr.get()); }
 
     Class klass() const {
         Class result;
-        result.ptr = FFI_USE_FTABLE objectGetClass(ptr);
+        result.ptr.reset(FFI_USE_FTABLE objectGetClass(ptr.get()));
         return result;
     }
 
-    uint32_t size() const { return FFI_USE_FTABLE objectGetSize(ptr); }
+    uint32_t size() const { return FFI_USE_FTABLE objectGetSize(ptr.get()); }
 
     Method virtual_method(const Method& m) const {
         Method result;
-        result.ptr = FFI_USE_FTABLE objectGetVirtualMethod(ptr, m.ptr);
+        result.ptr.reset(FFI_USE_FTABLE objectGetVirtualMethod(ptr.get(), m.ptr.get()));
         return result;
     }
 
     template <typename T> auto unbox() {
-        if constexpr (std::is_same<T, int32_t>())
-            return FFI_USE_FTABLE objectUnboxI32(ptr);
-        if constexpr (std::is_same<T, int64_t>())
-            return FFI_USE_FTABLE objectUnboxI64(ptr);
-        if constexpr (std::is_same<T, float>())
-            return FFI_USE_FTABLE objectUnboxFloat(ptr);
-        if constexpr (std::is_same<T, double>())
-            return FFI_USE_FTABLE objectUnboxDouble(ptr);
-        return ptr;
+        if constexpr (tl::is_same<T, int32_t>())
+            return FFI_USE_FTABLE objectUnboxI32(ptr.get());
+        if constexpr (tl::is_same<T, int64_t>())
+            return FFI_USE_FTABLE objectUnboxI64(ptr.get());
+        if constexpr (tl::is_same<T, float>())
+            return FFI_USE_FTABLE objectUnboxFloat(ptr.get());
+        if constexpr (tl::is_same<T, double>())
+            return FFI_USE_FTABLE objectUnboxDouble(ptr.get());
+        static_assert(false, "Type can't be unboxed");
     }
+
+    GcHandle gchandle(bool pinned = false) { return GcHandle(ptr.get(), pinned); }
 };
 
 struct String : Object {
     String() = default;
-    explicit String(ObjectHandle s) { ptr = s; }
+    explicit String(ObjectHandle s) { ptr.reset(s); }
 
-    static String New(std::string_view s) {
+    static String New(tl::string_view s) {
         String result;
-        result.ptr = FFI_USE_FTABLE toCsStringWithLength(s.data(), s.size());
+        result.ptr.reset(FFI_USE_FTABLE toCsStringWithLength(s.data(), s.size()));
         return result;
     }
 
-    int32_t length() const { return FFI_USE_FTABLE stringGetLength(ptr); }
+    int32_t length() const { return FFI_USE_FTABLE stringGetLength(ptr.get()); }
 };
 
 struct Array {
-    ObjectHandle ptr{};
+    UniqueHandle<ObjectHandle> ptr;
 
-    explicit operator bool() const { return ptr != ObjectHandle{} && FFI_USE_FTABLE isValidObject(ptr); }
+    explicit operator bool() const { return ptr && ptr.get() != ObjectHandle{} && FFI isValidObject(ptr.get()); }
 
-    static Array New(ClassHandle element, std::size_t length) {
+    static Array New(ClassHandle element, size_t length) {
         Array result;
-        result.ptr = FFI_USE_FTABLE createArray(element, length);
+        result.ptr.reset(FFI_USE_FTABLE createArray(element, length));
         return result;
     }
 
-    static Array NewSpecific(ClassHandle arrayType, std::size_t length) {
+    static Array NewSpecific(ClassHandle arrayType, size_t length) {
         Array result;
-        result.ptr = FFI_USE_FTABLE createArraySpecific(arrayType, length);
+        result.ptr.reset(FFI_USE_FTABLE createArraySpecific(arrayType, length));
         return result;
     }
 
-    uint32_t length() const { return FFI_USE_FTABLE arrayGetLength(ptr); }
+    uint32_t length() const { return FFI_USE_FTABLE arrayGetLength(ptr.get()); }
 
-    uint32_t byte_length() const { return FFI_USE_FTABLE arrayGetByteLength(ptr); }
+    uint32_t byte_length() const { return FFI_USE_FTABLE arrayGetByteLength(ptr.get()); }
 };
 
 // Field value access template specializations
-template <> inline int32_t Field::get_value<int32_t>(ObjectHandle obj) const { return FFI_USE_FTABLE fieldGetValueI32(obj, ptr); }
-template <> inline int64_t Field::get_value<int64_t>(ObjectHandle obj) const { return FFI_USE_FTABLE fieldGetValueI64(obj, ptr); }
-template <> inline float Field::get_value<float>(ObjectHandle obj) const { return FFI_USE_FTABLE fieldGetValueFloat(obj, ptr); }
-template <> inline double Field::get_value<double>(ObjectHandle obj) const { return FFI_USE_FTABLE fieldGetValueDouble(obj, ptr); }
+template <> inline int32_t Field::get_value<int32_t>(ObjectHandle obj) const { return FFI_USE_FTABLE fieldGetValueI32(obj, ptr.get()); }
+template <> inline int64_t Field::get_value<int64_t>(ObjectHandle obj) const { return FFI_USE_FTABLE fieldGetValueI64(obj, ptr.get()); }
+template <> inline float Field::get_value<float>(ObjectHandle obj) const { return FFI_USE_FTABLE fieldGetValueFloat(obj, ptr.get()); }
+template <> inline double Field::get_value<double>(ObjectHandle obj) const { return FFI_USE_FTABLE fieldGetValueDouble(obj, ptr.get()); }
 
-template <> inline void Field::set_value<int32_t>(ObjectHandle obj, const int32_t& v) const { FFI_USE_FTABLE fieldSetValueI32(obj, ptr, v); }
-template <> inline void Field::set_value<int64_t>(ObjectHandle obj, const int64_t& v) const { FFI_USE_FTABLE fieldSetValueI64(obj, ptr, v); }
-template <> inline void Field::set_value<float>(ObjectHandle obj, const float& v) const { FFI_USE_FTABLE fieldSetValueFloat(obj, ptr, v); }
-template <> inline void Field::set_value<double>(ObjectHandle obj, const double& v) const { FFI_USE_FTABLE fieldSetValueDouble(obj, ptr, v); }
-template <> inline void Field::set_value<ObjectHandle>(ObjectHandle obj, const ObjectHandle& v) const { FFI_USE_FTABLE fieldSetValueObject(obj, ptr, v); }
+template <> inline void Field::set_value<int32_t>(ObjectHandle obj, const int32_t& v) const { FFI_USE_FTABLE fieldSetValueI32(obj, ptr.get(), v); }
+template <> inline void Field::set_value<int64_t>(ObjectHandle obj, const int64_t& v) const { FFI_USE_FTABLE fieldSetValueI64(obj, ptr.get(), v); }
+template <> inline void Field::set_value<float>(ObjectHandle obj, const float& v) const { FFI_USE_FTABLE fieldSetValueFloat(obj, ptr.get(), v); }
+template <> inline void Field::set_value<double>(ObjectHandle obj, const double& v) const { FFI_USE_FTABLE fieldSetValueDouble(obj, ptr.get(), v); }
+template <> inline void Field::set_value<ObjectHandle>(ObjectHandle obj, const ObjectHandle& v) const { FFI_USE_FTABLE fieldSetValueObject(obj, ptr.get(), v); }
 
 // Static field access template specializations
-template <> inline int32_t Field::static_get_value<int32_t>() const { return FFI_USE_FTABLE fieldStaticGetValueI32(ptr); }
-template <> inline int64_t Field::static_get_value<int64_t>() const { return FFI_USE_FTABLE fieldStaticGetValueI64(ptr); }
-template <> inline float Field::static_get_value<float>() const { return FFI_USE_FTABLE fieldStaticGetValueFloat(ptr); }
-template <> inline double Field::static_get_value<double>() const { return FFI_USE_FTABLE fieldStaticGetValueDouble(ptr); }
+template <> inline int32_t Field::static_get_value<int32_t>() const { return FFI_USE_FTABLE fieldStaticGetValueI32(ptr.get()); }
+template <> inline int64_t Field::static_get_value<int64_t>() const { return FFI_USE_FTABLE fieldStaticGetValueI64(ptr.get()); }
+template <> inline float Field::static_get_value<float>() const { return FFI_USE_FTABLE fieldStaticGetValueFloat(ptr.get()); }
+template <> inline double Field::static_get_value<double>() const { return FFI_USE_FTABLE fieldStaticGetValueDouble(ptr.get()); }
 
-template <> inline void Field::static_set_value<int32_t>(const int32_t& v) const { FFI_USE_FTABLE fieldStaticSetValueI32(ptr, v); }
-template <> inline void Field::static_set_value<int64_t>(const int64_t& v) const { FFI_USE_FTABLE fieldStaticSetValueI64(ptr, v); }
-template <> inline void Field::static_set_value<float>(const float& v) const { FFI_USE_FTABLE fieldStaticSetValueFloat(ptr, v); }
-template <> inline void Field::static_set_value<double>(const double& v) const { FFI_USE_FTABLE fieldStaticSetValueDouble(ptr, v); }
+template <> inline void Field::static_set_value<int32_t>(const int32_t& v) const { FFI_USE_FTABLE fieldStaticSetValueI32(ptr.get(), v); }
+template <> inline void Field::static_set_value<int64_t>(const int64_t& v) const { FFI_USE_FTABLE fieldStaticSetValueI64(ptr.get(), v); }
+template <> inline void Field::static_set_value<float>(const float& v) const { FFI_USE_FTABLE fieldStaticSetValueFloat(ptr.get(), v); }
+template <> inline void Field::static_set_value<double>(const double& v) const { FFI_USE_FTABLE fieldStaticSetValueDouble(ptr.get(), v); }
 
 // Implementations dependent on other wrappers
 inline Class Type::class_or_element() const {
     Class result;
-    result.ptr = FFI_USE_FTABLE typeGetClassOrElementClass(ptr);
+    result.ptr.reset(FFI_USE_FTABLE typeGetClassOrElementClass(ptr.get()));
     return result;
 }
 
 inline Assembly Domain::open_assembly(const char *name) {
     Assembly result;
-    result.ptr = FFI_USE_FTABLE domainAssemblyOpen(ptr, name);
+    result.ptr.reset(FFI_USE_FTABLE domainAssemblyOpen(ptr.get(), name));
     return result;
 }
 
-inline std::vector<Assembly> Domain::get_assemblies() const {
-    std::vector<Assembly> result;
-    int32_t count = FFI_USE_FTABLE domainGetAssemblyCount(ptr);
+inline tl::vector<Assembly> Domain::get_assemblies() const {
+    tl::vector<Assembly> result;
+    int32_t count = FFI_USE_FTABLE domainGetAssemblyCount(ptr.get());
     result.reserve(count);
 
     for (int32_t i = 0; i < count; ++i) {
         Assembly assembly;
-        assembly.ptr = FFI_USE_FTABLE domainGetAssemblyAt(ptr, i);
-        if (assembly) {
-            result.push_back(std::move(assembly));
-        }
+        assembly.ptr.reset(FFI_USE_FTABLE domainGetAssemblyAt(ptr.get(), i));
+        if (assembly)
+            result.push_back(tl::move(assembly));
     }
 
     return result;
@@ -2133,92 +2220,92 @@ inline std::vector<Assembly> Domain::get_assemblies() const {
 
 inline Image Assembly::image() const {
     Image result;
-    result.ptr = FFI_USE_FTABLE assemblyGetImage(ptr);
+    result.ptr.reset(FFI_USE_FTABLE assemblyGetImage(ptr.get()));
     return result;
 }
 
 inline Class Image::get_class(size_t index) const {
     Class result;
-    result.ptr = FFI_USE_FTABLE imageGetClassAt(ptr, index);
+    result.ptr.reset(FFI_USE_FTABLE imageGetClassAt(ptr.get(), index));
     return result;
 }
 
 inline Field Class::get_field(const char *n) const {
     Field result;
-    result.ptr = FFI_USE_FTABLE classGetFieldFromName(ptr, n);
+    result.ptr.reset(FFI_USE_FTABLE classGetFieldFromName(ptr.get(), n));
     return result;
 }
 
 inline Method Class::get_method(const char *n, int args) const {
     Method result;
-    result.ptr = FFI_USE_FTABLE classGetMethodFromName(ptr, n, args);
+    result.ptr.reset(FFI_USE_FTABLE classGetMethodFromName(ptr.get(), n, args));
     return result;
 }
 
 inline Property Class::get_property(const char *n) const {
     Property result;
-    result.ptr = FFI_USE_FTABLE classGetPropertyFromName(ptr, n);
+    result.ptr.reset(FFI_USE_FTABLE classGetPropertyFromName(ptr.get(), n));
     return result;
 }
 
-inline std::vector<Field> Class::fields() const {
-    std::vector<Field> result;
-    int32_t count = FFI_USE_FTABLE classNumFields(ptr);
+inline tl::vector<Field> Class::fields() const {
+    tl::vector<Field> result;
+    int32_t count = FFI_USE_FTABLE classNumFields(ptr.get());
     result.reserve(count);
 
     for (int32_t i = 0; i < count; ++i) {
         Field field;
-        field.ptr = FFI_USE_FTABLE classGetFieldAt(ptr, i);
+        field.ptr.reset(FFI_USE_FTABLE classGetFieldAt(ptr.get(), i));
         if (field) {
-            result.push_back(std::move(field));
+            result.push_back(tl::move(field));
         }
     }
 
     return result;
 }
 
-inline std::vector<Method> Class::methods() const {
-    std::vector<Method> result;
+inline tl::vector<Method> Class::methods() const {
+    tl::vector<Method> result;
     for (int32_t i = 0;; ++i) {
-        MethodInfoHandle handle = FFI_USE_FTABLE classGetMethodAt(ptr, i);
+        MethodInfoHandle handle = FFI_USE_FTABLE classGetMethodAt(ptr.get(), i);
         if (handle == MethodInfoHandle::Null)
             break;
 
         Method method;
-        method.ptr = handle;
-        result.push_back(std::move(method));
+        method.ptr.reset(handle);
+        result.push_back(tl::move(method));
     }
 
     return result;
 }
 
-inline std::vector<Class> Class::nested_types() const {
-    std::vector<Class> result;
+inline tl::vector<Class> Class::nested_types() const {
+    tl::vector<Class> result;
     // FFI doesn't provide a direct nested type count, so we need to iterate
     for (int32_t i = 0;; ++i) {
-        ClassHandle handle = FFI_USE_FTABLE classGetNestedTypeAt(ptr, i);
+        ClassHandle handle = FFI_USE_FTABLE classGetNestedTypeAt(ptr.get(), i);
         if (handle == ClassHandle{})
             break;
 
         Class nested;
-        nested.ptr = handle;
-        result.push_back(std::move(nested));
+        nested.ptr.reset(handle);
+        result.push_back(tl::move(nested));
     }
 
     return result;
 }
 
-inline std::vector<Property> Class::properties() const {
-    std::vector<Property> result;
+inline tl::vector<Property> Class::properties() const {
+    tl::vector<Property> result;
     // FFI doesn't provide a direct property count, so we need to iterate
     for (int32_t i = 0;; ++i) {
-        PropertyHandle handle = FFI_USE_FTABLE classGetPropertyAt(ptr, i);
+        PropertyHandle handle = FFI_USE_FTABLE classGetPropertyAt(ptr.get(), i);
         if (handle == PropertyHandle{})
             break;
 
         Property property;
-        property.ptr = handle;
-        result.push_back(std::move(property));
+        property.ptr.reset(handle);
+        result.push_back(tl::move(property));
     }
 
     return result;

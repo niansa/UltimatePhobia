@@ -10,6 +10,7 @@
 
 #include <map>
 #include <exception>
+#include <limits>
 #include <imgui.h>
 
 using namespace AnyCall;
@@ -19,6 +20,7 @@ int32_t getFtableItemCount() { return getLocalFtableItemCount(); }
 
 namespace {
 template <std::integral HandleT, typename PtrT> class HandleCollection {
+    HandleT last_id = 0;
     std::map<HandleT, PtrT *> objects;
 
 public:
@@ -26,11 +28,10 @@ public:
         if (ptr == nullptr)
             return 0;
         // Find empty handle ID
-        static HandleT last_id = 0;
         HandleT fres = ++last_id;
         while (objects.find(fres) != objects.end())
             ++fres;
-        if (fres <= 0) {
+        if (fres == std::numeric_limits<HandleT>::max() - 1) {
             g.logger->warn("Ran out of object handles! Please consider dropping "
                            "some handles.");
             return -1;
@@ -50,6 +51,8 @@ public:
     void drop(HandleT id) {
         if (id > 0)
             objects.erase(id);
+        if (id == last_id)
+            --last_id;
     }
 
     WIBool isValid(HandleT id) const { return id == 0 || objects.find(id) != objects.end(); }
