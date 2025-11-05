@@ -40,6 +40,7 @@ void init() {
         static auto json = simdjson::padded_string::load(scriptJsonPath.string());
         const auto time_start = high_resolution_clock::now();
         auto scriptJson = parser.iterate(json);
+
         // Get functions
         unsigned errors = 0;
         for (auto functionJson : scriptJson["ScriptMethod"]) {
@@ -58,13 +59,12 @@ void init() {
         const auto time_taken = std::chrono::duration_cast<std::chrono::milliseconds>(high_resolution_clock::now() - time_start).count();
 
         // Log out function count
-        if (errors) {
+        if (errors)
             g.logger->info("Processed {} methods and failed on {} function "
                            "from script.json file",
                            methods.size(), errors);
-        } else {
+        else
             g.logger->info("Processed {} methods from script.json file", methods.size());
-        }
         g.logger->info("Processing script.json took {} ms ({} MB/s)", time_taken,
                        unsigned((double(scriptJsonSize) * 0.000001) / (double(time_taken) * 0.001) + 0.5));
 

@@ -6,6 +6,7 @@
 #include <memory>
 #include <vector>
 #include <span>
+#include <optional>
 #include <utility>
 
 namespace Il2Cpp::API {
@@ -225,6 +226,7 @@ struct Image {
     const MethodInfo *entry_point() const { return ptr ? il2cpp_image_get_entry_point(ptr) : nullptr; }
     size_t class_count() const { return ptr ? il2cpp_image_get_class_count(ptr) : 0; }
     Class get_class(size_t index) const;
+    std::optional<Class> get_class(std::string_view namespaze, std::string_view name);
     Assembly get_assembly() const { return Assembly{il2cpp_image_get_assembly(ptr)}; }
 };
 
@@ -429,6 +431,16 @@ inline std::vector<Assembly> Domain::get_assemblies() const {
 inline Image Assembly::image() const { return Image{il2cpp_assembly_get_image(ptr)}; }
 
 inline Class Image::get_class(size_t index) const { return Class{const_cast<Il2CppClass *>(il2cpp_image_get_class(ptr, index))}; }
+
+inline std::optional<Class> Image::get_class(std::string_view namespaze, std::string_view name) {
+    const size_t max_idx = class_count();
+    for (size_t idx = 0; idx != max_idx; ++idx) {
+        Class klass = get_class(idx);
+        if (klass.namespaze() == namespaze && klass.name() == name)
+            return klass;
+    }
+    return std::nullopt;
+}
 
 inline Field Class::get_field(const char *n) const { return Field{il2cpp_class_get_field_from_name(ptr, n)}; }
 
