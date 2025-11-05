@@ -1745,17 +1745,63 @@ struct GcHandle {
 
 #ifndef FFI_NOSTL_CONTAINERS
 // Thin wrappers
+struct Object;
+struct String;
 struct Type;
 struct Image;
 struct Class;
 struct Method;
 struct Field;
 struct Property;
-struct Object;
-struct String;
 struct Array;
 struct Domain;
 struct Assembly;
+
+struct Object {
+    UniqueHandle<ObjectHandle> ptr;
+
+    explicit operator bool() const { return ptr && ptr.get() != ObjectHandle{} && FFI isValidObject(ptr.get()); }
+
+    Class klass() const;
+
+    uint32_t size() const { return FFI_USE_FTABLE objectGetSize(ptr.get()); }
+
+    Method virtual_method(const Method& m) const;
+
+    template <typename T> auto unbox() {
+        if constexpr (tl::is_same<T, int32_t>())
+            return FFI_USE_FTABLE objectUnboxI32(ptr.get());
+        if constexpr (tl::is_same<T, int64_t>())
+            return FFI_USE_FTABLE objectUnboxI64(ptr.get());
+        if constexpr (tl::is_same<T, float>())
+            return FFI_USE_FTABLE objectUnboxFloat(ptr.get());
+        if constexpr (tl::is_same<T, double>())
+            return FFI_USE_FTABLE objectUnboxDouble(ptr.get());
+        static_assert(false, "Type can't be unboxed");
+    }
+
+    GcHandle gchandle(bool pinned = false) { return GcHandle(ptr.get(), pinned); }
+};
+
+struct String : Object {
+    String() = default;
+    explicit String(ObjectHandle s) { ptr.reset(s); }
+
+    static String New(tl::string_view s) {
+        String result;
+        result.ptr.reset(FFI_USE_FTABLE toCsStringWithLength(s.data(), s.size()));
+        return result;
+    }
+
+    int32_t length() const { return FFI_USE_FTABLE stringGetLength(ptr.get()); }
+
+    tl::string std() const {
+        int32_t len = FFI_USE_FTABLE stringGetLength(ptr.get());
+        tl::string result(len, '\0');
+        FFI_USE_FTABLE toCString(ptr.get(), result.data(), len);
+        return result;
+    }
+};
 
 struct Domain {
     UniqueHandle<DomainHandle> ptr;
@@ -1791,23 +1837,9 @@ struct Image {
         return result;
     }
 
-    tl::string name() const {
-        ObjectHandle nameObj = FFI_USE_FTABLE imageGetName(ptr.get());
-        int32_t len = FFI_USE_FTABLE stringGetLength(nameObj);
-        tl::string result(len, '\0');
-        FFI_USE_FTABLE toCString(nameObj, result.data(), len);
-        FFI_USE_FTABLE dropObject(nameObj);
-        return result;
-    }
+    String name() const { return String(FFI_USE_FTABLE imageGetName(ptr.get())); }
 
-    tl::string filename() const {
-        ObjectHandle filenameObj = FFI_USE_FTABLE imageGetFilename(ptr.get());
-        int32_t len = FFI_USE_FTABLE stringGetLength(filenameObj);
-        tl::string result(len, '\0');
-        FFI_USE_FTABLE toCString(filenameObj, result.data(), len);
-        FFI_USE_FTABLE dropObject(filenameObj);
-        return result;
-    }
+    String filename() const { return String(FFI_USE_FTABLE imageGetFilename(ptr.get())); }
 
     MethodInfoHandle entry_point() const { return FFI_USE_FTABLE imageGetEntryPoint(ptr.get()); }
 
@@ -1829,23 +1861,9 @@ struct Type {
     uint32_t attrs() const { return FFI_USE_FTABLE typeGetAttrs(ptr.get()); }
     int kind() const { return FFI_USE_FTABLE typeGetType(ptr.get()); }
 
-    tl::string name_owned() const {
-        ObjectHandle nameObj = FFI_USE_FTABLE typeGetName(ptr.get());
-        int32_t len = FFI_USE_FTABLE stringGetLength(nameObj);
-        tl::string result(len, '\0');
-        FFI_USE_FTABLE toCString(nameObj, result.data(), len);
-        FFI_USE_FTABLE dropObject(nameObj);
-        return result;
-    }
+    String name_owned() const { return String(FFI_USE_FTABLE typeGetName(ptr.get())); }
 
-    tl::string assembly_qualified_name_owned() const {
-        ObjectHandle nameObj = FFI_USE_FTABLE typeGetAssemblyQualifiedName(ptr.get());
-        int32_t len = FFI_USE_FTABLE stringGetLength(nameObj);
-        tl::string result(len, '\0');
-        FFI_USE_FTABLE toCString(nameObj, result.data(), len);
-        FFI_USE_FTABLE dropObject(nameObj);
-        return result;
-    }
+    String assembly_qualified_name_owned() const { return String(FFI_USE_FTABLE typeGetAssemblyQualifiedName(ptr.get())); }
 
     Class class_or_element() const;
 
@@ -1869,23 +1887,9 @@ struct Class {
         return result;
     }
 
-    tl::string name() const {
-        ObjectHandle nameObj = FFI_USE_FTABLE classGetName(ptr.get());
-        int32_t len = FFI_USE_FTABLE stringGetLength(nameObj);
-        tl::string result(len, '\0');
-        FFI_USE_FTABLE toCString(nameObj, result.data(), len);
-        FFI_USE_FTABLE dropObject(nameObj);
-        return result;
-    }
+    String name() const { return String(FFI_USE_FTABLE classGetName(ptr.get())); }
 
-    tl::string namespaze() const {
-        ObjectHandle nsObj = FFI_USE_FTABLE classGetNamespace(ptr.get());
-        int32_t len = FFI_USE_FTABLE stringGetLength(nsObj);
-        tl::string result(len, '\0');
-        FFI_USE_FTABLE toCString(nsObj, result.data(), len);
-        FFI_USE_FTABLE dropObject(nsObj);
-        return result;
-    }
+    String namespaze() const { return String(FFI_USE_FTABLE classGetNamespace(ptr.get())); }
 
     Image image() const {
         Image result;
@@ -1957,14 +1961,7 @@ struct Method {
 
     explicit operator bool() const { return ptr && ptr.get() != MethodInfoHandle{}; }
 
-    tl::string name() const {
-        ObjectHandle nameObj = FFI_USE_FTABLE methodInfoGetName(ptr.get());
-        int32_t len = FFI_USE_FTABLE stringGetLength(nameObj);
-        tl::string result(len, '\0');
-        FFI_USE_FTABLE toCString(nameObj, result.data(), len);
-        FFI_USE_FTABLE dropObject(nameObj);
-        return result;
-    }
+    String name() const { return String(FFI_USE_FTABLE methodInfoGetName(ptr.get())); }
 
     Class declaring_type() const {
         Class result;
@@ -1990,14 +1987,7 @@ struct Method {
         return result;
     }
 
-    tl::string param_name(uint32_t index) const {
-        ObjectHandle nameObj = FFI_USE_FTABLE methodInfoGetParamName(ptr.get(), index);
-        int32_t len = FFI_USE_FTABLE stringGetLength(nameObj);
-        tl::string result(len, '\0');
-        FFI_USE_FTABLE toCString(nameObj, result.data(), len);
-        FFI_USE_FTABLE dropObject(nameObj);
-        return result;
-    }
+    String param_name(uint32_t index) const { return String(FFI_USE_FTABLE methodInfoGetParamName(ptr.get(), index)); }
 
     Type return_type() const {
         Type result;
@@ -2023,14 +2013,7 @@ struct Field {
 
     explicit operator bool() const { return ptr && ptr.get() != FieldHandle{}; }
 
-    tl::string name() const {
-        ObjectHandle nameObj = FFI_USE_FTABLE fieldGetName(ptr.get());
-        int32_t len = FFI_USE_FTABLE stringGetLength(nameObj);
-        tl::string result(len, '\0');
-        FFI_USE_FTABLE toCString(nameObj, result.data(), len);
-        FFI_USE_FTABLE dropObject(nameObj);
-        return result;
-    }
+    String name() const { return String(FFI_USE_FTABLE fieldGetName(ptr.get())); }
 
     uint32_t flags() const { return FFI_USE_FTABLE fieldGetFlags(ptr.get()); }
 
@@ -2068,14 +2051,7 @@ struct Property {
 
     explicit operator bool() const { return ptr && ptr.get() != PropertyHandle{}; }
 
-    tl::string name() const {
-        ObjectHandle nameObj = FFI_USE_FTABLE propertyGetName(ptr.get());
-        int32_t len = FFI_USE_FTABLE stringGetLength(nameObj);
-        tl::string result(len, '\0');
-        FFI_USE_FTABLE toCString(nameObj, result.data(), len);
-        FFI_USE_FTABLE dropObject(nameObj);
-        return result;
-    }
+    String name() const { return String(FFI_USE_FTABLE propertyGetName(ptr.get())); }
 
     Class parent() const {
         Class result;
@@ -2096,53 +2072,6 @@ struct Property {
         result.ptr.reset(FFI_USE_FTABLE propertyGetSetMethod(ptr.get()));
         return result;
     }
-};
-
-struct Object {
-    UniqueHandle<ObjectHandle> ptr;
-
-    explicit operator bool() const { return ptr && ptr.get() != ObjectHandle{} && FFI isValidObject(ptr.get()); }
-
-    Class klass() const {
-        Class result;
-        result.ptr.reset(FFI_USE_FTABLE objectGetClass(ptr.get()));
-        return result;
-    }
-
-    uint32_t size() const { return FFI_USE_FTABLE objectGetSize(ptr.get()); }
-
-    Method virtual_method(const Method& m) const {
-        Method result;
-        result.ptr.reset(FFI_USE_FTABLE objectGetVirtualMethod(ptr.get(), m.ptr.get()));
-        return result;
-    }
-
-    template <typename T> auto unbox() {
-        if constexpr (tl::is_same<T, int32_t>())
-            return FFI_USE_FTABLE objectUnboxI32(ptr.get());
-        if constexpr (tl::is_same<T, int64_t>())
-            return FFI_USE_FTABLE objectUnboxI64(ptr.get());
-        if constexpr (tl::is_same<T, float>())
-            return FFI_USE_FTABLE objectUnboxFloat(ptr.get());
-        if constexpr (tl::is_same<T, double>())
-            return FFI_USE_FTABLE objectUnboxDouble(ptr.get());
-        static_assert(false, "Type can't be unboxed");
-    }
-
-    GcHandle gchandle(bool pinned = false) { return GcHandle(ptr.get(), pinned); }
-};
-
-struct String : Object {
-    String() = default;
-    explicit String(ObjectHandle s) { ptr.reset(s); }
-
-    static String New(tl::string_view s) {
-        String result;
-        result.ptr.reset(FFI_USE_FTABLE toCsStringWithLength(s.data(), s.size()));
-        return result;
-    }
-
-    int32_t length() const { return FFI_USE_FTABLE stringGetLength(ptr.get()); }
 };
 
 struct Array {
@@ -2191,6 +2120,18 @@ template <> inline void Field::static_set_value<float>(const float& v) const { F
 template <> inline void Field::static_set_value<double>(const double& v) const { FFI_USE_FTABLE fieldStaticSetValueDouble(ptr.get(), v); }
 
 // Implementations dependent on other wrappers
+inline Class Object::klass() const {
+    Class result;
+    result.ptr.reset(FFI_USE_FTABLE objectGetClass(ptr.get()));
+    return result;
+}
+
+inline Method Object::virtual_method(const Method& m) const {
+    Method result;
+    result.ptr.reset(FFI_USE_FTABLE objectGetVirtualMethod(ptr.get(), m.ptr.get()));
+    return result;
+}
+
 inline Class Type::class_or_element() const {
     Class result;
     result.ptr.reset(FFI_USE_FTABLE typeGetClassOrElementClass(ptr.get()));
