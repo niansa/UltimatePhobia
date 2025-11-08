@@ -1,9 +1,10 @@
 #include "il2cpp_dynamic.hpp"
 #include "il2cpp_api_cpp.hpp"
+#include "json.hpp"
 
 #include <chrono>
 #include <list>
-#include <ctype.h>
+#include <fstream>
 #include <cstdint>
 
 namespace Il2Cpp::Dynamic {
@@ -428,6 +429,23 @@ void init() {
     if (!valid)
         g.logger->warn("Loaded il2cpp runtime doesn't match script.json "
                        "UltimatePhobia was compiled with! Expect serious issues.");
+}
+
+std::string dump() {
+    using json = nlohmann::json;
+    json root = json::object();
+    auto& methodsJson = root["ScriptMethod"] = json::array();
+    for (const auto& method : methods) {
+        const uintptr_t addr = reinterpret_cast<uintptr_t>(method.getFullAddress()) - g.base;
+        if (addr >= 2000000000)
+            continue;
+        json& methodJson = methodsJson.emplace_back(json::object());
+        methodJson["Address"] = addr;
+        methodJson["Name"] = method.name;
+        methodJson["Signature"] = method.signature;
+        methodJson["TypeSignature"] = method.typeSignature;
+    }
+    return root.dump(2, ' ', true);
 }
 
 bool isLoaded() {

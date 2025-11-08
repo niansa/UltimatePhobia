@@ -21,6 +21,7 @@
 
 #include <optional>
 #include <filesystem>
+#include <fstream>
 #include <exception>
 #include <imgui.h>
 
@@ -37,6 +38,10 @@ struct ApplicationHooks {
 
         g.logger->info("Starting to process il2cpp runtime reflection data...");
         Il2Cpp::Dynamic::init();
+
+        const auto scriptJsonPath = SafePath::get() / "script.json";
+        if (std::filesystem::exists(scriptJsonPath))
+            std::ofstream(scriptJsonPath) << Il2Cpp::Dynamic::dump();
 
         return fres;
     }

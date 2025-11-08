@@ -39,6 +39,7 @@ struct Method {
 };
 
 void init();
+std::string dump();
 bool isLoaded();
 Method getMethod(std::string_view identifier, bool noError = false);
 Method getMethod(void *addr, bool noError = false);
