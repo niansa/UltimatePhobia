@@ -8,6 +8,7 @@
 
 #include <string>
 #include <filesystem>
+#include <fstream>
 #include <memory>
 #include <exception>
 #include <stdexcept>
@@ -58,7 +59,7 @@ ModInfo *createModInfo(const std::filesystem::path& base, std::string_view ident
     (void)std::filesystem::file_size(jsonPath);
 
     // Load info from JSON
-    auto json = nlohmann::json::parse(jsonPath.string());
+    auto json = nlohmann::json::parse(std::ifstream(jsonPath));
 
     // Get memory size
     unsigned memSize = 1024;
