@@ -27,7 +27,20 @@
 static Application *currentApplication = nullptr;
 
 struct ApplicationHooks {
-    inline static std::optional<GameHook> appUpdateHook, splashScreenCtorHook;
+    inline static std::optional<GameHook> appUpdateHook, splashScreenCtorHook, il2cppInitHook, il2cppInitUtf8Hook;
+
+    static int il2cppInitFnc(void *v) {
+        g.logger->info("Initializing il2cpp...");
+        il2cppInitHook.reset();
+        il2cppInitUtf8Hook.reset();
+        int fres = reinterpret_cast<decltype(&il2cppInitFnc)>(GameHook::getTrampolineCaller())(v);
+
+        g.logger->info("Starting to process il2cpp runtime reflection data...");
+        Il2Cpp::Dynamic::init();
+
+        return fres;
+    }
+    GAMEHOOK_TRAMPOLINE(il2cppInitFnc)
 
     static void appUpdateFnc(Photon_Pun_PhotonHandler_o *__this, const MethodInfo *method) {
         try {
@@ -64,14 +77,15 @@ Application::Application() {
     };
 
     g.logger->info("Waiting for game start...");
+    GameHook::safeCreate(ApplicationHooks::il2cppInitHook, reinterpret_cast<void *>(Il2Cpp::API::il2cpp_init),
+                         reinterpret_cast<void *>(ApplicationHooks::hookTrampoline_il2cppInitFnc), true);
+    GameHook::safeCreate(ApplicationHooks::il2cppInitUtf8Hook, reinterpret_cast<void *>(Il2Cpp::API::il2cpp_init),
+                         reinterpret_cast<void *>(ApplicationHooks::hookTrampoline_il2cppInitFnc), true);
     GameHook::safeCreate(ApplicationHooks::splashScreenCtorHook, Il2Cpp::SplashScreen::_ctor_getPtr(),
                          reinterpret_cast<void *>(ApplicationHooks::splashScreenCtorFnc));
 }
 
 void Application::init() {
-    g.logger->info("Starting to process il2cpp runtime reflection data...");
-    Il2Cpp::Dynamic::init();
-
     g.logger->info("Starting to listen for local player updates...");
     GameHook::safeCreate(ApplicationHooks::appUpdateHook, Il2Cpp::PlayerSanity::Update_getPtr(), reinterpret_cast<void *>(ApplicationHooks::appUpdateFnc));
 
