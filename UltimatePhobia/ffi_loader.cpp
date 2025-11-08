@@ -4,13 +4,13 @@
 #include "wasm_ffi.hpp"
 #include "dll_ffi.hpp"
 #include "elf_ffi.hpp"
+#include "json.hpp"
 
 #include <string>
 #include <filesystem>
 #include <memory>
 #include <exception>
 #include <stdexcept>
-#include <simdjson.h>
 
 namespace FFILoader {
 namespace {
@@ -58,19 +58,18 @@ ModInfo *createModInfo(const std::filesystem::path& base, std::string_view ident
     (void)std::filesystem::file_size(jsonPath);
 
     // Load info from JSON
-    simdjson::ondemand::parser parser;
-    auto jsonData = simdjson::padded_string::load(jsonPath.string());
-    auto json = parser.iterate(jsonData);
+    auto json = nlohmann::json::parse(jsonPath.string());
 
     // Get memory size
     unsigned memSize = 1024;
     auto memSizeJson = json["mem_size"];
-    if (memSizeJson.error() == simdjson::SUCCESS)
-        memSize = memSizeJson.get_int64().value();
+    if (memSizeJson.is_number())
+        memSize = memSizeJson;
 
     // Create mod info
     auto modInfoPtr = std::make_shared<ModInfo *>();
-    auto fres = new ModInfo{std::string(json["name"].get_string().value()), false,
+    auto nameJson = json["name"];
+    auto fres = new ModInfo{nameJson.is_string() ? nameJson : "<bad modinfo name>", false,
                             [base, modInfoPtr, memSize, identifier = std::string(identifier)]() -> std::unique_ptr<Mod> {
                                 try {
                                     return std::make_unique<FFIMod>(base, identifier, *modInfoPtr, memSize);
