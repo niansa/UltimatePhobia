@@ -6,6 +6,7 @@
 #include <string_view>
 #include <vector>
 #include <variant>
+#include <functional>
 
 namespace Il2Cpp::Dynamic {
 using ApiMethod = API::Method;
@@ -38,7 +39,7 @@ struct Method {
     unsigned getArgCount() const { return typeSignature.size() - 1; }
 };
 
-void init();
+void init(std::function<void()> onComplete);
 std::string dump();
 bool isLoaded();
 Method getMethod(std::string_view identifier, bool noError = false);

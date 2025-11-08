@@ -54,7 +54,7 @@ methods = []
 method_name_duplicates = {}
 
 def ensure_no_keyword(name):
-    if name in ["this", "xor", "or", "and", "not", "struct", "class", "namespace", "export", "extern", "default", "explicit", "nullptr", "delete", "new", "__callback", "bool", "char", "float", "double", "short", "int", "long", "small", "MethodInfo"]:
+    if name in ["this", "xor", "or", "and", "not", "struct", "class", "template", "namespace", "export", "extern", "default", "explicit", "nullptr", "delete", "new", "__callback", "bool", "char", "float", "double", "short", "int", "long", "small", "MethodInfo"]:
         return name+"_"
     return name
 
@@ -117,6 +117,8 @@ for method in script["ScriptMethod"]:
     if is_blacklisted(namespace, name):
         continue
     full_name = get_full_name(namespace, name)
+    if "Address" not in method:
+        continue
     address = method["Address"]
     arguments = arguments[:-2][1:] + "Info_il2cpp"
     methods.append((return_type, arguments, address, namespace, name, raw_name, raw_signature))

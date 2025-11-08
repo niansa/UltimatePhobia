@@ -4,7 +4,8 @@
 
 #include <chrono>
 #include <list>
-#include <fstream>
+#include <thread>
+#include <exception>
 #include <cstdint>
 
 namespace Il2Cpp::Dynamic {
@@ -14,6 +15,13 @@ std::mutex methods_mutex; // Intentionally used only very loosely
 std::list<std::string> string_arena;
 
 using namespace Il2Cpp::API;
+
+struct UnsupportedReflection : public std::exception {};
+
+void apply_name_deobfuscations(std::string& name) {
+    if (name == "\u0a68\u0a69\u0a6f\u0a67\u0a68\u0a67\u0a70\u0a67\u0a69\u0a73\u0a67")
+        name = "Use";
+}
 
 inline std::string_view intern(std::string s) {
     string_arena.push_back(std::move(s));
@@ -84,48 +92,47 @@ std::string replace_non_ascii_printable(const std::string& str) {
     return result;
 }
 
-std::string to_symbol_name(std::string_view ns, std::string_view name) {
+std::string to_symbol_name(std::string_view ns, std::string&& name) {
     // Dumper style: Namespace_ClassName
     if (ns.empty())
         return std::string(name);
     std::string out;
     out.reserve(ns.size() + 1 + name.size());
-    out.append(ns.data(), ns.size());
+    out.append(ns);
+    apply_name_deobfuscations(out);
     std::replace(out.begin(), out.end(), '.', '_');
     out.push_back('_');
-    out.append(name.data(), name.size());
+    apply_name_deobfuscations(name);
+    out.append(name);
     return out;
 }
 
 std::string class_to_obj_c(const Class& c) {
     // e.g., "UnityEngine_Component_o*"
-    auto sym = to_symbol_name(c.namespaze(), c.name());
-    std::replace(sym.begin(), sym.end(), '.', '_');
-    sym += "_o*";
-    return sym;
-}
-std::string type_to_obj_c(const Type& c, bool ptr) {
-    // e.g., "UnityEngine_Component_o*"
-    std::string sym = c.name_owned();
-    while (sym.back() == '*' || sym.back() == '&')
-        sym.pop_back();
+    auto sym = to_symbol_name(c.namespaze(), std::string(c.name()));
     std::replace(sym.begin(), sym.end(), '.', '_');
     sym += "_o";
+    if (!c.is_value_type())
+        sym.push_back('*');
+    return sym;
+}
+std::string type_to_obj_c(const Type& c, bool ptr, bool array = false) {
+    // e.g., "UnityEngine_Component_o*"
+    std::string sym = c.name_owned();
+    while (sym.back() == '*' || sym.back() == '&' || sym.back() == ',' || sym.back() == '[' || sym.back() == ']')
+        sym.pop_back();
+    apply_name_deobfuscations(sym);
+    std::replace(sym.begin(), sym.end(), '.', '_');
+    if (!array)
+        sym += "_o";
+    else
+        sym += "_array";
     if (ptr)
         sym.push_back('*');
     return sym;
 }
 
-std::string array_to_c(const Class& elem) {
-    // e.g., "UnityEngine_Component_array*"
-    auto sym = to_symbol_name(elem.namespaze(), elem.name());
-    std::replace(sym.begin(), sym.end(), '.', '_');
-    sym += "_array*";
-    return sym;
-}
-
 std::string type_to_cdecl(const Type& t) {
-    g.logger->error("Processing type {} (attrs: {:b}, kind: {})", t.name_owned(), t.attrs(), t.kind());
 
     if (!t.ptr)
         return "void*";
@@ -162,7 +169,7 @@ std::string type_to_cdecl(const Type& t) {
     case IL2CPP_TYPE_PTR:
         return type_to_obj_c(t, true);
     case IL2CPP_TYPE_BYREF:
-        return "void *"; // Probably correct?
+        return "void*"; // Probably correct?
     case IL2CPP_TYPE_VALUETYPE: {
         if (t.class_or_element().is_enum())
             return "int32_t";
@@ -174,14 +181,8 @@ std::string type_to_cdecl(const Type& t) {
     case IL2CPP_TYPE_VAR:
         return "T";
     case IL2CPP_TYPE_SZARRAY:
-    case IL2CPP_TYPE_ARRAY: {
-        Class elem = t.class_or_element();
-        if (elem)
-            return array_to_c(elem);
-        return "void_array*";
-    }
-    case IL2CPP_TYPE_GENERICINST:
-        return type_to_obj_c(t, false); // TODO (System_RuntimeType_ListBuilder_MethodInfo__o for System.RuntimeType.ListBuilder<System.Reflection.MethodInfo>)
+    case IL2CPP_TYPE_ARRAY:
+        return type_to_obj_c(t, true, true);
     case IL2CPP_TYPE_TYPEDBYREF:
         return "Il2CppObject*";
     case IL2CPP_TYPE_I:
@@ -192,7 +193,7 @@ std::string type_to_cdecl(const Type& t) {
         return "Il2CppObject*";
     default: {
         g.logger->warn("Can not represent {} (attrs: {:b}, kind: {})", t.name_owned(), t.attrs(), t.kind());
-        return "void *"; // Unable to represent
+        throw UnsupportedReflection();
     }
     }
 }
@@ -224,9 +225,13 @@ std::string make_method_display_name(const Class& c, const ApiMethod& m) {
         out.append(c.namespaze().data(), c.namespaze().size());
         out.push_back('.');
     }
-    out.append(c.name().data(), c.name().size());
+    std::string class_name(c.name());
+    apply_name_deobfuscations(class_name);
+    out.append(class_name);
     out += "$$";
-    out.append(m.name().data(), m.name().size());
+    std::string method_name(m.name());
+    apply_name_deobfuscations(method_name);
+    out.append(method_name);
 
     // Show generic marker if generic
     if (m.is_generic() || m.is_inflated())
@@ -236,12 +241,15 @@ std::string make_method_display_name(const Class& c, const ApiMethod& m) {
 
 std::string make_c_symbol_name(const Class& c, const ApiMethod& m) {
     // Namespace_Class__Method
-    auto sym = to_symbol_name(c.namespaze(), c.name());
+    auto sym = to_symbol_name(c.namespaze(), std::string(c.name()));
     std::replace(sym.begin(), sym.end(), '.', '_');
     sym += "__";
     auto mn = std::string(m.name());
+    apply_name_deobfuscations(mn);
     std::replace(mn.begin(), mn.end(), '.', '_');
     sym += mn;
+    if (m.is_generic() || m.is_inflated())
+        sym += "<T>";
     return sym;
 }
 
@@ -272,6 +280,7 @@ std::string make_signature(const Class& c, const ApiMethod& m) {
         auto ptype = m.param(i);
         auto pname = m.param_name(i);
         std::string argName = pname.empty() ? ("arg" + std::to_string(i)) : std::string(pname);
+        apply_name_deobfuscations(argName);
         if (argName == "klass")
             argName = "_" + argName;
         // Replace illegal chars in argName if any
@@ -310,82 +319,86 @@ std::string make_type_signature(const Class& c, const ApiMethod& m) {
 }
 } // namespace
 
-void init() {
-    using std::chrono::high_resolution_clock;
+void init(std::function<void()> onComplete) {
+    std::thread([onComplete]() {
+        using std::chrono::high_resolution_clock;
 
-    methods.clear();
-    string_arena.clear();
+        methods.clear();
+        string_arena.clear();
 
-    auto domain = Domain::get();
-    if (!domain)
-        return;
+        auto domain = Domain::get();
+        ThreadAttach TA(domain.ptr);
+        if (!domain)
+            return;
 
-    unsigned runningIndex = 0;
-    unsigned errors = 0;
+        unsigned runningIndex = 0;
+        unsigned errors = 0;
 
-    const auto time_start = high_resolution_clock::now();
-    for (const Assembly& asmbl : domain.get_assemblies()) {
-        Image img = asmbl.image();
-        if (!img)
-            continue;
-
-        const size_t klassCount = img.class_count();
-        for (size_t ci = 0; ci < klassCount; ++ci) {
-            Class klass = img.get_class(ci);
-            if (!klass) {
-                ++errors;
+        const auto time_start = high_resolution_clock::now();
+        for (const Assembly& asmbl : domain.get_assemblies()) {
+            Image img = asmbl.image();
+            if (!img)
                 continue;
-            }
 
-            for (const ApiMethod& mm : klass.methods()) {
-                if (!mm) {
+            const size_t klassCount = img.class_count();
+            for (size_t ci = 0; ci < klassCount; ++ci) {
+                Class klass = img.get_class(ci);
+                if (!klass) {
                     ++errors;
                     continue;
                 }
 
-                Method out{};
-                g.logger->error("============================");
-                // Method
-                out.method = mm;
-                // Name
-                out.name = intern(make_method_display_name(klass, mm));
-                g.logger->error("Processing method: {}", out.name);
-                // Signature
-                out.signature = intern(make_signature(klass, mm));
-                g.logger->error("Signature: {}", out.signature);
-                // Type signature
-                out.typeSignature = intern(make_type_signature(klass, mm));
-                // Index
-                out.index = runningIndex++;
+                for (const ApiMethod& mm : klass.methods()) {
+                    if (!mm) {
+                        ++errors;
+                        continue;
+                    }
 
-                methods.emplace_back(std::move(out));
+                    try {
+                        Method out{};
+                        // Method
+                        out.method = mm;
+                        // Name
+                        out.name = intern(make_method_display_name(klass, mm));
+                        // Signature
+                        out.signature = intern(make_signature(klass, mm));
+                        // Type signature
+                        out.typeSignature = intern(make_type_signature(klass, mm));
+                        // Index
+                        out.index = runningIndex++;
+
+                        methods.emplace_back(std::move(out));
+                    } catch (const UnsupportedReflection&) {
+                        ++errors;
+                    }
+                }
             }
         }
-    }
-    const auto time_taken = std::chrono::duration_cast<std::chrono::milliseconds>(high_resolution_clock::now() - time_start).count();
+        const auto time_taken = std::chrono::duration_cast<std::chrono::milliseconds>(high_resolution_clock::now() - time_start).count();
 
-    // Log out function count
-    if (errors)
-        g.logger->info("Processed {} methods with {} errors"
-                       "from il2cpp runtime",
-                       methods.size(), errors);
-    else
-        g.logger->info("Processed {} methods from il2cpp runtime", methods.size());
-    g.logger->info("Processing reflection data from il2cpp runtime took {} ms ({} methods/s)", time_taken,
-                   unsigned(double(methods.size()) / (double(time_taken) * 0.001) + 0.5));
+        // Log out function count
+        if (errors)
+            g.logger->info("Processed {} methods with {} errors from il2cpp runtime", methods.size(), errors);
+        else
+            g.logger->info("Processed {} methods from il2cpp runtime", methods.size());
+        g.logger->info("Processing reflection data from il2cpp runtime took {} ms ({} methods/s)", time_taken,
+                       unsigned(double(methods.size() + errors) / (double(time_taken) * 0.001) + 0.5));
 
-    // Validate some pointers
-    bool valid = true;
-    const auto validate = [&valid](std::string_view name, void *ptr) {
-        if (getMethod(name).getFullAddress() != ptr)
-            valid = false;
-    };
-    validate("void UnityEngine_Application__Quit (const MethodInfo* method);", Il2Cpp::UnityEngine::Application::Quit_getPtr());
-    validate("Player$$Update", Il2Cpp::Player::Update_getPtr());
-    validate("GhostAI$$Appear", Il2Cpp::GhostAI::Appear_getPtr());
-    if (!valid)
-        g.logger->warn("Loaded il2cpp runtime doesn't match script.json "
-                       "UltimatePhobia was compiled with! Expect serious issues.");
+        // Validate some pointers
+        bool valid = true;
+        const auto validate = [&valid](std::string_view name, void *ptr) {
+            if (getMethod(name).getFullAddress() != ptr)
+                valid = false;
+        };
+        validate("void UnityEngine_Application__Quit (const MethodInfo* method);", Il2Cpp::UnityEngine::Application::Quit_getPtr());
+        validate("Player$$Update", Il2Cpp::Player::Update_getPtr());
+        validate("GhostAI$$Appear", Il2Cpp::GhostAI::Appear_getPtr());
+        if (!valid)
+            g.logger->warn("Loaded il2cpp runtime doesn't match script.json "
+                           "UltimatePhobia was compiled with! Expect serious issues.");
+
+        onComplete();
+    }).detach();
 }
 
 std::string dump() {

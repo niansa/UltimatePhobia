@@ -37,11 +37,11 @@ struct ApplicationHooks {
         int fres = reinterpret_cast<decltype(&il2cppInitFnc)>(GameHook::getTrampolineCaller())(v);
 
         g.logger->info("Starting to process il2cpp runtime reflection data...");
-        Il2Cpp::Dynamic::init();
-
-        const auto scriptJsonPath = SafePath::get() / "script.json";
-        if (std::filesystem::exists(scriptJsonPath))
-            std::ofstream(scriptJsonPath) << Il2Cpp::Dynamic::dump();
+        Il2Cpp::Dynamic::init([]() {
+            const auto scriptJsonPath = SafePath::get() / "script.json";
+            if (std::filesystem::exists(scriptJsonPath))
+                std::ofstream(scriptJsonPath) << Il2Cpp::Dynamic::dump();
+        });
 
         return fres;
     }
