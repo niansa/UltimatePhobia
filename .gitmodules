@@ -10,9 +10,6 @@
 [submodule "deps/reflect-cpp"]
 	path = deps/reflect-cpp
 	url = https://github.com/getml/reflect-cpp.git
-[submodule "deps/simdjson"]
-	path = deps/simdjson
-	url = https://github.com/simdjson/simdjson.git
 [submodule "deps/crosslibc"]
 	path = deps/crosslibc
 	url = https://gitlab.com/niansa/crosslibc.git

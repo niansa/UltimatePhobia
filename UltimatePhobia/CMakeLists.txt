@@ -80,7 +80,6 @@ set(SDL_TESTS OFF)
 
 add_subdirectory(../deps/commoncpp commoncpp)
 add_subdirectory(../deps/spdlog spdlog)
-add_subdirectory(../deps/simdjson simdjson)
 add_subdirectory(../deps/wasm3/source wasm3)
 add_subdirectory(../deps/wasm3/platforms/cpp/wasm3_cpp wasm3_cpp)
 add_subdirectory(../deps/SDL sdl3)
@@ -133,7 +132,7 @@ add_executable(UltimatePhobia WIN32 main.cpp icon.rc
     il2cpp_api_cpp.hpp
     mods/explorer.hpp mods/explorer.cpp
 )
-target_link_libraries(UltimatePhobia PRIVATE dbghelp commoncpp spdlog imgui simdjson m3 wasm3_cpp ws2_32 elfldpp)
+target_link_libraries(UltimatePhobia PRIVATE dbghelp commoncpp spdlog imgui m3 wasm3_cpp ws2_32 elfldpp)
 target_include_directories(UltimatePhobia PRIVATE . ../il2cpp_dump)
 target_precompile_headers(UltimatePhobia PRIVATE ../il2cpp_dump/il2cpp.h generated/il2cpp.hpp)
 target_compile_definitions(UltimatePhobia PUBLIC _CRT_SECURE_NO_WARNINGS COMPILER_INFO="${COMPILER_INFO}")
