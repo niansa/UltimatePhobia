@@ -1,19 +1,37 @@
 #pragma once
 
 #include "global_state.hpp"
+#include "il2cpp_api_cpp.hpp"
 
 #include <string_view>
 #include <vector>
+#include <variant>
 
 namespace Il2Cpp::Dynamic {
+using ApiMethod = API::Method;
+
 struct Method {
-    uintptr_t address;
+    std::variant<void *, ApiMethod> method;
     std::string_view name, signature, typeSignature;
     int index = -1;
 
-    bool isValid() const { return address != 0; }
+    bool isValid() const {
+        if (auto mi = std::get_if<ApiMethod>(&method)) [[likely]]
+            return mi->ptr != nullptr;
+        if (auto addr = std::get_if<void *>(&method))
+            return *addr != nullptr;
+        __builtin_unreachable();
+        return false;
+    }
 
-    void *getFullAddress() const { return reinterpret_cast<void *>(g.base + address); }
+    void *getFullAddress() const {
+        if (auto mi = std::get_if<ApiMethod>(&method)) [[likely]]
+            return mi->function_pointer();
+        if (auto addr = std::get_if<void *>(&method))
+            return *addr;
+        __builtin_unreachable();
+        return nullptr;
+    }
 
     template <typename fncT> fncT *getFunction() const { return reinterpret_cast<fncT *>(getFullAddress()); }
 

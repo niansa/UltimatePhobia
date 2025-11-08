@@ -1,6 +1,5 @@
 from sys import argv
 from sys import exit
-import itertools
 import json
 
 

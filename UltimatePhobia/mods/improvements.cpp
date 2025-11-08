@@ -1,5 +1,6 @@
 #include "improvements.hpp"
 #include "global_instance_manager.hpp"
+#include "il2cpp_api_cpp.hpp"
 #include "il2cpp_cppinterop.hpp"
 #include "game_hook.hpp"
 #include "misc_utils.hpp"
@@ -36,7 +37,10 @@ static void painKillers$$NetworkedUseFnc(PainKillers_o *__this, Photon_Pun_Photo
     using namespace CppInterop;
 
     // Get some types
-    static auto audioSourceType = []() -> System_Type_o * { return GetType("UnityEngine.AudioSource", "UnityEngine.AudioModule"); }();
+    static auto audioSourceType = []() -> System_Type_o * {
+        return reinterpret_cast<System_Type_o *>(
+            Il2Cpp::API::Domain::get().open_assembly("UnityEngine.AudioModule").image().get_class("UnityEngine", "AudioSource")->type().object().ptr);
+    }();
 
     // Get some context
     auto gameObject = UnityEngine::Component::get_gameObject(reinterpret_cast<UnityEngine_Component_o *>(__this));

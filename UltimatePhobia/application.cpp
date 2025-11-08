@@ -69,6 +69,9 @@ Application::Application() {
 }
 
 void Application::init() {
+    g.logger->info("Starting to process il2cpp runtime reflection data...");
+    Il2Cpp::Dynamic::init();
+
     g.logger->info("Starting to listen for local player updates...");
     GameHook::safeCreate(ApplicationHooks::appUpdateHook, Il2Cpp::PlayerSanity::Update_getPtr(), reinterpret_cast<void *>(ApplicationHooks::appUpdateFnc));
 

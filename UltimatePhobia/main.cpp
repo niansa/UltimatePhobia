@@ -4,7 +4,6 @@
 #include "disable_antimod.hpp"
 #include "disable_splashscreen.hpp"
 #include "configure_persistentdatapath.hpp"
-#include "il2cpp_dynamic.hpp"
 #include "il2cpp_api.hpp"
 // #include "crash_handler.hpp"
 #include "safe_path.hpp"
@@ -26,7 +25,6 @@ static void onLoad() {
         g.logger->info("Found GameAssembly base address at {}", reinterpret_cast<void *>(g.base));
         ImGuiMan::init();
         Il2Cpp::API::init();
-        Il2Cpp::Dynamic::init();
         disableAntiMod();
         disableSplashscreen();
         configurePersistentDataPath();

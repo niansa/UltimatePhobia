@@ -184,17 +184,44 @@ struct GcHandle {
 
 // ======================== Thin wrappers ========================
 
+struct Object;
+struct String;
 struct Type;
 struct Image;
 struct Class;
 struct Method;
 struct Field;
 struct Property;
-struct Object;
-struct String;
 struct Array;
 struct Domain;
 struct Assembly;
+
+struct Object {
+    Il2CppObject *ptr{nullptr};
+    explicit operator bool() const { return ptr != nullptr; }
+
+    Class klass() const;
+    uint32_t size() const { return il2cpp_object_get_size(ptr); }
+    const MethodInfo *get_virtual_method(const MethodInfo *m) const { return il2cpp_object_get_virtual_method(ptr, m); }
+    void *unboxIfValue();
+};
+
+struct String : Object {
+    String() = default;
+    explicit String(Il2CppString *s) { ptr = reinterpret_cast<Il2CppObject *>(s); }
+    static String New(std::string_view s) { return String(il2cpp_string_new_len(s.data(), static_cast<uint32_t>(s.size()))); }
+    static String NewUtf16(std::u16string_view s) {
+        return String(il2cpp_string_new_utf16(reinterpret_cast<const Il2CppChar *>(s.data()), static_cast<int32_t>(s.size())));
+    }
+    int32_t length() const { return il2cpp_string_length(reinterpret_cast<Il2CppString *>(ptr)); }
+    const Il2CppChar *chars() const { return il2cpp_string_chars(reinterpret_cast<Il2CppString *>(ptr)); }
+    std::u16string to_u16string() const {
+        auto len = length();
+        auto c = chars();
+        return std::u16string(reinterpret_cast<const char16_t *>(c), reinterpret_cast<const char16_t *>(c) + len);
+    }
+    std::string to_utf8() const { return Utils::utf16_to_utf8(to_u16string()); }
+};
 
 struct Domain {
     Il2CppDomain *ptr{nullptr};
@@ -234,6 +261,7 @@ struct Type {
     const Il2CppType *ptr{nullptr};
     explicit operator bool() const { return ptr != nullptr; }
 
+    Object object() const { return Object{il2cpp_type_get_object(ptr)}; }
     bool is_byref() const { return il2cpp_type_is_byref(ptr); }
     bool is_static() const { return il2cpp_type_is_static(ptr); }
     bool is_pointer() const { return il2cpp_type_is_pointer_type(ptr); }
@@ -296,7 +324,7 @@ struct Class {
     bool has_parent(Class klassc) const { return il2cpp_class_has_parent(ptr, klassc.ptr); }
 };
 
-struct Method {
+struct Method {    
     const MethodInfo *ptr{nullptr};
     explicit operator bool() const { return ptr != nullptr; }
 
@@ -313,6 +341,8 @@ struct Method {
     uint32_t flags(uint32_t *iflags = nullptr) const { return il2cpp_method_get_flags(ptr, iflags); }
     uint32_t token() const { return il2cpp_method_get_token(ptr); }
     bool has_attribute(Class attr_class) const { return il2cpp_method_has_attribute(ptr, attr_class.ptr); }
+
+    void *function_pointer() const { return ptr->methodPointer; }
 
     // Invoke using void** args (pointers to values/objects depending on signature).
     // Throws ManagedException if the target throws.
@@ -367,54 +397,39 @@ struct Property {
     Method setter() const { return Method{il2cpp_property_get_set_method(ptr)}; }
 };
 
-struct Object {
-    Il2CppObject *ptr{nullptr};
-    explicit operator bool() const { return ptr != nullptr; }
-
-    Class klass() const { return Class{il2cpp_object_get_class(ptr)}; }
-    uint32_t size() const { return il2cpp_object_get_size(ptr); }
-    const MethodInfo *get_virtual_method(const MethodInfo *m) const { return il2cpp_object_get_virtual_method(ptr, m); }
-    void *unboxIfValue() {
-        if (ptr == nullptr)
-            return nullptr;
-
-        if (klass().is_value_type())
-            return il2cpp_object_unbox(ptr);
-
-        return reinterpret_cast<void *>(ptr);
-    }
-};
-
-struct String : Object {
-    String() = default;
-    explicit String(Il2CppString *s) { ptr = reinterpret_cast<Il2CppObject *>(s); }
-    static String New(std::string_view s) { return String(il2cpp_string_new_len(s.data(), static_cast<uint32_t>(s.size()))); }
-    static String NewUtf16(std::u16string_view s) {
-        return String(il2cpp_string_new_utf16(reinterpret_cast<const Il2CppChar *>(s.data()), static_cast<int32_t>(s.size())));
-    }
-    int32_t length() const { return il2cpp_string_length(reinterpret_cast<Il2CppString *>(ptr)); }
-    const Il2CppChar *chars() const { return il2cpp_string_chars(reinterpret_cast<Il2CppString *>(ptr)); }
-    std::u16string to_u16string() const {
-        auto len = length();
-        auto c = chars();
-        return std::u16string(reinterpret_cast<const char16_t *>(c), reinterpret_cast<const char16_t *>(c) + len);
-    }
-    std::string to_utf8() const { return Utils::utf16_to_utf8(to_u16string()); }
-};
-
 struct Array {
     Il2CppArray *ptr{nullptr};
     explicit operator bool() const { return ptr != nullptr; }
 
+    static Array New(Class klass, std::span<Object> elements) {
+        auto fres = Array{il2cpp_array_new(klass.ptr, elements.size())};
+        for (size_t idx = 0; idx != elements.size(); ++idx)
+            reinterpret_cast<Il2CppObject **>(reinterpret_cast<System_Byte_array *>(fres.ptr)->m_Items)[idx] = elements[idx].ptr;
+        return fres;
+    }
     static Array New(Il2CppClass *element, std::size_t length) { return Array{il2cpp_array_new(element, static_cast<uint32_t>(length))}; }
     static Array NewSpecific(Il2CppClass *arrayType, std::size_t length) { return Array{il2cpp_array_new_specific(arrayType, static_cast<uint32_t>(length))}; }
     uint32_t length() const { return il2cpp_array_length(ptr); }
     uint32_t byte_length() const { return il2cpp_array_get_byte_length(ptr); }
+
+    Object objectAt(size_t idx) { return Object{reinterpret_cast<Il2CppObject **>(reinterpret_cast<System_Byte_array *>(ptr)->m_Items)[idx]}; }
 };
 
 inline Class Type::class_or_element() const { return Class{il2cpp_type_get_class_or_element_class(ptr)}; }
 
 // Implementations dependent on other wrappers
+
+inline Class Object::klass() const { return Class{il2cpp_object_get_class(ptr)}; }
+
+inline void *Object::unboxIfValue() {
+    if (ptr == nullptr)
+        return nullptr;
+
+    if (klass().is_value_type())
+        return il2cpp_object_unbox(ptr);
+
+    return reinterpret_cast<void *>(ptr);
+}
 
 inline Assembly Domain::open_assembly(const char *name) { return Assembly{il2cpp_domain_assembly_open(ptr, name)}; }
 
