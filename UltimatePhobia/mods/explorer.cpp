@@ -203,7 +203,7 @@ void Explorer::drawClassDetailPane() {
                 fv = f.get_value_object(instances[selectedInstance].handle.target());
             try {
                 std::string s = fv ? objectToString(Object{fv}) : std::string("null");
-                s = fmt::format("{} = {}{}", f.name().data(), s, (f.flags() & 0x0010) ? " [static]" : "");
+                s = fmt::format("{} = {}{}", f.name().data(), s, (f.flags() & IL2CPP_FIELD_ATTRIBUTE_STATIC) ? " [static]" : "");
                 ImGui::SameLine();
                 ImGui::TextUnformatted(s.c_str());
             } catch (const ManagedException& e) {
@@ -406,7 +406,7 @@ std::string Explorer::methodSignature(const Method& m) {
     }
     oss << ") : " << m.return_type().name_owned();
     uint32_t flags = m.flags(nullptr);
-    bool isStatic = flags & 0x0010; // MethodAttributes.Static
+    bool isStatic = flags & IL2CPP_FIELD_ATTRIBUTE_STATIC;
     oss << (isStatic ? " [static]" : "");
     return oss.str();
 }
