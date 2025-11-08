@@ -97,45 +97,6 @@ std::string to_symbol_name(std::string_view ns, std::string_view name) {
     return out;
 }
 
-bool is_array_type(const Type& t) {
-    // il2cpp_type_get_name returns names like "System.Int32[]" or "Foo.Bar[,]"
-    auto n = t.name_owned();
-    return n.find('[') != std::string::npos;
-}
-
-std::string primitive_to_c(std::string_view sysName) {
-    // sysName: "System.Int32" etc.
-    if (sysName == "System.Boolean")
-        return "bool";
-    if (sysName == "System.SByte")
-        return "int8_t";
-    if (sysName == "System.Byte")
-        return "uint8_t";
-    if (sysName == "System.Int16")
-        return "int16_t";
-    if (sysName == "System.UInt16")
-        return "uint16_t";
-    if (sysName == "System.Int32")
-        return "int32_t";
-    if (sysName == "System.UInt32")
-        return "uint32_t";
-    if (sysName == "System.Int64")
-        return "int64_t";
-    if (sysName == "System.UInt64")
-        return "uint64_t";
-    if (sysName == "System.Char")
-        return "char16_t";
-    if (sysName == "System.Single")
-        return "float";
-    if (sysName == "System.Double")
-        return "double";
-    if (sysName == "System.IntPtr")
-        return "intptr_t";
-    if (sysName == "System.UIntPtr")
-        return "uintptr_t";
-    return {};
-}
-
 std::string class_to_obj_c(const Class& c) {
     // e.g., "UnityEngine_Component_o*"
     auto sym = to_symbol_name(c.namespaze(), c.name());
@@ -146,20 +107,12 @@ std::string class_to_obj_c(const Class& c) {
 std::string type_to_obj_c(const Type& c, bool ptr) {
     // e.g., "UnityEngine_Component_o*"
     std::string sym = c.name_owned();
-    if (sym.back() == '*')
+    while (sym.back() == '*' || sym.back() == '&')
         sym.pop_back();
     std::replace(sym.begin(), sym.end(), '.', '_');
     sym += "_o";
     if (ptr)
         sym.push_back('*');
-    return sym;
-}
-
-std::string class_to_val_c(const Class& c) {
-    // value type by value: "Namespace_Class_o"
-    auto sym = to_symbol_name(c.namespaze(), c.name());
-    std::replace(sym.begin(), sym.end(), '.', '_');
-    sym += "_o";
     return sym;
 }
 
@@ -172,6 +125,8 @@ std::string array_to_c(const Class& elem) {
 }
 
 std::string type_to_cdecl(const Type& t) {
+    g.logger->error("Processing type {} (attrs: {:b}, kind: {})", t.name_owned(), t.attrs(), t.kind());
+
     if (!t.ptr)
         return "void*";
 
@@ -274,9 +229,8 @@ std::string make_method_display_name(const Class& c, const ApiMethod& m) {
     out.append(m.name().data(), m.name().size());
 
     // Show generic marker if generic
-    if (m.is_generic() || m.is_inflated()) {
-        out += "<>";
-    }
+    if (m.is_generic() || m.is_inflated())
+        out += "<T>";
     return out;
 }
 
@@ -390,12 +344,15 @@ void init() {
                 }
 
                 Method out{};
+                g.logger->error("============================");
                 // Method
                 out.method = mm;
                 // Name
                 out.name = intern(make_method_display_name(klass, mm));
+                g.logger->error("Processing method: {}", out.name);
                 // Signature
                 out.signature = intern(make_signature(klass, mm));
+                g.logger->error("Signature: {}", out.signature);
                 // Type signature
                 out.typeSignature = intern(make_type_signature(klass, mm));
                 // Index
@@ -437,10 +394,9 @@ std::string dump() {
     auto& methodsJson = root["ScriptMethod"] = json::array();
     for (const auto& method : methods) {
         const uintptr_t addr = reinterpret_cast<uintptr_t>(method.getFullAddress()) - g.base;
-        if (addr >= 2000000000)
-            continue;
         json& methodJson = methodsJson.emplace_back(json::object());
-        methodJson["Address"] = addr;
+        if (addr < 2000000000)
+            methodJson["Address"] = addr;
         methodJson["Name"] = method.name;
         methodJson["Signature"] = method.signature;
         methodJson["TypeSignature"] = method.typeSignature;
