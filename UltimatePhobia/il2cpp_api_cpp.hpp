@@ -289,7 +289,7 @@ struct Class {
 
     static Class from_type(const Il2CppType *t) { return Class{il2cpp_class_from_type(t)}; }
     static Class from_name(const Image& img, const char *ns, const char *name) {
-        return Class{il2cpp_class_from_name(img.ptr, apply_name_deobfuscations(ns), apply_name_deobfuscations(name))};
+        return Class{il2cpp_class_from_name(img.ptr, apply_name_obfuscations(ns), apply_name_obfuscations(name))};
     }
 
     std::string_view name() const { return apply_name_deobfuscations(il2cpp_class_get_name(ptr)); }
@@ -462,11 +462,13 @@ inline Class Image::get_class(std::string_view namespaze, std::string_view name)
     return {};
 }
 
-inline Field Class::get_field(const char *n) const { return Field{il2cpp_class_get_field_from_name(ptr, n)}; }
+inline Field Class::get_field(const char *n) const { return Field{il2cpp_class_get_field_from_name(ptr, apply_name_obfuscations(n))}; }
 
-inline Method Class::get_method(const char *n, int args) const { return Method{il2cpp_class_get_method_from_name(ptr, n, args)}; }
+inline Method Class::get_method(const char *n, int args) const { return Method{il2cpp_class_get_method_from_name(ptr, apply_name_obfuscations(n), args)}; }
 
-inline Property Class::get_property(const char *n) const { return Property{const_cast<PropertyInfo *>(il2cpp_class_get_property_from_name(ptr, n))}; }
+inline Property Class::get_property(const char *n) const {
+    return Property{const_cast<PropertyInfo *>(il2cpp_class_get_property_from_name(ptr, apply_name_obfuscations(n)))};
+}
 
 inline std::vector<Field> Class::fields() const {
     std::vector<Field> out;
@@ -581,7 +583,7 @@ inline void raise_exception(Il2CppException *ex) {
 }
 
 inline Il2CppException *exception_from_name(const Image& img, const char *ns, const char *name, const char *msg) {
-    return il2cpp_exception_from_name_msg(img.ptr, ns, name, msg);
+    return il2cpp_exception_from_name_msg(img.ptr, apply_name_obfuscations(ns), apply_name_obfuscations(name), msg);
 }
 
 template <class T> inline T invoke_unbox(Method m, Object instance, std::span<void *> args) {
@@ -595,7 +597,9 @@ template <class T> inline T invoke_unbox(Method m, Object instance, std::span<vo
 
 // ======================== Image/Class helpers ========================
 
-inline Class class_from_name(const Image& img, const char *ns, const char *name) { return Class{il2cpp_class_from_name(img.ptr, ns, name)}; }
+inline Class class_from_name(const Image& img, const char *ns, const char *name) {
+    return Class{il2cpp_class_from_name(img.ptr, apply_name_obfuscations(ns), apply_name_obfuscations(name))};
+}
 
 inline Class class_from_type(const Type& t) { return Class{il2cpp_class_from_type(t.ptr)}; }
 
