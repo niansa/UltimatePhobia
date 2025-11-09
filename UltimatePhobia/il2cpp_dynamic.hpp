@@ -17,18 +17,18 @@ struct Method {
     int index = -1;
 
     bool isValid() const {
-        if (auto mi = std::get_if<ApiMethod>(&method)) [[likely]]
+        if (auto *mi = std::get_if<ApiMethod>(&method)) [[likely]]
             return mi->ptr != nullptr;
-        if (auto addr = std::get_if<void *>(&method))
+        if (auto *addr = std::get_if<void *>(&method))
             return *addr != nullptr;
         __builtin_unreachable();
         return false;
     }
 
     void *getFullAddress() const {
-        if (auto mi = std::get_if<ApiMethod>(&method)) [[likely]]
+        if (auto *mi = std::get_if<ApiMethod>(&method)) [[likely]]
             return mi->function_pointer();
-        if (auto addr = std::get_if<void *>(&method))
+        if (auto *addr = std::get_if<void *>(&method))
             return *addr;
         __builtin_unreachable();
         return nullptr;

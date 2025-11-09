@@ -23,7 +23,7 @@ static void key$$StartFnc(Key_o *__this, const MethodInfo *method) {
     Il2Cpp::Photon::Pun::PhotonNetwork::RPC(__this->fields.view, Il2Cpp::CppInterop::ToCsString("GrabbedKey"), 0, false, nullptr);
 }
 
-static void painKillers$$NetworkedUseFnc(PainKillers_o *__this, Photon_Pun_PhotonMessageInfo_o *messageInfo, const MethodInfo *method) {
+static void painKillers$$NetworkedUseFnc(Il2CppObject *__this, Photon_Pun_PhotonMessageInfo_o *messageInfo, const MethodInfo *method) {
     const auto self = improvementsInfo.get<Improvements>();
     const auto gim = globalInstanceManagerInfo.get<GlobalInstanceManager>();
     auto hook = self->hooks.get(Il2Cpp::GhostAI::ChangeState_getPtr());
@@ -37,22 +37,22 @@ static void painKillers$$NetworkedUseFnc(PainKillers_o *__this, Photon_Pun_Photo
     using namespace CppInterop;
 
     // Get some types
-    static auto audioSourceType = []() -> System_Type_o * {
-        return reinterpret_cast<System_Type_o *>(
-            Il2Cpp::API::Domain::get().open_assembly("UnityEngine.AudioModule").image().get_class("UnityEngine", "AudioSource")->type().object().ptr);
+    static auto audioSourceType = []() -> API::Type {
+        return Il2Cpp::API::get_class_cached<"UnityEngine.AudioModule", "UnityEngine", "AudioSource">().type();
     }();
 
     // Get some context
-    auto gameObject = UnityEngine::Component::get_gameObject(reinterpret_cast<UnityEngine_Component_o *>(__this));
+    auto gameObject = API::call<"UnityEngine.CoreModule", "UnityEngine", "Component", "get_gameObject">(__this);
 
     // Play audio source
-    UnityEngine::AudioSource::Play(reinterpret_cast<UnityEngine_AudioSource_o *>(UnityEngine::GameObject::GetComponent(gameObject, audioSourceType)));
+    API::call<"UnityEngine.AudioModule", "UnityEngine", "AudioSource", "Play">(
+        API::call<"UnityEngine.CoreModule", "UnityEngine", "GameObject", "GetComponent">(gameObject, audioSourceType.object()));
 
     // Create timer
     self->painKillerTimers[__this] = common::Timer();
 }
 
-static void painKillers$$UseFnc(PainKillers_o *__this, const MethodInfo *method) {
+static void painKillers$$UseFnc(Il2CppObject *__this, const MethodInfo *method) {
     const auto self = improvementsInfo.get<Improvements>();
 
     // Get hook
@@ -77,7 +77,7 @@ static void painKillers$$UseFnc(PainKillers_o *__this, const MethodInfo *method)
     }
 
     GameHookRelease GHR(*hook);
-    Il2Cpp::PainKillers::Use(__this);
+    Il2Cpp::API::call<"Assembly-CSharp", "", "PainKillers", "Use">(__this);
 }
 
 void Improvements::uiUpdate() {

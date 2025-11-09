@@ -60,7 +60,7 @@ endfunction()
 get_compiler_info()
 
 if (MINGW)
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fdata-sections -ffunction-sections")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fdata-sections -ffunction-sections -fno-threadsafe-statics")
 endif()
 
 set(SDL_SHARED OFF)
@@ -131,6 +131,7 @@ add_executable(UltimatePhobia WIN32 main.cpp icon.rc
     generated/anycall.cpp
     il2cpp_api_cpp.hpp
     mods/explorer.hpp mods/explorer.cpp
+    deobfuscations.hpp deobfuscations.cpp
 )
 target_link_libraries(UltimatePhobia PRIVATE dbghelp commoncpp spdlog imgui m3 wasm3_cpp ws2_32 elfldpp)
 target_include_directories(UltimatePhobia PRIVATE . ../il2cpp_dump)

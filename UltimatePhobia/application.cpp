@@ -38,6 +38,7 @@ struct ApplicationHooks {
 
         g.logger->info("Starting to process il2cpp runtime reflection data...");
         Il2Cpp::Dynamic::init([]() {
+            g.logger->info("Dumping il2cpp runtime reflection data to script.json file...");
             const auto scriptJsonPath = SafePath::get() / "script.json";
             if (std::filesystem::exists(scriptJsonPath))
                 std::ofstream(scriptJsonPath) << Il2Cpp::Dynamic::dump();

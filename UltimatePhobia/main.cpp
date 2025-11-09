@@ -72,6 +72,26 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
     g.logger->info("Compiled using {}", COMPILER_INFO);
     g.logger->info("Safe path determined to be at {}", safePath.string());
 
+    // Set std::terminate handler
+    std::set_terminate([]() {
+        std::string reason;
+        try {
+            std::exception_ptr eptr{std::current_exception()};
+            if (eptr)
+                std::rethrow_exception(eptr);
+            else
+                reason = "None";
+        } catch (const std::exception& ex) {
+            reason = ex.what();
+        } catch (...) {
+            reason = "Unknown";
+        }
+
+        g.logger->critical("std::terminate called! Exception: " + reason);
+        g.logger->flush();
+        std::abort();
+    });
+
     // Load UltimatePhobia
     g.logger->info("Loading UltimatePhobia...", szFileName);
     onLoad();

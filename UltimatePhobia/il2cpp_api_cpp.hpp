@@ -1,12 +1,13 @@
 #pragma once
 
 #include "il2cpp_api.hpp"
+#include "deobfuscations.hpp"
 
 #include <string>
 #include <memory>
 #include <vector>
 #include <span>
-#include <optional>
+#include <source_location>
 #include <utility>
 
 namespace Il2Cpp::API {
@@ -197,7 +198,9 @@ struct Domain;
 struct Assembly;
 
 struct Object {
-    Il2CppObject *ptr{nullptr};
+    Il2CppObject *ptr;
+    Object() : ptr(nullptr) {}
+    Object(Il2CppObject *object) : ptr(object) {}
     explicit operator bool() const { return ptr != nullptr; }
 
     Class klass() const;
@@ -208,7 +211,7 @@ struct Object {
 
 struct String : Object {
     String() = default;
-    explicit String(Il2CppString *s) { ptr = reinterpret_cast<Il2CppObject *>(s); }
+    explicit String(Il2CppString *s) : Object(reinterpret_cast<Il2CppObject *>(s)) {}
     static String New(std::string_view s) { return String(il2cpp_string_new_len(s.data(), static_cast<uint32_t>(s.size()))); }
     static String NewUtf16(std::u16string_view s) {
         return String(il2cpp_string_new_utf16(reinterpret_cast<const Il2CppChar *>(s.data()), static_cast<int32_t>(s.size())));
@@ -253,7 +256,7 @@ struct Image {
     const MethodInfo *entry_point() const { return ptr ? il2cpp_image_get_entry_point(ptr) : nullptr; }
     size_t class_count() const { return ptr ? il2cpp_image_get_class_count(ptr) : 0; }
     Class get_class(size_t index) const;
-    std::optional<Class> get_class(std::string_view namespaze, std::string_view name);
+    Class get_class(std::string_view namespaze, std::string_view name);
     Assembly get_assembly() const { return Assembly{il2cpp_image_get_assembly(ptr)}; }
 };
 
@@ -270,11 +273,11 @@ struct Type {
 
     std::string name_owned() const {
         unique_il2cpp<char> p{il2cpp_type_get_name(ptr)};
-        return p ? std::string(p.get()) : std::string{};
+        return p ? std::string(apply_name_deobfuscations(p.get())) : std::string{};
     }
     std::string assembly_qualified_name_owned() const {
         unique_il2cpp<char> p{il2cpp_type_get_assembly_qualified_name(ptr)};
-        return p ? std::string(p.get()) : std::string{};
+        return p ? std::string(apply_name_deobfuscations(p.get())) : std::string{};
     }
     Class class_or_element() const;
     bool equals(Type other) const { return il2cpp_type_equals(ptr, other.ptr); }
@@ -285,10 +288,12 @@ struct Class {
     explicit operator bool() const { return ptr != nullptr; }
 
     static Class from_type(const Il2CppType *t) { return Class{il2cpp_class_from_type(t)}; }
-    static Class from_name(const Image& img, const char *ns, const char *name) { return Class{il2cpp_class_from_name(img.ptr, ns, name)}; }
+    static Class from_name(const Image& img, const char *ns, const char *name) {
+        return Class{il2cpp_class_from_name(img.ptr, apply_name_deobfuscations(ns), apply_name_deobfuscations(name))};
+    }
 
-    std::string_view name() const { return il2cpp_class_get_name(ptr); }
-    std::string_view namespaze() const { return il2cpp_class_get_namespace(ptr); }
+    std::string_view name() const { return apply_name_deobfuscations(il2cpp_class_get_name(ptr)); }
+    std::string_view namespaze() const { return apply_name_deobfuscations(il2cpp_class_get_namespace(ptr)); }
     Image image() const { return Image{il2cpp_class_get_image(ptr)}; }
     Class parent() const { return Class{il2cpp_class_get_parent(ptr)}; }
     Class declaring_type() const { return Class{il2cpp_class_get_declaring_type(ptr)}; }
@@ -328,7 +333,7 @@ struct Method {
     const MethodInfo *ptr{nullptr};
     explicit operator bool() const { return ptr != nullptr; }
 
-    std::string_view name() const { return il2cpp_method_get_name(ptr); }
+    std::string_view name() const { return apply_name_deobfuscations(il2cpp_method_get_name(ptr)); }
     Class declaring_type() const { return Class{il2cpp_method_get_declaring_type(ptr)}; }
     Class klass() const { return Class{il2cpp_method_get_class(ptr)}; }
     bool is_generic() const { return il2cpp_method_is_generic(ptr); }
@@ -336,7 +341,7 @@ struct Method {
     bool is_instance() const { return il2cpp_method_is_instance(ptr); }
     uint32_t param_count() const { return il2cpp_method_get_param_count(ptr); }
     Type param(uint32_t index) const { return Type{il2cpp_method_get_param(ptr, index)}; }
-    std::string_view param_name(uint32_t index) const { return il2cpp_method_get_param_name(ptr, index); }
+    std::string_view param_name(uint32_t index) const { return apply_name_deobfuscations(il2cpp_method_get_param_name(ptr, index)); }
     Type return_type() const { return Type{il2cpp_method_get_return_type(ptr)}; }
     uint32_t flags(uint32_t *iflags = nullptr) const { return il2cpp_method_get_flags(ptr, iflags); }
     uint32_t token() const { return il2cpp_method_get_token(ptr); }
@@ -356,7 +361,7 @@ struct Field {
     FieldInfo *ptr{nullptr};
     explicit operator bool() const { return ptr != nullptr; }
 
-    std::string_view name() const { return il2cpp_field_get_name(ptr); }
+    std::string_view name() const { return apply_name_deobfuscations(il2cpp_field_get_name(ptr)); }
     uint32_t flags() const { return il2cpp_field_get_flags(ptr); }
     Class parent() const { return Class{il2cpp_field_get_parent(ptr)}; }
     size_t offset() const { return il2cpp_field_get_offset(ptr); }
@@ -390,7 +395,7 @@ struct Property {
     PropertyInfo *ptr{nullptr};
     explicit operator bool() const { return ptr != nullptr; }
 
-    std::string_view name() const { return il2cpp_property_get_name(ptr); }
+    std::string_view name() const { return apply_name_deobfuscations(il2cpp_property_get_name(ptr)); }
     Class parent() const { return Class{il2cpp_property_get_parent(ptr)}; }
     uint32_t flags() const { return il2cpp_property_get_flags(ptr); }
     Method getter() const { return Method{il2cpp_property_get_get_method(ptr)}; }
@@ -447,14 +452,14 @@ inline Image Assembly::image() const { return Image{il2cpp_assembly_get_image(pt
 
 inline Class Image::get_class(size_t index) const { return Class{const_cast<Il2CppClass *>(il2cpp_image_get_class(ptr, index))}; }
 
-inline std::optional<Class> Image::get_class(std::string_view namespaze, std::string_view name) {
+inline Class Image::get_class(std::string_view namespaze, std::string_view name) {
     const size_t max_idx = class_count();
     for (size_t idx = 0; idx != max_idx; ++idx) {
         Class klass = get_class(idx);
         if (klass.namespaze() == namespaze && klass.name() == name)
             return klass;
     }
-    return std::nullopt;
+    return {};
 }
 
 inline Field Class::get_field(const char *n) const { return Field{il2cpp_class_get_field_from_name(ptr, n)}; }
@@ -602,4 +607,66 @@ inline void set_temp_dir(const char *path) { il2cpp_set_temp_dir(path); }
 inline void set_command_line(int argc, const char *const argv[], const char *basedir) { il2cpp_set_commandline_arguments(argc, argv, basedir); }
 inline int init(const char *domain_name) { return il2cpp_init(domain_name); }
 inline void shutdown() { il2cpp_shutdown(); }
+
+// ======================== Method calling helpers ========================
+
+template <size_t N> struct StringLiteral {
+    constexpr StringLiteral(const char (&str)[N]) {
+        for (unsigned it = 0; it != N; ++it)
+            value[it] = str[it];
+    }
+
+    char value[N];
+    const size_t length = N - 1;
+
+    operator const char *() const { return value; }
+    operator std::string_view() const { return {value, length}; }
+};
+
+template <StringLiteral AssemblyName> Image get_image_cached() {
+    static Image fres = Domain::get().open_assembly((std::string(AssemblyName) + ".dll").c_str()).image();
+    return fres;
+}
+
+template <StringLiteral AssemblyName, StringLiteral NamespaceName, StringLiteral ClassName> Class get_class_cached() {
+    static Class fres = get_image_cached<AssemblyName>().get_class(NamespaceName, ClassName);
+    return fres;
+}
+
+template <StringLiteral AssemblyName, StringLiteral NamespaceName, StringLiteral ClassName, StringLiteral MethodName, size_t ArgCount>
+Method get_method_cached() {
+    static Method fres = get_class_cached<AssemblyName, NamespaceName, ClassName>().get_method(MethodName, ArgCount);
+    return fres;
+}
+
+template <StringLiteral AssemblyName, StringLiteral NamespaceName, StringLiteral ClassName, StringLiteral MethodName, typename... ArgsT>
+    requires((std::is_same_v<ArgsT, Object> || std::is_pointer_v<ArgsT>) && ...)
+Object call(Object __this, ArgsT... args) {
+    constexpr size_t ArgCount = sizeof...(ArgsT);
+    Method method = get_method_cached<AssemblyName, NamespaceName, ClassName, MethodName, ArgCount>();
+    if (!method)
+        throw Error(std::string("Attempted to call method that does not exist: ") + std::source_location::current().function_name());
+
+    auto convert_arg = [](auto&& arg) -> void * {
+        if constexpr (std::is_same_v<decltype(arg), Object&>)
+            return reinterpret_cast<void *>(arg.ptr);
+        else
+            return reinterpret_cast<void *>(std::forward<decltype(arg)>(arg));
+    };
+
+    std::array<void *, ArgCount> finalArgs{convert_arg(args)...};
+    return method.invoke(__this, finalArgs);
+}
+
+template <StringLiteral AssemblyName, StringLiteral NamespaceName, StringLiteral ClassName, StringLiteral MethodName, typename... ArgsT>
+    requires(std::is_same_v<ArgsT, Object> && ...)
+Object call_convert(Object __this, ArgsT... args) {
+    constexpr size_t ArgCount = sizeof...(ArgsT);
+    Method method = get_method_cached<AssemblyName, NamespaceName, ClassName, MethodName, ArgCount>();
+    if (!method)
+        throw Error(std::string("Attempted to call method that does not exist: ") + std::source_location::current().function_name());
+
+    std::array<Il2CppObject *, ArgCount> finalArgs{reinterpret_cast<void *>(args.ptr)...};
+    return method.invoke_convert(__this, finalArgs);
+}
 } // namespace Il2Cpp::API

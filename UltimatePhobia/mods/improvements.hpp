@@ -3,6 +3,7 @@
 #include "base.hpp"
 #include "game_hook.hpp"
 #include "game_enums.hpp"
+#include "il2cpp_api.hpp"
 
 #include <queue>
 #include <map>
@@ -14,7 +15,7 @@ class Improvements final : public Mod {
     bool autoGrabKeys = false, refillPills = false;
 
 public:
-    std::map<PainKillers_o *, common::Timer> painKillerTimers;
+    std::map<Il2CppObject *, common::Timer> painKillerTimers;
 
     GameHookPool hooks;
 
