@@ -132,10 +132,12 @@ add_executable(UltimatePhobia WIN32 main.cpp icon.rc
     il2cpp_api_cpp.hpp
     mods/explorer.hpp mods/explorer.cpp
     deobfuscations.hpp deobfuscations.cpp
+    il2cpp_api_cpp.cpp
 )
 target_link_libraries(UltimatePhobia PRIVATE dbghelp commoncpp spdlog imgui m3 wasm3_cpp ws2_32 elfldpp)
 target_include_directories(UltimatePhobia PRIVATE . ../il2cpp_dump)
 target_precompile_headers(UltimatePhobia PRIVATE ../il2cpp_dump/il2cpp.h generated/il2cpp.hpp)
+#target_precompile_headers(UltimatePhobia PRIVATE ../il2cpp_dump/il2cpp.h)
 target_compile_definitions(UltimatePhobia PUBLIC _CRT_SECURE_NO_WARNINGS COMPILER_INFO="${COMPILER_INFO}")
 if (ULTIMATEPHOBIA_CHEATS)
     target_compile_definitions(UltimatePhobia PRIVATE MOD_ENABLE_CHEATS)

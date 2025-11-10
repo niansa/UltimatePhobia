@@ -1,10 +1,8 @@
 #include "improvements.hpp"
 #include "global_instance_manager.hpp"
 #include "il2cpp_api_cpp.hpp"
-#include "il2cpp_cppinterop.hpp"
 #include "game_hook.hpp"
 #include "misc_utils.hpp"
-#include "generated/il2cpp.hpp"
 
 #include <memory>
 #include <chrono>
@@ -13,14 +11,16 @@
 
 static void key$$StartFnc(Key_o *__this, const MethodInfo *method) {
     const auto self = improvementsInfo.get<Improvements>();
-    auto hook = self->hooks.get(Il2Cpp::Key::Start_getPtr());
+    auto hook = self->hooks.get(Il2Cpp::API::get_method_cached<"Assembly-CSharp", "", "Key", "Start", 0>().function_pointer());
 
     // Start key first
     GameHookRelease GHR(*hook);
     hook->getFunction<decltype(key$$StartFnc)>()(__this, method);
 
     // Call GrabbedKey photon RPC
-    Il2Cpp::Photon::Pun::PhotonNetwork::RPC(__this->fields.view, Il2Cpp::CppInterop::ToCsString("GrabbedKey"), 0, false, nullptr);
+    using namespace Il2Cpp;
+    API::call(API::get_class_cached<"PhotonUnityNetworking", "Photon.Pun", "PhotonNetwork">(), "RPC", reinterpret_cast<Il2CppObject *>(__this->fields.view),
+              "GrabbedKey", 0, false, nullptr);
 }
 
 static void painKillers$$NetworkedUseFnc(Il2CppObject *__this, Photon_Pun_PhotonMessageInfo_o *messageInfo, const MethodInfo *method) {
@@ -34,19 +34,10 @@ static void painKillers$$NetworkedUseFnc(Il2CppObject *__this, Photon_Pun_Photon
     }
 
     using namespace Il2Cpp;
-    using namespace CppInterop;
 
-    // Get some types
-    static auto audioSourceType = []() -> API::Type {
-        return Il2Cpp::API::get_class_cached<"UnityEngine.AudioModule", "UnityEngine", "AudioSource">().type();
-    }();
-
-    // Get some context
-    auto gameObject = API::call<"UnityEngine.CoreModule", "UnityEngine", "Component", "get_gameObject">(__this);
-
-    // Play audio source
-    API::call<"UnityEngine.AudioModule", "UnityEngine", "AudioSource", "Play">(
-        API::call<"UnityEngine.CoreModule", "UnityEngine", "GameObject", "GetComponent">(gameObject, audioSourceType.object()));
+    // Get audio source
+    static auto audioSourceType = []() -> API::Type { return API::get_class_cached<"UnityEngine.AudioModule", "UnityEngine", "AudioSource">().type(); }();
+    API::call(API::call(API::call(__this, "get_gameObject"), "GetComponent", audioSourceType.object()), "Play");
 
     // Create timer
     self->painKillerTimers[__this] = common::Timer();
@@ -77,7 +68,7 @@ static void painKillers$$UseFnc(Il2CppObject *__this, const MethodInfo *method) 
     }
 
     GameHookRelease GHR(*hook);
-    Il2Cpp::API::call<"Assembly-CSharp", "", "PainKillers", "Use">(__this);
+    Il2Cpp::API::call(__this, "Use");
 }
 
 void Improvements::uiUpdate() {

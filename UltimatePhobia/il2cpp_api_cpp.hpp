@@ -9,6 +9,7 @@
 #include <span>
 #include <source_location>
 #include <utility>
+#include <spdlog/spdlog.h>
 
 namespace Il2Cpp::API {
 // ======================== Errors ========================
@@ -22,85 +23,6 @@ struct ManagedException : Error {
     explicit ManagedException(std::string msg, Il2CppException *e = nullptr) : Error(std::move(msg)), ex(e) {}
 };
 
-// ======================== Utils =========================
-
-namespace Utils {
-inline std::string utf16_to_utf8(std::u16string_view s) {
-    std::string out;
-    out.reserve(s.size()); // approximate
-
-    auto append = [&](char c) { out.push_back(c); };
-
-    for (size_t i = 0; i < s.size(); ++i) {
-        uint32_t code = s[i];
-        if (code >= 0xD800 && code <= 0xDBFF) { // high surrogate
-            if (i + 1 < s.size()) {
-                uint32_t low = s[i + 1];
-                if (low >= 0xDC00 && low <= 0xDFFF) {
-                    code = ((code - 0xD800) << 10) + (low - 0xDC00) + 0x10000;
-                    ++i;
-                }
-            }
-        }
-        if (code <= 0x7F) {
-            append(static_cast<char>(code));
-        } else if (code <= 0x7FF) {
-            append(static_cast<char>(0xC0 | ((code >> 6) & 0x1F)));
-            append(static_cast<char>(0x80 | (code & 0x3F)));
-        } else if (code <= 0xFFFF) {
-            append(static_cast<char>(0xE0 | ((code >> 12) & 0x0F)));
-            append(static_cast<char>(0x80 | ((code >> 6) & 0x3F)));
-            append(static_cast<char>(0x80 | (code & 0x3F)));
-        } else {
-            append(static_cast<char>(0xF0 | ((code >> 18) & 0x07)));
-            append(static_cast<char>(0x80 | ((code >> 12) & 0x3F)));
-            append(static_cast<char>(0x80 | ((code >> 6) & 0x3F)));
-            append(static_cast<char>(0x80 | (code & 0x3F)));
-        }
-    }
-    return out;
-}
-
-inline std::u16string utf8_to_utf16(std::string_view s) {
-    std::u16string out;
-    out.reserve(s.size());
-
-    auto next = [&](size_t& i) -> unsigned char {
-        if (i >= s.size())
-            return 0;
-        return static_cast<unsigned char>(s[i++]);
-    };
-
-    for (size_t i = 0; i < s.size();) {
-        uint32_t code;
-        unsigned char c0 = next(i);
-        if (c0 < 0x80) {
-            code = c0;
-        } else if ((c0 >> 5) == 0x6) {
-            unsigned char c1 = next(i);
-            code = ((c0 & 0x1F) << 6) | (c1 & 0x3F);
-        } else if ((c0 >> 4) == 0xE) {
-            unsigned char c1 = next(i), c2 = next(i);
-            code = ((c0 & 0x0F) << 12) | ((c1 & 0x3F) << 6) | (c2 & 0x3F);
-        } else if ((c0 >> 3) == 0x1E) {
-            unsigned char c1 = next(i), c2 = next(i), c3 = next(i);
-            code = ((c0 & 0x07) << 18) | ((c1 & 0x3F) << 12) | ((c2 & 0x3F) << 6) | (c3 & 0x3F);
-        } else {
-            code = 0xFFFD;
-        }
-
-        if (code <= 0xFFFF) {
-            out.push_back(static_cast<char16_t>(code));
-        } else {
-            code -= 0x10000;
-            out.push_back(static_cast<char16_t>(0xD800 + ((code >> 10) & 0x3FF)));
-            out.push_back(static_cast<char16_t>(0xDC00 + (code & 0x3FF)));
-        }
-    }
-    return out;
-}
-} // namespace Utils
-
 // Unique pointer for il2cpp_alloc/il2cpp_free buffers
 struct Il2CppDeleter {
     void operator()(void *p) const noexcept {
@@ -112,21 +34,8 @@ struct Il2CppDeleter {
 template <class T> using unique_il2cpp = std::unique_ptr<T, Il2CppDeleter>;
 
 // Helper to format managed exceptions
-inline std::string format_exception(Il2CppException *ex) {
-    if (!ex)
-        return {};
-    char buf[4096]{};
-    il2cpp_format_exception(ex, buf, static_cast<int>(sizeof(buf)));
-    return std::string(buf);
-}
-
-inline std::string format_stacktrace(Il2CppException *ex) {
-    if (!ex)
-        return {};
-    char buf[16384]{};
-    il2cpp_format_stack_trace(ex, buf, static_cast<int>(sizeof(buf)));
-    return std::string(buf);
-}
+std::string format_exception(Il2CppException *ex);
+std::string format_stacktrace(Il2CppException *ex);
 
 // ======================== RAII: Thread attach/detach ========================
 
@@ -223,7 +132,9 @@ struct String : Object {
         auto c = chars();
         return std::u16string(reinterpret_cast<const char16_t *>(c), reinterpret_cast<const char16_t *>(c) + len);
     }
-    std::string to_utf8() const { return Utils::utf16_to_utf8(to_u16string()); }
+    std::string to_utf8() const;
+
+    Object object() const { return Object{*this}; }
 };
 
 struct Domain {
@@ -271,6 +182,8 @@ struct Type {
     uint32_t attrs() const { return il2cpp_type_get_attrs(ptr); }
     int kind() const { return il2cpp_type_get_type(ptr); }
 
+    bool is_compatible_with(Class klass) const;
+
     std::string name_owned() const {
         unique_il2cpp<char> p{il2cpp_type_get_name(ptr)};
         return p ? std::string(apply_name_deobfuscations(p.get())) : std::string{};
@@ -315,6 +228,7 @@ struct Class {
     Class element_class() const { return Class{il2cpp_class_get_element_class(ptr)}; }
 
     Field get_field(const char *name) const;
+    Method get_method(const char *name, std::span<Class> args) const;
     Method get_method(const char *name, int args) const;
     Property get_property(const char *name) const;
 
@@ -412,108 +326,34 @@ struct Array {
             reinterpret_cast<Il2CppObject **>(reinterpret_cast<System_Byte_array *>(fres.ptr)->m_Items)[idx] = elements[idx].ptr;
         return fres;
     }
-    static Array New(Il2CppClass *element, std::size_t length) { return Array{il2cpp_array_new(element, static_cast<uint32_t>(length))}; }
+    static Array New(Class klass, std::size_t length) { return Array{il2cpp_array_new(klass.ptr, static_cast<uint32_t>(length))}; }
     static Array NewSpecific(Il2CppClass *arrayType, std::size_t length) { return Array{il2cpp_array_new_specific(arrayType, static_cast<uint32_t>(length))}; }
     uint32_t length() const { return il2cpp_array_length(ptr); }
     uint32_t byte_length() const { return il2cpp_array_get_byte_length(ptr); }
 
-    Object objectAt(size_t idx) { return Object{reinterpret_cast<Il2CppObject **>(reinterpret_cast<System_Byte_array *>(ptr)->m_Items)[idx]}; }
+    Object object() const { return Object{reinterpret_cast<Il2CppObject *>(ptr)}; }
+    Object object_at(size_t idx) const { return Object{reinterpret_cast<Il2CppObject **>(reinterpret_cast<System_Byte_array *>(ptr)->m_Items)[idx]}; }
 };
-
-inline Class Type::class_or_element() const { return Class{il2cpp_type_get_class_or_element_class(ptr)}; }
 
 // Implementations dependent on other wrappers
 
+inline Class Type::class_or_element() const { return Class{il2cpp_type_get_class_or_element_class(ptr)}; }
 inline Class Object::klass() const { return Class{il2cpp_object_get_class(ptr)}; }
 
-inline void *Object::unboxIfValue() {
-    if (ptr == nullptr)
-        return nullptr;
-
-    if (klass().is_value_type())
-        return il2cpp_object_unbox(ptr);
-
-    return reinterpret_cast<void *>(ptr);
-}
-
 inline Assembly Domain::open_assembly(const char *name) { return Assembly{il2cpp_domain_assembly_open(ptr, name)}; }
-
-inline std::vector<Assembly> Domain::get_assemblies() const {
-    size_t n = 0;
-    auto arr = il2cpp_domain_get_assemblies(ptr, &n);
-    std::vector<Assembly> out;
-    out.reserve(n);
-    for (size_t i = 0; i < n; ++i)
-        out.push_back(Assembly{arr[i]});
-    return out;
-}
 
 inline Image Assembly::image() const { return Image{il2cpp_assembly_get_image(ptr)}; }
 
 inline Class Image::get_class(size_t index) const { return Class{const_cast<Il2CppClass *>(il2cpp_image_get_class(ptr, index))}; }
 
-inline Class Image::get_class(std::string_view namespaze, std::string_view name) {
-    const size_t max_idx = class_count();
-    for (size_t idx = 0; idx != max_idx; ++idx) {
-        Class klass = get_class(idx);
-        if (klass.namespaze() == namespaze && klass.name() == name)
-            return klass;
-    }
-    return {};
+inline Field Class::get_field(const char *name) const { return Field{il2cpp_class_get_field_from_name(ptr, apply_name_obfuscations(name))}; }
+
+inline Method Class::get_method(const char *name, int args) const {
+    return Method{il2cpp_class_get_method_from_name(ptr, apply_name_obfuscations(name), args)};
 }
 
-inline Field Class::get_field(const char *n) const { return Field{il2cpp_class_get_field_from_name(ptr, apply_name_obfuscations(n))}; }
-
-inline Method Class::get_method(const char *n, int args) const { return Method{il2cpp_class_get_method_from_name(ptr, apply_name_obfuscations(n), args)}; }
-
-inline Property Class::get_property(const char *n) const {
-    return Property{const_cast<PropertyInfo *>(il2cpp_class_get_property_from_name(ptr, apply_name_obfuscations(n)))};
-}
-
-inline std::vector<Field> Class::fields() const {
-    std::vector<Field> out;
-    void *it = nullptr;
-    while (auto f = il2cpp_class_get_fields(ptr, &it))
-        out.push_back(Field{f});
-    return out;
-}
-inline std::vector<Method> Class::methods() const {
-    std::vector<Method> out;
-    void *it = nullptr;
-    while (auto m = il2cpp_class_get_methods(ptr, &it))
-        out.push_back(Method{m});
-    return out;
-}
-inline std::vector<Class> Class::nested_types() const {
-    std::vector<Class> out;
-    void *it = nullptr;
-    while (auto c = il2cpp_class_get_nested_types(ptr, &it))
-        out.push_back(Class{c});
-    return out;
-}
-
-inline std::vector<Property> Class::properties() const {
-    std::vector<Property> out;
-    void *it = nullptr;
-    while (auto c = il2cpp_class_get_properties(ptr, &it))
-        out.push_back(Property{const_cast<PropertyInfo *>(c)});
-    return out;
-}
-
-inline Object Method::invoke(Object obj, std::span<void *> args) const {
-    Il2CppException *exc = nullptr;
-    Il2CppObject *ret = il2cpp_runtime_invoke(ptr, obj.unboxIfValue(), const_cast<void **>(args.data()), &exc);
-    if (exc)
-        throw ManagedException(format_exception(exc) + "\n" + format_stacktrace(exc), exc);
-    return Object{ret};
-}
-
-inline Object Method::invoke_convert(Object obj, std::span<Il2CppObject *> args) const {
-    Il2CppException *exc = nullptr;
-    Il2CppObject *ret = il2cpp_runtime_invoke_convert_args(ptr, obj.unboxIfValue(), args.data(), static_cast<int>(args.size()), &exc);
-    if (exc)
-        throw ManagedException(format_exception(exc) + "\n" + format_stacktrace(exc), exc);
-    return Object{ret};
+inline Property Class::get_property(const char *name) const {
+    return Property{const_cast<PropertyInfo *>(il2cpp_class_get_property_from_name(ptr, apply_name_obfuscations(name)))};
 }
 
 // ======================== Monitor RAII ========================
@@ -643,34 +483,81 @@ Method get_method_cached() {
     return fres;
 }
 
-template <StringLiteral AssemblyName, StringLiteral NamespaceName, StringLiteral ClassName, StringLiteral MethodName, typename... ArgsT>
-    requires((std::is_same_v<ArgsT, Object> || std::is_pointer_v<ArgsT>) && ...)
-Object call(Object __this, ArgsT... args) {
-    constexpr size_t ArgCount = sizeof...(ArgsT);
-    Method method = get_method_cached<AssemblyName, NamespaceName, ClassName, MethodName, ArgCount>();
-    if (!method)
-        throw Error(std::string("Attempted to call method that does not exist: ") + std::source_location::current().function_name());
-
-    auto convert_arg = [](auto&& arg) -> void * {
-        if constexpr (std::is_same_v<decltype(arg), Object&>)
-            return reinterpret_cast<void *>(arg.ptr);
-        else
-            return reinterpret_cast<void *>(std::forward<decltype(arg)>(arg));
-    };
-
-    std::array<void *, ArgCount> finalArgs{convert_arg(args)...};
-    return method.invoke(__this, finalArgs);
+template <typename T> Class value_class(T value) {
+    if constexpr (std::is_same_v<T, std::nullptr_t>)
+        return Class{};
+    else if constexpr (std::is_same_v<T, Object>)
+        return value.klass();
+    else if constexpr (std::is_same_v<T, String> || std::is_same_v<T, Array>)
+        return value.object().klass();
+    else if constexpr (std::is_same_v<T, Il2CppObject *>)
+        return Object{value}.klass();
+    else if constexpr (std::is_same_v<T, std::string_view> || std::is_same_v<T, std::string> || std::is_same_v<T, const char *>)
+        return get_class_cached<"mscorlib", "System", "String">();
+    else if constexpr (std::is_same_v<T, bool>)
+        return get_class_cached<"mscorlib", "System", "Boolean">();
+    else if constexpr (std::is_same_v<T, int8_t>)
+        return get_class_cached<"mscorlib", "System", "SByte">();
+    else if constexpr (std::is_same_v<T, uint8_t>)
+        return get_class_cached<"mscorlib", "System", "Byte">();
+    else if constexpr (std::is_same_v<T, int16_t>)
+        return get_class_cached<"mscorlib", "System", "Int16">();
+    else if constexpr (std::is_same_v<T, uint16_t>)
+        return get_class_cached<"mscorlib", "System", "UInt16">();
+    else if constexpr (std::is_same_v<T, int32_t>)
+        return get_class_cached<"mscorlib", "System", "Int32">();
+    else if constexpr (std::is_same_v<T, uint32_t>)
+        return get_class_cached<"mscorlib", "System", "UInt32">();
+    else if constexpr (std::is_same_v<T, int64_t>)
+        return get_class_cached<"mscorlib", "System", "Int64">();
+    else if constexpr (std::is_same_v<T, uint64_t>)
+        return get_class_cached<"mscorlib", "System", "UInt64">();
+    else if constexpr (std::is_pointer_v<T>)
+        return Object{reinterpret_cast<Il2CppObject *>(value)}.klass();
+    else
+        static_assert(false, "Value is not boxable");
 }
 
-template <StringLiteral AssemblyName, StringLiteral NamespaceName, StringLiteral ClassName, StringLiteral MethodName, typename... ArgsT>
-    requires(std::is_same_v<ArgsT, Object> && ...)
-Object call_convert(Object __this, ArgsT... args) {
-    constexpr size_t ArgCount = sizeof...(ArgsT);
-    Method method = get_method_cached<AssemblyName, NamespaceName, ClassName, MethodName, ArgCount>();
-    if (!method)
-        throw Error(std::string("Attempted to call method that does not exist: ") + std::source_location::current().function_name());
+template <typename T> Object value_box(T value) {
+    if constexpr (std::is_same_v<T, std::nullptr_t>)
+        return Object{};
+    else if constexpr (std::is_same_v<T, Object>)
+        return value;
+    else if constexpr (std::is_same_v<T, String> || std::is_same_v<T, Array>)
+        return value.object();
+    else if constexpr (std::is_same_v<T, std::string_view> || std::is_same_v<T, std::string> || std::is_same_v<T, const char *>)
+        return String::New(value);
+    else if constexpr (std::is_pointer_v<T>)
+        return Object{reinterpret_cast<Il2CppObject *>(value)};
+    else
+        return value_box(value_class<T>(value), value);
+}
 
-    std::array<Il2CppObject *, ArgCount> finalArgs{reinterpret_cast<void *>(args.ptr)...};
-    return method.invoke_convert(__this, finalArgs);
+template <typename... ArgsT> Object call(Object __this, const char *methodName, ArgsT... args) {
+    constexpr size_t ArgCount = sizeof...(ArgsT);
+    std::array<Il2CppObject *, ArgCount> csArgs{value_box(args).ptr...};
+    std::array<Class, ArgCount> csArgClasses = {value_class(args)...};
+    Method method = __this.klass().get_method(methodName, csArgClasses);
+
+    if (!method) {
+        throw Error(fmt::format("Attempted to call non-existent method '{}' on instance of class '{}' using function '{}' with {} arguments", methodName,
+                                __this.klass().name(), std::source_location::current().function_name(), ArgCount));
+    }
+
+    return method.invoke_convert(__this, csArgs);
+}
+
+template <typename... ArgsT> Object call(Class klass, const char *methodName, ArgsT... args) {
+    constexpr size_t ArgCount = sizeof...(ArgsT);
+    std::array<Il2CppObject *, ArgCount> csArgs{value_box(args).ptr...};
+    std::array<Class, ArgCount> csArgClasses = {value_class(args)...};
+    Method method = klass.get_method(methodName, csArgClasses);
+
+    if (!method) {
+        throw Error(fmt::format("Attempted to call non-existent static method '{}' on class '{}' using function '{}' with {} arguments", methodName,
+                                klass.name(), std::source_location::current().function_name(), ArgCount));
+    }
+
+    return method.invoke_convert({}, csArgs);
 }
 } // namespace Il2Cpp::API
