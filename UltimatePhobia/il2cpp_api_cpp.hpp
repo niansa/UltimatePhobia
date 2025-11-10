@@ -468,7 +468,16 @@ template <size_t N> struct StringLiteral {
 };
 
 template <StringLiteral AssemblyName> Image get_image_cached() {
-    static Image fres = Domain::get().open_assembly((std::string(AssemblyName) + ".dll").c_str()).image();
+    char full_name[AssemblyName.length + 5];
+    size_t idx = 0;
+    for (; idx != AssemblyName.length; ++idx)
+        full_name[idx] = AssemblyName.value[idx];
+    full_name[idx++] = '.';
+    full_name[idx++] = 'd';
+    full_name[idx++] = 'l';
+    full_name[idx++] = 'l';
+    full_name[idx++] = '\0';
+    static Image fres = Domain::get().open_assembly(full_name).image();
     return fres;
 }
 
@@ -539,10 +548,9 @@ template <typename... ArgsT> Object call(Object __this, const char *methodName, 
     std::array<Class, ArgCount> csArgClasses = {value_class(args)...};
     Method method = __this.klass().get_method(methodName, csArgClasses);
 
-    if (!method) {
+    if (!method)
         throw Error(fmt::format("Attempted to call non-existent method '{}' on instance of class '{}' using function '{}' with {} arguments", methodName,
                                 __this.klass().name(), std::source_location::current().function_name(), ArgCount));
-    }
 
     return method.invoke_convert(__this, csArgs);
 }
@@ -553,10 +561,9 @@ template <typename... ArgsT> Object call(Class klass, const char *methodName, Ar
     std::array<Class, ArgCount> csArgClasses = {value_class(args)...};
     Method method = klass.get_method(methodName, csArgClasses);
 
-    if (!method) {
+    if (!method)
         throw Error(fmt::format("Attempted to call non-existent static method '{}' on class '{}' using function '{}' with {} arguments", methodName,
                                 klass.name(), std::source_location::current().function_name(), ArgCount));
-    }
 
     return method.invoke_convert({}, csArgs);
 }

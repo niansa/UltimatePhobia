@@ -3,6 +3,8 @@
 #include "il2cpp_dynamic.hpp"
 #include "il2cpp_cppinterop.hpp"
 #include "il2cpp_api.hpp"
+#include "il2cpp_api_cpp.hpp"
+#include "deobfuscations.hpp"
 #include "game_hook.hpp"
 #include "ffi_loader.hpp"
 #include "anycall.hpp"
@@ -71,6 +73,19 @@ HandleCollection<MethodInfoHandle, Il2Cpp::API::MethodInfo> methodInfoHandles;
 HandleCollection<FieldHandle, Il2Cpp::API::FieldInfo> fieldHandles;
 HandleCollection<PropertyHandle, Il2Cpp::API::PropertyInfo> propertyHandles;
 HandleCollection<EventHandle, Il2Cpp::API::EventInfo> eventHandles;
+
+// Argument stack
+std::vector<void *> call_args;
+void *return_value;
+std::string call_error;
+
+void *getValue(int32_t index) {
+    if (index < 0)
+        return return_value;
+    if (index > call_args.size())
+        return nullptr;
+    return call_args[index];
+}
 } // namespace
 
 ObjectHandle getNull() { return 0; }
@@ -107,8 +122,8 @@ ImageHandle getImageCorlib() {
         reinterpret_cast<const Il2Cpp::API::Il2CppImage *>(reinterpret_cast<const void *>(Il2Cpp::API::il2cpp_get_corlib()))));
 }
 ClassHandle getClassFromName(ImageHandle image, const char *namespaze, const char *name) {
-    return classHandles.add(reinterpret_cast<Il2Cpp::API::Il2CppClass *>(
-        Il2Cpp::API::il2cpp_class_from_name(reinterpret_cast<Il2Cpp::API::Il2CppImage *>(imageHandles.get(image)), namespaze, name)));
+    return classHandles.add(reinterpret_cast<Il2Cpp::API::Il2CppClass *>(Il2Cpp::API::il2cpp_class_from_name(
+        reinterpret_cast<Il2Cpp::API::Il2CppImage *>(imageHandles.get(image)), apply_name_obfuscations(namespaze), apply_name_obfuscations(name))));
 }
 
 // Arrays
@@ -213,8 +228,8 @@ ClassHandle classGetElementClass(ClassHandle klass) {
     return classHandles.add(Il2Cpp::API::il2cpp_class_get_element_class(reinterpret_cast<Il2Cpp::API::Il2CppClass *>(classHandles.get(klass))));
 }
 ObjectHandle classGetName(ClassHandle klass) {
-    return objectHandles.add(
-        Il2Cpp::CppInterop::ToCsString(Il2Cpp::API::il2cpp_class_get_name(reinterpret_cast<Il2Cpp::API::Il2CppClass *>(classHandles.get(klass)))));
+    return objectHandles.add(Il2Cpp::CppInterop::ToCsString(
+        apply_name_deobfuscations(Il2Cpp::API::il2cpp_class_get_name(reinterpret_cast<Il2Cpp::API::Il2CppClass *>(classHandles.get(klass))))));
 }
 ObjectHandle classGetNamespace(ClassHandle klass) {
     return objectHandles.add(
@@ -310,22 +325,54 @@ MethodInfoHandle classGetMethodAt(ClassHandle klass, int32_t index) {
     return methodInfoHandles.add(const_cast<Il2Cpp::API::MethodInfo *>(res));
 }
 PropertyHandle classGetPropertyFromName(ClassHandle klass, const char *name) {
-    return propertyHandles.add(const_cast<Il2Cpp::API::PropertyInfo *>(
-        Il2Cpp::API::il2cpp_class_get_property_from_name(reinterpret_cast<Il2Cpp::API::Il2CppClass *>(classHandles.get(klass)), name)));
+    return propertyHandles.add(const_cast<Il2Cpp::API::PropertyInfo *>(Il2Cpp::API::il2cpp_class_get_property_from_name(
+        reinterpret_cast<Il2Cpp::API::Il2CppClass *>(classHandles.get(klass)), apply_name_obfuscations(name))));
 }
 FieldHandle classGetFieldFromName(ClassHandle klass, const char *name) {
-    return fieldHandles.add(Il2Cpp::API::il2cpp_class_get_field_from_name(reinterpret_cast<Il2Cpp::API::Il2CppClass *>(classHandles.get(klass)), name));
+    return fieldHandles.add(
+        Il2Cpp::API::il2cpp_class_get_field_from_name(reinterpret_cast<Il2Cpp::API::Il2CppClass *>(classHandles.get(klass)), apply_name_obfuscations(name)));
 }
-MethodInfoHandle classGetMethodFromName(ClassHandle klass, const char *name, int32_t argsCount) {
-    return methodInfoHandles.add(const_cast<Il2Cpp::API::MethodInfo *>(
-        Il2Cpp::API::il2cpp_class_get_method_from_name(reinterpret_cast<Il2Cpp::API::Il2CppClass *>(classHandles.get(klass)), name, argsCount)));
+MethodInfoHandle classGetMethodFromName(ClassHandle klass, const char *name, int32_t argCount) {
+    return methodInfoHandles.add(const_cast<Il2Cpp::API::MethodInfo *>(Il2Cpp::API::il2cpp_class_get_method_from_name(
+        reinterpret_cast<Il2Cpp::API::Il2CppClass *>(classHandles.get(klass)), apply_name_obfuscations(name), argCount)));
+}
+MethodInfoHandle classGetMethodFromNameAndTypes(ClassHandle klass, const char *name, int32_t argCount) {
+    // Handle unknown argument count
+    if (argCount == unknownArgCount)
+        argCount = call_args.size();
+
+    // Make sure argCount matches argument count
+    else if (argCount != call_args.size()) {
+        call_error = fmt::format("Mismatched added ({}) vs. passed ({}) arg count", call_args.size(), argCount);
+        g.logger->warn("FFI interface failed to find function '{}': {}", name, call_error);
+        return -1;
+    }
+
+    // Build vector
+    std::vector<Il2Cpp::API::Class> argClasses;
+    for (size_t idx = 0; idx != argCount; ++idx)
+        argClasses.emplace_back(reinterpret_cast<Il2Cpp::API::Il2CppClass *>(call_args[idx]));
+
+    // Get class pointer
+    Il2Cpp::API::Class il2cppKlass{classHandles.get(klass)};
+    if (!il2cppKlass) {
+        call_error = fmt::format("null passed as parent class, don't know where to look", call_args.size(), argCount);
+        g.logger->warn("FFI interface failed to find function '{}': {}", name, call_error);
+        return -1;
+    }
+
+    // Reuse existing code from C++ wrapper
+    auto fres = il2cppKlass.get_method(name, argClasses).ptr;
+
+    // Return result
+    return methodInfoHandles.add(const_cast<Il2Cpp::API::MethodInfo *>(fres));
 }
 
 // Exceptions
 void exceptionRaise(ObjectHandle ex) { Il2Cpp::API::il2cpp_raise_exception(reinterpret_cast<Il2Cpp::API::Il2CppException *>(objectHandles.get(ex))); }
 ObjectHandle exceptionFromNameMsg(ImageHandle image, const char *namespaze, const char *name, const char *msg) {
-    return objectHandles.add(
-        Il2Cpp::API::il2cpp_exception_from_name_msg(reinterpret_cast<const Il2Cpp::API::Il2CppImage *>(imageHandles.get(image)), namespaze, name, msg));
+    return objectHandles.add(Il2Cpp::API::il2cpp_exception_from_name_msg(reinterpret_cast<const Il2Cpp::API::Il2CppImage *>(imageHandles.get(image)),
+                                                                         apply_name_obfuscations(namespaze), apply_name_obfuscations(name), msg));
 }
 ObjectHandle exceptionGetArgumentNull(const char *arg) { return objectHandles.add(Il2Cpp::API::il2cpp_get_exception_argument_null(arg)); }
 ObjectHandle exceptionFormat(ObjectHandle ex) {
@@ -343,8 +390,8 @@ void exceptionUnhandled(ObjectHandle ex) { Il2Cpp::API::il2cpp_unhandled_excepti
 // Fields
 int32_t fieldGetFlags(FieldHandle field) { return Il2Cpp::API::il2cpp_field_get_flags(reinterpret_cast<Il2Cpp::API::FieldInfo *>(fieldHandles.get(field))); }
 ObjectHandle fieldGetName(FieldHandle field) {
-    return objectHandles.add(
-        Il2Cpp::CppInterop::ToCsString(Il2Cpp::API::il2cpp_field_get_name(reinterpret_cast<Il2Cpp::API::FieldInfo *>(fieldHandles.get(field)))));
+    return objectHandles.add(Il2Cpp::CppInterop::ToCsString(
+        apply_name_deobfuscations(Il2Cpp::API::il2cpp_field_get_name(reinterpret_cast<Il2Cpp::API::FieldInfo *>(fieldHandles.get(field))))));
 }
 ClassHandle fieldGetParent(FieldHandle field) {
     return classHandles.add(Il2Cpp::API::il2cpp_field_get_parent(reinterpret_cast<Il2Cpp::API::FieldInfo *>(fieldHandles.get(field))));
@@ -481,8 +528,8 @@ ClassHandle methodInfoGetDeclaringType(MethodInfoHandle method) {
     return classHandles.add(Il2Cpp::API::il2cpp_method_get_declaring_type(reinterpret_cast<const Il2Cpp::API::MethodInfo *>(methodInfoHandles.get(method))));
 }
 ObjectHandle methodInfoGetName(MethodInfoHandle method) {
-    return objectHandles.add(
-        Il2Cpp::CppInterop::ToCsString(Il2Cpp::API::il2cpp_method_get_name(reinterpret_cast<const Il2Cpp::API::MethodInfo *>(methodInfoHandles.get(method)))));
+    return objectHandles.add(Il2Cpp::CppInterop::ToCsString(
+        apply_name_deobfuscations(Il2Cpp::API::il2cpp_method_get_name(reinterpret_cast<const Il2Cpp::API::MethodInfo *>(methodInfoHandles.get(method))))));
 }
 MethodInfoHandle methodInfoGetFromReflection(ObjectHandle reflectionMethod) {
     return methodInfoHandles.add(const_cast<Il2Cpp::API::MethodInfo *>(
@@ -545,8 +592,8 @@ MethodInfoHandle propertyGetSetMethod(PropertyHandle prop) {
         Il2Cpp::API::il2cpp_property_get_set_method(reinterpret_cast<Il2Cpp::API::PropertyInfo *>(propertyHandles.get(prop)))));
 }
 ObjectHandle propertyGetName(PropertyHandle prop) {
-    return objectHandles.add(
-        Il2Cpp::CppInterop::ToCsString(Il2Cpp::API::il2cpp_property_get_name(reinterpret_cast<Il2Cpp::API::PropertyInfo *>(propertyHandles.get(prop)))));
+    return objectHandles.add(Il2Cpp::CppInterop::ToCsString(
+        apply_name_deobfuscations(Il2Cpp::API::il2cpp_property_get_name(reinterpret_cast<Il2Cpp::API::PropertyInfo *>(propertyHandles.get(prop))))));
 }
 ClassHandle propertyGetParent(PropertyHandle prop) {
     return classHandles.add(Il2Cpp::API::il2cpp_property_get_parent(reinterpret_cast<Il2Cpp::API::PropertyInfo *>(propertyHandles.get(prop))));
@@ -658,7 +705,7 @@ ClassHandle typeGetClassOrElementClass(TypeHandle type) {
 }
 ObjectHandle typeGetName(TypeHandle type) {
     char *name = Il2Cpp::API::il2cpp_type_get_name(reinterpret_cast<const Il2Cpp::API::Il2CppType *>(typeHandles.get(type)));
-    return objectHandles.add(Il2Cpp::CppInterop::ToCsString(name ? name : ""));
+    return objectHandles.add(Il2Cpp::CppInterop::ToCsString(name ? apply_name_deobfuscations(name) : ""));
 }
 WIBool typeIsByRef(TypeHandle type) { return Il2Cpp::API::il2cpp_type_is_byref(reinterpret_cast<const Il2Cpp::API::Il2CppType *>(typeHandles.get(type))); }
 int32_t typeGetAttrs(TypeHandle type) { return Il2Cpp::API::il2cpp_type_get_attrs(reinterpret_cast<const Il2Cpp::API::Il2CppType *>(typeHandles.get(type))); }
@@ -740,25 +787,12 @@ WIBool registerICallMethod(const char *identifier, const char *typeSignature) {
 }
 
 // Argument stack management
-namespace {
-std::vector<void *> call_args;
-void *return_value;
-std::string call_error;
-
-void *getValue(int32_t index) {
-    if (index < 0)
-        return return_value;
-    if (index > call_args.size())
-        return nullptr;
-    return call_args[index];
-}
-} // namespace
-
 void addArgI32(int32_t v) { call_args.push_back(bit_cast<void *>(v)); }
 void addArgI64(int64_t v) { call_args.push_back(bit_cast<void *>(v)); }
 void addArgFloat(float v) { call_args.push_back(bit_cast<void *>(v)); }
 void addArgDouble(double v) { call_args.push_back(bit_cast<void *>(v)); }
 void addArgObject(ObjectHandle v) { call_args.push_back(objectHandles.get(v)); }
+void addArgClass(ClassHandle v) { call_args.push_back(classHandles.get(v)); }
 void addArgNull() { call_args.push_back(nullptr); }
 void clearArgs() { call_args.clear(); }
 
@@ -793,9 +827,16 @@ ObjectHandle getCallError() { return objectHandles.add(Il2Cpp::CppInterop::ToCsS
 namespace {
 void logBadCall(MethodHandle index) {
     const auto& method = Il2Cpp::Dynamic::getMethod(index);
-    g.logger->warn("FFI` interface failed to call function '{}': {}",
-                   method.isValid() ? method.signature.empty() ? method.name : method.signature : "<invalid>", call_error);
+    g.logger->warn("FFI interface failed to call function '{}': {}", method.isValid() ? method.signature.empty() ? method.name : method.signature : "<invalid>",
+                   call_error);
 }
+void logBadCall(Il2Cpp::API::MethodInfo *methodInfo) {
+    Il2Cpp::API::Method method{methodInfo};
+    g.logger->warn("FFI interface failed to call function '{}': {}",
+                   method ? fmt::format("{} in {}", method.name(), method.declaring_type().name()) : "<invalid>", call_error);
+}
+void logBadCall(const char *name) { g.logger->warn("FFI interface failed to call function '{}': {}", name, call_error); }
+void logBadCall() { g.logger->warn("FFI interface failed to call unkown function: {}", call_error); }
 } // namespace
 
 WIBool call2(MethodHandle index, int32_t argCount, WIBool returnsStruct) {
@@ -826,8 +867,7 @@ WIBool call2(MethodHandle index, int32_t argCount, WIBool returnsStruct) {
         return false;
     }
 
-    // Back up current mod in case called function triggers hook from another
-    // mod
+    // Back up current mod in case called function triggers hook from another mod
     ModInfo *currentModBackup = FFILoader::FFIMod::getCurrent();
 
     // Call function
@@ -838,10 +878,16 @@ WIBool call2(MethodHandle index, int32_t argCount, WIBool returnsStruct) {
             return_value =
                 reinterpret_cast<void *>(AnyCall::call(reinterpret_cast<const uintptr_t *>(args.data()), method.getFullAddress(), method.typeSignature));
         } else {
+            // Lock array to prevent its deletion
+            Il2Cpp::API::GcHandle AGH(reinterpret_cast<Il2Cpp::API::Il2CppObject *>(return_value), true);
+            // Get pointer/reference into array
             auto *dataDest = reinterpret_cast<System_Byte_array *>(return_value);
+            const size_t& dataLength = dataDest->bounds->length;
+            // AnyCall specified function
             const AnyCall::Struct returnData =
                 AnyCall::callStruct(reinterpret_cast<const uintptr_t *>(args.data()), method.getFullAddress(), method.typeSignature);
-            std::memcpy(dataDest->m_Items, &returnData, sizeof(returnData));
+            // Copy function result into array
+            std::memcpy(dataDest->m_Items, &returnData, std::min<size_t>(dataLength, sizeof(returnData)));
             return_value = dataDest;
         }
     } catch (const std::exception& e) {
@@ -857,14 +903,70 @@ WIBool call2(MethodHandle index, int32_t argCount, WIBool returnsStruct) {
     // Restore current mod (see comment near declaration)
     FFILoader::FFIMod::setCurrent(currentModBackup);
 
-    // Clear arguments again in case called function ended up adding arguments
-    // through hook
+    // Clear arguments again in case called function ended up adding arguments through hook
     call_args.clear();
 
     // Everything seems to have gone well
     return fres;
 }
 WIBool call(MethodHandle index, int32_t argCount) { return call2(index, argCount, false); }
+
+ObjectHandle call3(MethodInfoHandle handle, int32_t argCount) {
+    // Handle unknown argument count
+    if (argCount == unknownArgCount)
+        argCount = call_args.size();
+
+    // Get method
+    const auto method = methodInfoHandles.get(handle);
+    if (!method) {
+        call_error = fmt::format("Bad method handle ({})", handle);
+        logBadCall();
+        return -1;
+    }
+
+    // Make sure argCount matches argument count
+    else if (argCount != call_args.size() - 1) {
+        call_error = fmt::format("Mismatched added ({}) vs. passed ({}) arg count", call_args.size(), argCount);
+        logBadCall(method);
+        return -1;
+    }
+
+    // Make sure object instance is passed
+    if (call_args.empty()) {
+        call_error = fmt::format("Missing object instance", call_args.size(), argCount);
+        logBadCall(method);
+        return -1;
+    }
+
+    // Check argument count
+    const auto actualArgCount = Il2Cpp::API::il2cpp_method_get_param_count(method);
+    if (argCount != actualArgCount) {
+        call_error = fmt::format("Mismatched passed ({}) vs. actual ({}) arg count", argCount, actualArgCount);
+        logBadCall(method);
+        return -1;
+    }
+
+    // Back up current mod in case called function triggers hook from another mod
+    ModInfo *currentModBackup = FFILoader::FFIMod::getCurrent();
+
+    // Call function
+    Il2Cpp::API::Object __this = reinterpret_cast<Il2Cpp::API::Il2CppObject *>(call_args[0]);
+
+    auto args = std::move(std::exchange(call_args, {}));
+    Il2Cpp::API::Il2CppException *exc = nullptr;
+    Il2CppObject *fres = Il2Cpp::API::il2cpp_runtime_invoke_convert_args(method, __this.unboxIfValue(), reinterpret_cast<Il2CppObject **>(args.data() + 1),
+                                                                         static_cast<int>(args.size() - 1), &exc);
+    return_value = exc ? nullptr : fres;
+
+    // Restore current mod (see comment near declaration)
+    FFILoader::FFIMod::setCurrent(currentModBackup);
+
+    // Clear arguments again in case called function ended up adding arguments through hook
+    call_args.clear();
+
+    // Everything seems to have gone well
+    return objectHandles.add(exc);
+}
 
 // Hooks
 namespace {
