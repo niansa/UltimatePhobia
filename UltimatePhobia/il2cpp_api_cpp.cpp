@@ -194,7 +194,7 @@ Field Class::get_field(Class klass) const {
 }
 
 Method Il2Cpp::API::Class::get_method(const char *name, std::span<Class> args) const {
-    g.logger->debug("Scanning for '{}' in '{}'...", name, this->name());
+    g.logger->debug("Scanning for '{}' in '{}.{}'...", name, this->namespaze(), this->name());
     void *it = nullptr;
     while (auto m = Method{il2cpp_class_get_methods(ptr, &it)}) {
         if (m.name() != name)
