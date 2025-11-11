@@ -954,7 +954,7 @@ ObjectHandle call3(MethodInfoHandle handle, int32_t argCount) {
 
     auto args = std::move(std::exchange(call_args, {}));
     Il2Cpp::API::Il2CppException *exc = nullptr;
-    Il2CppObject *fres = Il2Cpp::API::il2cpp_runtime_invoke_convert_args(method, __this.unboxIfValue(), reinterpret_cast<Il2CppObject **>(args.data() + 1),
+    Il2CppObject *fres = Il2Cpp::API::il2cpp_runtime_invoke_convert_args(method, __this.unbox_if_value(), reinterpret_cast<Il2CppObject **>(args.data() + 1),
                                                                          static_cast<int>(args.size() - 1), &exc);
     return_value = exc ? nullptr : fres;
 

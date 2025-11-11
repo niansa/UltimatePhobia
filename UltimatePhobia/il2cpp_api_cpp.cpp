@@ -147,7 +147,7 @@ bool Il2Cpp::API::Type::is_compatible_with(Class klass) const {
     }
 }
 
-void *Il2Cpp::API::Object::unboxIfValue() {
+void *Il2Cpp::API::Object::unbox_if_value() {
     if (ptr == nullptr)
         return nullptr;
 
@@ -195,6 +195,7 @@ Field Class::get_field(Class klass) const {
 
 Method Il2Cpp::API::Class::get_method(const char *name, std::span<Class> args) const {
     g.logger->debug("Scanning for '{}' in '{}.{}'...", name, this->namespaze(), this->name());
+
     void *it = nullptr;
     while (auto m = Method{il2cpp_class_get_methods(ptr, &it)}) {
         if (m.name() != name)
@@ -219,6 +220,7 @@ Method Il2Cpp::API::Class::get_method(const char *name, std::span<Class> args) c
             continue;
 
         // This is the one!
+        g.logger->debug("Method '{}' was found in '{}.{}'", m.name(), this->namespaze(), this->name());
         return m;
     }
 
@@ -265,7 +267,7 @@ std::vector<Property> Il2Cpp::API::Class::properties() const {
 
 Object Il2Cpp::API::Method::invoke(Object obj, std::span<void *> args) const {
     Il2CppException *exc = nullptr;
-    Il2CppObject *ret = il2cpp_runtime_invoke(ptr, obj.unboxIfValue(), const_cast<void **>(args.data()), &exc);
+    Il2CppObject *ret = il2cpp_runtime_invoke(ptr, obj.unbox_if_value(), const_cast<void **>(args.data()), &exc);
     if (exc)
         throw ManagedException(format_exception(exc) + "\n" + format_stacktrace(exc), exc);
     return Object{ret};
@@ -273,7 +275,7 @@ Object Il2Cpp::API::Method::invoke(Object obj, std::span<void *> args) const {
 
 Object Il2Cpp::API::Method::invoke_convert(Object obj, std::span<Il2CppObject *> args) const {
     Il2CppException *exc = nullptr;
-    Il2CppObject *ret = il2cpp_runtime_invoke_convert_args(ptr, obj.unboxIfValue(), args.data(), static_cast<int>(args.size()), &exc);
+    Il2CppObject *ret = il2cpp_runtime_invoke_convert_args(ptr, obj.unbox_if_value(), args.data(), static_cast<int>(args.size()), &exc);
     if (exc)
         throw ManagedException(format_exception(exc) + "\n" + format_stacktrace(exc), exc);
     return Object{ret};

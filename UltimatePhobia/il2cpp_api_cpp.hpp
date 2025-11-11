@@ -108,6 +108,8 @@ struct Assembly;
 
 struct Object {
     Il2CppObject *ptr;
+    std::shared_ptr<GcHandle> gc_handle;
+
     Object() : ptr(nullptr) {}
     Object(Il2CppObject *object) : ptr(object) {}
     explicit operator bool() const { return ptr != nullptr; }
@@ -115,7 +117,9 @@ struct Object {
     Class klass() const;
     uint32_t size() const { return il2cpp_object_get_size(ptr); }
     const MethodInfo *get_virtual_method(const MethodInfo *m) const { return il2cpp_object_get_virtual_method(ptr, m); }
-    void *unboxIfValue();
+    void *unbox_if_value();
+
+    void lock_gc(bool pinned = false) { gc_handle = std::make_shared<GcHandle>(ptr, pinned); }
 };
 
 struct String : Object {

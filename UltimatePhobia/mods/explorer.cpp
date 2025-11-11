@@ -632,13 +632,11 @@ void Explorer::invokeSelectedMethod() {
             }
         }
 
-        Object ret = selectedMethod.invoke_convert(thisObj, [args]() mutable {
-            // Little bit of a hack, but it's really fast
-            std::span<Object> ospan(args);
-            std::span<Il2CppObject *>& fres = *reinterpret_cast<std::span<Il2CppObject *> *>(&ospan);
-            static_assert(sizeof(ospan[0]) == sizeof(fres[0]));
-            return fres;
-        }());
+        std::vector<Il2CppObject *> rawArgs;
+        for (Object& arg : args)
+            rawArgs.push_back(arg.ptr);
+
+        Object ret = selectedMethod.invoke_convert(thisObj, rawArgs);
         if (ret) {
             callState.lastReturn = objectToString(ret);
             callState.lastReturnObject = GcHandle(ret.ptr); // keep alive for inspection if needed
