@@ -228,6 +228,7 @@ struct Class {
     Class element_class() const { return Class{il2cpp_class_get_element_class(ptr)}; }
 
     Field get_field(const char *name) const;
+    Field get_field(Class klass) const;
     Method get_method(const char *name, std::span<Class> args) const;
     Method get_method(const char *name, int args) const;
     Property get_property(const char *name) const;
@@ -283,15 +284,15 @@ struct Field {
     bool has_attribute(Class attr_class) const { return il2cpp_field_has_attribute(ptr, attr_class.ptr); }
     bool is_literal() const { return il2cpp_field_is_literal(ptr); }
 
-    template <class T> T get_value(Il2CppObject *obj) const {
+    template <class T> T get_value(Object obj) const {
         T v{};
-        il2cpp_field_get_value(obj, ptr, &v);
+        il2cpp_field_get_value(obj.ptr, ptr, &v);
         return v;
     }
-    Il2CppObject *get_value_object(Il2CppObject *obj) const { return il2cpp_field_get_value_object(ptr, obj); }
-    template <class T> void set_value(Il2CppObject *obj, const T& v) const {
+    Object get_value_object(Object obj) const { return Object{il2cpp_field_get_value_object(ptr, obj.ptr)}; }
+    template <class T> void set_value(Object obj, const T& v) const {
         T copy = v;
-        il2cpp_field_set_value(obj, ptr, &copy);
+        il2cpp_field_set_value(obj.ptr, ptr, &copy);
     }
     template <class T> T static_get_value() const {
         T v{};
@@ -302,7 +303,7 @@ struct Field {
         T copy = v;
         il2cpp_field_static_set_value(ptr, &copy);
     }
-    void set_value_object(Il2CppObject *obj, Il2CppObject *value) const { il2cpp_field_set_value_object(obj, ptr, value); }
+    void set_value_object(Object obj, Object value) const { il2cpp_field_set_value_object(obj.ptr, ptr, value.ptr); }
 };
 
 struct Property {
@@ -542,29 +543,58 @@ template <typename T> Object value_box(T value) {
         return value_box(value_class<T>(value), value);
 }
 
-template <typename... ArgsT> Object call(Object __this, const char *methodName, ArgsT... args) {
+struct CachedMethodLookup {
+    CachedMethodLookup(const char *methodName) : methodName(methodName) {}
+
+    CachedMethodLookup(const CachedMethodLookup&) = delete;
+    CachedMethodLookup& operator=(const CachedMethodLookup&) = delete;
+
+    operator const char *() const { return methodName; }
+
+    const char *const methodName;
+    class Method cachedMethod;
+
+};
+
+template <typename NameT, typename... ArgsT> Object call(Class klass, Object __this, NameT& methodSel, ArgsT... args) {
     constexpr size_t ArgCount = sizeof...(ArgsT);
+    using NameD = std::decay_t<NameT>;
+
     std::array<Il2CppObject *, ArgCount> csArgs{value_box(args).ptr...};
     std::array<Class, ArgCount> csArgClasses = {value_class(args)...};
-    Method method = __this.klass().get_method(methodName, csArgClasses);
+
+    auto getMethodHandle = [&]() -> Method {
+        if constexpr (std::is_same_v<NameD, CachedMethodLookup>) {
+            auto& s = methodSel;
+            if (!s.cachedMethod)
+                s.cachedMethod = klass.get_method(methodSel.methodName, csArgClasses);
+            return s.cachedMethod;
+        } else if constexpr (std::is_convertible_v<NameD, const char *>) {
+            const char *methodName = methodSel;
+            return klass.get_method(methodSel, csArgClasses);
+        } else {
+            static_assert(false, "First argument must be const char* or CachedMethodLookup&");
+        }
+    };
+    Method method = getMethodHandle();
 
     if (!method)
-        throw Error(fmt::format("Attempted to call non-existent method '{}' on instance of class '{}' using function '{}' with {} arguments", methodName,
-                                __this.klass().name(), std::source_location::current().function_name(), ArgCount));
+        throw Error(fmt::format("Attempted to call non-existent method '{}' on class '{}' using function '{}' with {} arguments",
+                                static_cast<const char *>(methodSel), klass.name(), std::source_location::current().function_name(), ArgCount));
 
     return method.invoke_convert(__this, csArgs);
 }
 
-template <typename... ArgsT> Object call(Class klass, const char *methodName, ArgsT... args) {
+template <typename NameT, typename... ArgsT> Object call(Class klass, NameT&& methodSel, ArgsT... args) {
+    return call(klass, {}, methodSel, std::forward<ArgsT>(args)...);
+}
+
+template <typename NameT, typename... ArgsT> Object call(Object __this, NameT&& methodSel, ArgsT... args) {
     constexpr size_t ArgCount = sizeof...(ArgsT);
-    std::array<Il2CppObject *, ArgCount> csArgs{value_box(args).ptr...};
-    std::array<Class, ArgCount> csArgClasses = {value_class(args)...};
-    Method method = klass.get_method(methodName, csArgClasses);
+    if (!__this)
+        throw Error(fmt::format("Attempted to call method '{}' on null using function '{}' with {} arguments", static_cast<const char *>(methodSel),
+                                std::source_location::current().function_name(), ArgCount));
 
-    if (!method)
-        throw Error(fmt::format("Attempted to call non-existent static method '{}' on class '{}' using function '{}' with {} arguments", methodName,
-                                klass.name(), std::source_location::current().function_name(), ArgCount));
-
-    return method.invoke_convert({}, csArgs);
+    return call(__this.klass(), __this, methodSel, std::forward<ArgsT>(args)...);
 }
 } // namespace Il2Cpp::API

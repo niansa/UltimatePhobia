@@ -1,5 +1,6 @@
 #include "il2cpp_api_cpp.hpp"
 #include "il2cpp_api.hpp"
+#include "global_state.hpp"
 
 namespace Il2Cpp::API {
 
@@ -127,15 +128,16 @@ bool Il2Cpp::API::Type::is_compatible_with(Class klass) const {
     case IL2CPP_TYPE_MVAR:
     case IL2CPP_TYPE_VAR:
     case IL2CPP_TYPE_TYPEDBYREF:
-    case IL2CPP_TYPE_CLASS:
     case IL2CPP_TYPE_I:
     case IL2CPP_TYPE_U: {
         const bool result = kind() == target_kind;
         return result;
     }
+    case IL2CPP_TYPE_CLASS:
     case IL2CPP_TYPE_VALUETYPE: {
         Class thisClass = class_or_element();
-        const bool result = thisClass.ptr == klass.ptr || (thisClass.is_enum() && klass.type().kind() == IL2CPP_TYPE_I4);
+        const bool result =
+            thisClass.ptr == klass.ptr || klass.is_subclass_of(thisClass, true) || (thisClass.is_enum() && klass.type().kind() == IL2CPP_TYPE_I4);
         return result;
     }
     default: {
@@ -175,16 +177,32 @@ Class Il2Cpp::API::Image::get_class(std::string_view namespaze, std::string_view
     return {};
 }
 
+Field Class::get_field(Class klass) const {
+    Field fres;
+    void *it = nullptr;
+    while (auto f = il2cpp_class_get_fields(ptr, &it)) {
+        Field field{f};
+        if (field.type().is_compatible_with(klass)) {
+            if (!fres)
+                fres = field;
+            else
+                g.logger->error("More than one field of type '{}' exists in '{}' ('{}': {}/'{}')! Using first field.", klass.name(), name(), field.name(),
+                                field.type().kind(), field.type().class_or_element().name());
+        }
+    }
+    return fres;
+}
+
 Method Il2Cpp::API::Class::get_method(const char *name, std::span<Class> args) const {
+    g.logger->debug("Scanning for '{}' in '{}'...", name, this->name());
     void *it = nullptr;
     while (auto m = Method{il2cpp_class_get_methods(ptr, &it)}) {
         if (m.name() != name)
             continue;
 
         // Check argument count first
-        if (m.param_count() != args.size()) {
+        if (m.param_count() != args.size())
             continue;
-        }
 
         // Compare argument types
         bool matches = true;
@@ -204,9 +222,12 @@ Method Il2Cpp::API::Class::get_method(const char *name, std::span<Class> args) c
         return m;
     }
 
-    // No match, try parent
+    // No match here, try parent
     if (auto p = parent())
         return p.get_method(name, args);
+
+    // No match
+    g.logger->error("Could not find method '{}' in '{}.{}' compatible with given arguments (count: {})", name, this->namespaze(), this->name(), args.size());
     return {};
 }
 

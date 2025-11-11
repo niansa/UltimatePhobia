@@ -10,7 +10,7 @@ struct UnityEngine_GameObject_o;
 class Fixes final : public Mod {
     GameHook photonNetwork$$ConnectToBestCloudServerHook;
 
-    UnityEngine_GameObject_o *fixMark = reinterpret_cast<UnityEngine_GameObject_o *>(1u);
+    void *fixMark = reinterpret_cast<void *>(1u);
 
     bool isSceneFixed();
     void markSceneFixed();

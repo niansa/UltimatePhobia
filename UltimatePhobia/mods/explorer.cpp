@@ -198,11 +198,11 @@ void Explorer::drawClassDetailPane() {
             ImGui::TextUnformatted(line.c_str());
 
             // Try read value (static only here; instance via Instances pane)
-            Il2CppObject *fv = nullptr;
+            Object fv;
             if (selectedInstance >= 0 && instances[selectedInstance].handle.target()->klass == c.ptr)
                 fv = f.get_value_object(instances[selectedInstance].handle.target());
             try {
-                std::string s = fv ? objectToString(Object{fv}) : std::string("null");
+                std::string s = fv ? objectToString(fv) : std::string("null");
                 s = fmt::format("{} = {}{}", f.name().data(), s, (f.flags() & IL2CPP_FIELD_ATTRIBUTE_STATIC) ? " [static]" : "");
                 ImGui::SameLine();
                 ImGui::TextUnformatted(s.c_str());

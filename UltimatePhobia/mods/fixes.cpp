@@ -1,36 +1,49 @@
 #include "fixes.hpp"
 #include "global_instance_manager.hpp"
-#include "il2cpp_cppinterop.hpp"
-#include "generated/il2cpp.hpp"
-#include "bindings/unityengine.hpp"
+#include "il2cpp_api_cpp.hpp"
 
 #include <string_view>
 
-using namespace Il2Cpp::CppInterop;
-using namespace Il2Cpp::UnityEngine;
+using Il2Cpp::API::CachedMethodLookup;
+using Il2Cpp::API::call;
+using Il2Cpp::API::get_class_cached;
+using Il2Cpp::API::Object;
+using Il2Cpp::API::object_new;
+using Il2Cpp::API::object_unbox;
 
 static inline void fixDestroy(std::string_view name) {
-    if (auto object = GameObject::Find(ToCsString(name)))
-        Object::Destroy(reinterpret_cast<UnityEngine_Object_o *>(object));
+    auto gameObject = get_class_cached<"UnityEngine.CoreModule", "UnityEngine", "GameObject">();
+    if (auto object = call(gameObject, "Find", name))
+        call(gameObject, "Destroy", object);
 }
 
-static inline void fixPlayerController(Player_o *player) {
-    if (player->fields.characterController)
-        Il2Cpp::UnityEngine::CharacterController::set_detectCollisions(player->fields.characterController, false);
+static inline void fixPlayerController(Object player) {
+    static auto field = player.klass().get_field(get_class_cached<"UnityEngine.PhysicsModule", "UnityEngine", "CharacterController">());
+    static CachedMethodLookup cml("set_detectCollisions");
+    if (auto characterController = field.get_value_object(player))
+        call(characterController, cml, false);
 }
 
 static bool photonNetwork$$ConnectToBestCloudServerFnc(const MethodInfo *method) {
     // TODO: Use last region instead
-    return Il2Cpp::Photon::Pun::PhotonNetwork::ConnectToRegion("EU"_cs);
+    auto photonNet = get_class_cached<"PhotonUnityNetworking", "Photon.Pun", "PhotonNetwork">();
+    return object_unbox<bool>(call(photonNet, "ConnectToRegion", "EU"));
 }
 
 Fixes::Fixes()
     : photonNetwork$$ConnectToBestCloudServerHook(GameHook::safeCreateOrPanic(fixesInfo, Il2Cpp::Photon::Pun::PhotonNetwork::ConnectToBestCloudServer_getPtr(),
                                                                               reinterpret_cast<void *>(photonNetwork$$ConnectToBestCloudServerFnc))) {}
 
-bool Fixes::isSceneFixed() { return fixMark == GameObject::Find("UP_fixes_fixMark"_cs); }
+bool Fixes::isSceneFixed() {
+    static CachedMethodLookup cml("Find");
+    return fixMark == call(get_class_cached<"UnityEngine.CoreModule", "UnityEngine", "GameObject">(), cml, "UP_fixes_fixMark").ptr;
+}
 
-void Fixes::markSceneFixed() { fixMark = GameObject::New("UP_fixes_fixMark"); }
+void Fixes::markSceneFixed() {
+    Object markObject = object_new(get_class_cached<"UnityEngine.CoreModule", "UnityEngine", "GameObject">());
+    call(markObject, ".ctor", "UP_fixes_fixMark");
+    fixMark = markObject.ptr;
+}
 
 void Fixes::sceneFix() {
     // Mark as fixed first so exceptions during fixup don't cause infinite havoc
@@ -43,7 +56,7 @@ void Fixes::sceneFix() {
 
 void Fixes::playerFix() {
     if (auto player = globalInstanceManagerInfo.get<GlobalInstanceManager>()->getPlayer())
-        fixPlayerController(player);
+        fixPlayerController(Object{reinterpret_cast<Il2Cpp::API::Il2CppObject *>(player)});
 }
 
 void Fixes::uiUpdate() {
