@@ -31,8 +31,9 @@ static bool photonNetwork$$ConnectToBestCloudServerFnc(const MethodInfo *method)
 }
 
 Fixes::Fixes()
-    : photonNetwork$$ConnectToBestCloudServerHook(GameHook::safeCreateOrPanic(fixesInfo, Il2Cpp::Photon::Pun::PhotonNetwork::ConnectToBestCloudServer_getPtr(),
-                                                                              reinterpret_cast<void *>(photonNetwork$$ConnectToBestCloudServerFnc))) {}
+    : photonNetwork$$ConnectToBestCloudServerHook(GameHook::safeCreateOrPanic(
+          fixesInfo, get_class_cached<"PhotonUnityNetworking", "Photon.Pun", "PhotonNetwork">().get_method("ConnectToBestCloudServer", 0).function_pointer(),
+          reinterpret_cast<void *>(photonNetwork$$ConnectToBestCloudServerFnc))) {}
 
 bool Fixes::isSceneFixed() {
     static CachedMethodLookup cml("Find");
