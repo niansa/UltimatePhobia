@@ -56,6 +56,9 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
     TCHAR szFileName[MAX_PATH];
     GetModuleFileName(NULL, szFileName, MAX_PATH);
 
+    // Change into game directory
+    std::filesystem::current_path(std::filesystem::path(szFileName).parent_path());
+
     // Initialize and get safe path for logs
     SafePath::init();
     const auto safePath = SafePath::get();
