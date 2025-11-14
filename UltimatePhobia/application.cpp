@@ -142,16 +142,19 @@ void Application::update() {
         Text("%f FPS", ImGui::GetIO().Framerate);
         NewLine();
 
-        for (const auto mod : mods) {
-            if (mod->hidden)
-                continue;
-            bool isLoaded = mod->instance != nullptr;
-            if (Checkbox(mod->name.c_str(), &isLoaded)) {
-                if (isLoaded)
-                    mod->load();
-                else
-                    mod->unload();
+        for (unsigned idx = 0; idx != mods.size(); ++idx) {
+            auto& mod = mods[idx];
+            PushID(idx);
+            if (!mod->hidden) {
+                bool isLoaded = mod->instance != nullptr;
+                if (Checkbox(mod->name.c_str(), &isLoaded)) {
+                    if (isLoaded)
+                        mod->load();
+                    else
+                        mod->unload();
+                }
             }
+            PopID();
         }
 
         if (Button("Exit game"))
