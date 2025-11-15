@@ -10,6 +10,7 @@ void player$$UpdateFnc(Player_o *__this, const MethodInfo *method) {
     auto self = playerManagerInfo.get<PlayerManager>();
 
     // Track player if it isn't being tracked already
+    bool skip = false;
     if (self->trackedPlayers.find(__this) == self->trackedPlayers.end()) {
         g.logger->info("Registering player...");
 
@@ -58,21 +59,26 @@ void player$$UpdateFnc(Player_o *__this, const MethodInfo *method) {
             return {};
         }();
 
-        if (!error.empty())
+        if (!error.empty()) {
             g.logger->error("Failed to register player: {}", error);
+            self->trackedPlayers.erase(__this);
+            skip = true;
+        }
     }
 
-    // Get current name tag of player
-    UnityEngine_GameObject_o *nameObject = self->trackedPlayers[__this];
+    if (!skip) {
+        // Get current name tag of player
+        UnityEngine_GameObject_o *nameObject = self->trackedPlayers[__this];
 
-    // Turn NameTag towards player
-    using namespace Il2Cpp::UnityEngine;
-    if (nameObject) {
-        Player_o *localPlayer = self->getLocalPlayer();
-        if (localPlayer) {
-            UnityEngine_Transform_o *nameTransform = GameObject::get_transform(nameObject);
-            Transform::LookAt(nameTransform, GameObject::get_transform(localPlayer->fields.pcPlayerHead));
-            Transform::Rotate(nameTransform, {{0, 180, 0}});
+        // Turn NameTag towards player
+        using namespace Il2Cpp::UnityEngine;
+        if (nameObject) {
+            Player_o *localPlayer = self->getLocalPlayer();
+            if (localPlayer) {
+                UnityEngine_Transform_o *nameTransform = GameObject::get_transform(nameObject);
+                Transform::LookAt(nameTransform, GameObject::get_transform(localPlayer->fields.pcPlayerHead));
+                Transform::Rotate(nameTransform, {{0, 180, 0}});
+            }
         }
     }
 
