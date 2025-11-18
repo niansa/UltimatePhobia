@@ -1,5 +1,9 @@
 # FFI Argument Passing and Hook Handling
 
+## **Warning: This document is somewhat outdated**
+
+A completely new API now exists besides the old legacy API documented here. It now supports reflection and automatic overload resolution, see new handle types and `call3` in `ffi_interface.hpp`.
+
 ## Argument Passing to C# Functions
 
 The FFI interface provides a stack-based mechanism for passing arguments to C# functions:
