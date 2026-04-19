@@ -975,7 +975,8 @@ struct FFIGameHookInfo {
     ModInfo *modInfo;
     std::string callback;
 };
-std::map<MethodHandle, FFIGameHookInfo> hooks;
+using HookVariant = std::variant<MethodHandle, Il2Cpp::API::MethodInfo *>;
+std::map<HookVariant, FFIGameHookInfo> hooks;
 MethodHandle currentHookMethod;
 void *ffiHook(void *a, void *b, void *c, void *d, void *e, void *f) noexcept {
     // Get method
@@ -1039,7 +1040,27 @@ WIBool hook(MethodHandle method, const char *callback) {
         return false;
     return hooks.emplace(method, FFIGameHookInfo{std::make_shared<GameHook>(std::move(*hook)), FFILoader::FFIMod::getCurrent(), callback}).second;
 }
+WIBool hook2(MethodInfoHandle method, const char *callback) {
+    auto *methodInfo = methodInfoHandles.get(method);
+    if (!methodInfo)
+        return false;
+    if (Il2Cpp::API::il2cpp_method_get_param_count(methodInfo) > 5) {
+        g.logger->warn("FFI Mod attempted to hook function with more than 5 "
+                       "arguments (which is unsupported)");
+        return false;
+    }
+    auto hook = GameHook::safeCreate(methodInfo->methodPointer, reinterpret_cast<void *>(hookTrampoline_ffiHook), true);
+    if (!hook.has_value())
+        return false;
+    return hooks.emplace(methodInfo, FFIGameHookInfo{std::make_shared<GameHook>(std::move(*hook)), FFILoader::FFIMod::getCurrent(), callback}).second;
+}
 WIBool unhook(MethodHandle method) { return hooks.erase(method); }
+WIBool unhook2(MethodInfoHandle method) {
+    auto *methodInfo = methodInfoHandles.get(method);
+    if (!methodInfo)
+        return false;
+    return hooks.erase(methodInfo);
+}
 MethodHandle getOriginal() { return currentHookMethod; }
 
 // ImGui wrappers

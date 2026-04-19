@@ -19,8 +19,12 @@ static void key$$StartFnc(Key_o *__this, const MethodInfo *method) {
 
     // Call GrabbedKey photon RPC
     using namespace Il2Cpp;
-    API::call(API::get_class_cached<"PhotonUnityNetworking", "Photon.Pun", "PhotonNetwork">(), "RPC", reinterpret_cast<Il2CppObject *>(__this->fields.view),
-              "GrabbedKey", 0, false, nullptr);
+    try {
+        API::call(API::get_class_cached<"PhotonUnityNetworking", "Photon.Pun", "PhotonNetwork">(), "RPC", reinterpret_cast<Il2CppObject *>(__this->fields.view),
+                  "GrabbedKey", 0, false, nullptr);
+    } catch (...) {
+        g.logger->error("Failed to auto collect a key!");
+    }
 }
 
 static void painKillers$$NetworkedUseFnc(Il2CppObject *__this, Photon_Pun_PhotonMessageInfo_o *messageInfo, const MethodInfo *method) {

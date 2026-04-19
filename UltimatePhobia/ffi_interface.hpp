@@ -1796,6 +1796,7 @@ template <class HandleT, class ClassT> struct HandleContainer {
         return *this;
     }
 
+    static ClassT Null() { return Lend(HandleT::Null); }
     static ClassT Own(HandleT s) { return ClassT(UniqueHandle<HandleT>::Own(s)); }
     static ClassT Lend(HandleT s) { return ClassT(UniqueHandle<HandleT>::Lend(s)); }
     static ClassT Take(UniqueHandle<HandleT>&& s) { return ClassT(tl::move(s)); }
@@ -1979,11 +1980,11 @@ struct Class final : public HandleContainer<ClassHandle, Class> {
     tl::vector<Property> properties() const;
 #endif
 
-    bool has_attribute(Class attr_class) const { return FFI_USE_FTABLE classHasAttribute(get_handle(), attr_class.get_handle()); }
+    bool has_attribute(const Class& attr_class) const { return FFI_USE_FTABLE classHasAttribute(get_handle(), attr_class.get_handle()); }
 
-    bool is_assignable_from(Class other) const { return FFI_USE_FTABLE classIsAssignableFrom(get_handle(), other.get_handle()); }
+    bool is_assignable_from(const Class& other) const { return FFI_USE_FTABLE classIsAssignableFrom(get_handle(), other.get_handle()); }
 
-    bool is_subclass_of(Class klassc, bool check_interfaces) const {
+    bool is_subclass_of(const Class& klassc, bool check_interfaces) const {
         return FFI_USE_FTABLE classIsSubclassOf(get_handle(), klassc.get_handle(), check_interfaces ? 1 : 0);
     }
 
