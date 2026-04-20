@@ -22,3 +22,6 @@
 [submodule "deps/elfld"]
 	path = deps/elfld
 	url = https://gitlab.com/niansa/elfld.git
+[submodule "deps/LuxonServer"]
+	path = deps/LuxonServer
+	url = https://gitlab.com/luxon_project/LuxonServer.git
