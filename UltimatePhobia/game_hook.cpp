@@ -3,6 +3,7 @@
 #include "mods/base.hpp"
 
 #include <array>
+#include <format>
 #include <cstring>
 #include <cstdint>
 #include <windows.h>
@@ -49,7 +50,7 @@ void GameHook::safeCreate(std::optional<GameHook>& fres, void *fnc, void *hook, 
 GameHook GameHook::safeCreateOrPanic(ModInfo& mod, void *fnc, void *hook, bool useTrampoline) {
     auto fres = safeCreate(fnc, hook, useTrampoline);
     if (!fres.has_value())
-        throw ModPanic(mod, fmt::format("Failed to set mandatory hook at {}", fnc));
+        throw ModPanic(mod, std::format("Failed to set mandatory hook at {}", fnc));
     return std::move(*fres);
 }
 

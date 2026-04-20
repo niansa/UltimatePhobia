@@ -3,6 +3,8 @@
 #include "global_state.hpp"
 #include "generated/il2cpp.hpp"
 
+#include <format>
+
 using namespace Il2Cpp;
 
 namespace {
@@ -14,7 +16,7 @@ System_Type_o *GetType(std::string_view name) {
 }
 
 System_Type_o *GetType(std::string_view name, std::string_view assemblyName) {
-    return GetType(fmt::format("{}, {}, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null", name, assemblyName));
+    return GetType(std::format("{}, {}, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null", name, assemblyName));
 }
 
 void *CreateInstance(System_Type_o *type) { return System::Activator::CreateInstance(type); }

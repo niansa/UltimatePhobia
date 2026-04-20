@@ -1,5 +1,6 @@
 #include "explorer.hpp"
 
+#include <format>
 #include <memory>
 #include <algorithm>
 #include <sstream>
@@ -203,7 +204,7 @@ void Explorer::drawClassDetailPane() {
                 fv = f.get_value_object(instances[selectedInstance].handle.target());
             try {
                 std::string s = fv ? objectToString(fv) : std::string("null");
-                s = fmt::format("{} = {}{}", f.name().data(), s, (f.flags() & IL2CPP_FIELD_ATTRIBUTE_STATIC) ? " [static]" : "");
+                s = std::format("{} = {}{}", f.name().data(), s, (f.flags() & IL2CPP_FIELD_ATTRIBUTE_STATIC) ? " [static]" : "");
                 ImGui::SameLine();
                 ImGui::TextUnformatted(s.c_str());
             } catch (const ManagedException& e) {

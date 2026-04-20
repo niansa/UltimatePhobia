@@ -3,6 +3,7 @@
 #include "ffi_interface.hpp"
 
 #include <iostream>
+#include <format>
 #include <fstream>
 #include <stdexcept>
 #include <cstdlib>
@@ -58,9 +59,9 @@ ELFFFI::ELFFFI(const std::filesystem::path& modPath) : modPathStr(modPath.string
         else
             initImports(&exports);
     } catch (const ElfLoader::ElfError& e) {
-        throw std::runtime_error(fmt::format("Failed to load ELF file '{}': {} (error code: {})", modPathStr, e.what(), static_cast<int>(e.code())));
+        throw std::runtime_error(std::format("Failed to load ELF file '{}': {} (error code: {})", modPathStr, e.what(), static_cast<int>(e.code())));
     } catch (const std::exception& e) {
-        throw std::runtime_error(fmt::format("Failed to load ELF file '{}': {}", modPathStr, e.what()));
+        throw std::runtime_error(std::format("Failed to load ELF file '{}': {}", modPathStr, e.what()));
     }
 }
 

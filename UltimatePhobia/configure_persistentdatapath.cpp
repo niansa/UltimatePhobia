@@ -4,6 +4,7 @@
 #include "il2cpp_cppinterop.hpp"
 #include "generated/il2cpp.hpp"
 
+#include <format>
 #include <filesystem>
 #include <stdexcept>
 
@@ -29,7 +30,7 @@ System_String_o *unityEngineApplication$$get_persistentDataPathFnc(const MethodI
         }
 
         // Strip away product name and insert our name instead
-        auto newPath = fmt::format("{}UltimatePhobia", originalPath.substr(0, productNameIdx));
+        auto newPath = std::format("{}UltimatePhobia", originalPath.substr(0, productNameIdx));
         g.logger->info("Set persistent data path to {}", newPath);
         std::filesystem::create_directories(newPath);
         return newPath;

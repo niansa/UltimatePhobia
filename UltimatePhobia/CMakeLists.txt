@@ -78,12 +78,16 @@ set(SDL_SENSOR OFF)
 set(SDL_DIALOG OFF)
 set(SDL_TESTS OFF)
 
+set(LUXON_SERVER_ENABLE_WEBSERVER OFF CACHE INTERNAL "" FORCE)
+set(LUXON_SERVER_USE_SPDLOG OFF CACHE INTERNAL "" FORCE)
+
 add_subdirectory(../deps/commoncpp commoncpp)
 add_subdirectory(../deps/spdlog spdlog)
 add_subdirectory(../deps/wasm3/source wasm3)
 add_subdirectory(../deps/wasm3/platforms/cpp/wasm3_cpp wasm3_cpp)
 add_subdirectory(../deps/SDL sdl3)
 add_subdirectory(../deps/elfld elfld)
+add_subdirectory(../deps/LuxonServer luxon_server)
 
 add_library(imgui STATIC
     ../deps/imgui/imgui.cpp ../deps/imgui/imgui_draw.cpp ../deps/imgui/imgui_tables.cpp ../deps/imgui/imgui_widgets.cpp

@@ -2,6 +2,7 @@
 #include "generated/il2cpp.hpp"
 #include "misc_utils.hpp"
 
+#include <format>
 #include <string_view>
 #include <spdlog/spdlog.h>
 
@@ -41,7 +42,7 @@ System_Type_o *GetType(std::string_view name) {
 } // namespace
 
 System_Type_o *GetType(std::string_view name, std::string_view assemblyName) {
-    return GetType(fmt::format("{}, {}, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null", name, assemblyName));
+    return GetType(std::format("{}, {}, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null", name, assemblyName));
 }
 
 void *CreateInstance(System_Type_o *type) { return System::Activator::CreateInstance(type); }

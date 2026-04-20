@@ -7,6 +7,7 @@
 #include "json.hpp"
 
 #include <string>
+#include <format>
 #include <filesystem>
 #include <fstream>
 #include <memory>
@@ -19,7 +20,7 @@ ModInfo *currentMod;
 }
 
 FFIMod::FFIMod(const std::filesystem::path& base, std::string_view identifier, ModInfo *modInfo, unsigned memSize) : modInfo(modInfo) {
-    const auto getPath = [&](const char *extension) { return base / fmt::format("{}.{}", identifier, extension); };
+    const auto getPath = [&](const char *extension) { return base / std::format("{}.{}", identifier, extension); };
 
     const auto wasmPath = getPath("wasm"), dllPath = getPath("dll"), elfPath = getPath("so"), sockPath = getPath("socki");
 
@@ -55,7 +56,7 @@ void FFIMod::setCurrent(ModInfo *mod) { currentMod = mod; }
 
 ModInfo *createModInfo(const std::filesystem::path& base, std::string_view identifier) {
     // Make sure JSON and WASM files both exist
-    const auto jsonPath = base / fmt::format("{}.json", identifier);
+    const auto jsonPath = base / std::format("{}.json", identifier);
     (void)std::filesystem::file_size(jsonPath);
 
     // Load info from JSON

@@ -10,6 +10,7 @@
 #include "anycall.hpp"
 #include "mods/base.hpp"
 
+#include <format>
 #include <map>
 #include <exception>
 #include <limits>
@@ -343,7 +344,7 @@ MethodInfoHandle classGetMethodFromNameAndTypes(ClassHandle klass, const char *n
 
     // Make sure argCount matches argument count
     else if (argCount != call_args.size()) {
-        call_error = fmt::format("Mismatched added ({}) vs. passed ({}) arg count", call_args.size(), argCount);
+        call_error = std::format("Mismatched added ({}) vs. passed ({}) arg count", call_args.size(), argCount);
         g.logger->warn("FFI interface failed to find function '{}': {}", name, call_error);
         return -1;
     }
@@ -356,7 +357,7 @@ MethodInfoHandle classGetMethodFromNameAndTypes(ClassHandle klass, const char *n
     // Get class pointer
     Il2Cpp::API::Class il2cppKlass{classHandles.get(klass)};
     if (!il2cppKlass) {
-        call_error = fmt::format("null passed as parent class, don't know where to look", call_args.size(), argCount);
+        call_error = std::format("null passed as parent class, don't know where to look", call_args.size(), argCount);
         g.logger->warn("FFI interface failed to find function '{}': {}", name, call_error);
         return -1;
     }
@@ -833,7 +834,7 @@ void logBadCall(MethodHandle index) {
 void logBadCall(Il2Cpp::API::MethodInfo *methodInfo) {
     Il2Cpp::API::Method method{methodInfo};
     g.logger->warn("FFI interface failed to call function '{}': {}",
-                   method ? fmt::format("{} in {}", method.name(), method.declaring_type().name()) : "<invalid>", call_error);
+                   method ? std::format("{} in {}", method.name(), method.declaring_type().name()) : "<invalid>", call_error);
 }
 void logBadCall(const char *name) { g.logger->warn("FFI interface failed to call function '{}': {}", name, call_error); }
 void logBadCall() { g.logger->warn("FFI interface failed to call unkown function: {}", call_error); }
@@ -846,7 +847,7 @@ WIBool call2(MethodHandle index, int32_t argCount, WIBool returnsStruct) {
 
     // Make sure argCount matches argument count
     else if (argCount != call_args.size()) {
-        call_error = fmt::format("Mismatched added ({}) vs. passed ({}) arg count", call_args.size(), argCount);
+        call_error = std::format("Mismatched added ({}) vs. passed ({}) arg count", call_args.size(), argCount);
         logBadCall(index);
         return false;
     }
@@ -854,7 +855,7 @@ WIBool call2(MethodHandle index, int32_t argCount, WIBool returnsStruct) {
     // Get method
     const auto method = Dynamic::getMethod(index);
     if (!method.isValid()) {
-        call_error = fmt::format("Bad method index ({})", index);
+        call_error = std::format("Bad method index ({})", index);
         logBadCall(index);
         return false;
     }
@@ -862,7 +863,7 @@ WIBool call2(MethodHandle index, int32_t argCount, WIBool returnsStruct) {
     // Check argument count
     const auto actualArgCount = method.getArgCount();
     if (argCount != actualArgCount) {
-        call_error = fmt::format("Mismatched passed ({}) vs. actual ({}) arg count", argCount, actualArgCount);
+        call_error = std::format("Mismatched passed ({}) vs. actual ({}) arg count", argCount, actualArgCount);
         logBadCall(index);
         return false;
     }
@@ -891,7 +892,7 @@ WIBool call2(MethodHandle index, int32_t argCount, WIBool returnsStruct) {
             return_value = dataDest;
         }
     } catch (const std::exception& e) {
-        call_error = fmt::format("Method has thrown an exception: {}", e.what());
+        call_error = std::format("Method has thrown an exception: {}", e.what());
         logBadCall(index);
         fres = false;
     } catch (...) {
@@ -919,21 +920,21 @@ ObjectHandle call3(MethodInfoHandle handle, int32_t argCount) {
     // Get method
     const auto method = methodInfoHandles.get(handle);
     if (!method) {
-        call_error = fmt::format("Bad method handle ({})", handle);
+        call_error = std::format("Bad method handle ({})", handle);
         logBadCall();
         return -1;
     }
 
     // Make sure argCount matches argument count
     else if (argCount != call_args.size() - 1) {
-        call_error = fmt::format("Mismatched added ({}) vs. passed ({}) arg count", call_args.size(), argCount);
+        call_error = std::format("Mismatched added ({}) vs. passed ({}) arg count", call_args.size(), argCount);
         logBadCall(method);
         return -1;
     }
 
     // Make sure object instance is passed
     if (call_args.empty()) {
-        call_error = fmt::format("Missing object instance", call_args.size(), argCount);
+        call_error = std::format("Missing object instance", call_args.size(), argCount);
         logBadCall(method);
         return -1;
     }
@@ -941,7 +942,7 @@ ObjectHandle call3(MethodInfoHandle handle, int32_t argCount) {
     // Check argument count
     const auto actualArgCount = Il2Cpp::API::il2cpp_method_get_param_count(method);
     if (argCount != actualArgCount) {
-        call_error = fmt::format("Mismatched passed ({}) vs. actual ({}) arg count", argCount, actualArgCount);
+        call_error = std::format("Mismatched passed ({}) vs. actual ({}) arg count", argCount, actualArgCount);
         logBadCall(method);
         return -1;
     }
@@ -1088,7 +1089,7 @@ void ImGuiSeparatorText(const char *label) { ImGui::SeparatorText(label); }
 // WASM runtime support
 void abort(const char *message, const char *filename, int32_t lineNumber, int32_t columnNumber) {
     auto modInfo = FFILoader::FFIMod::getCurrent();
-    const auto msg = fmt::format("FFI module {} has called abort()!\n - Message: "
+    const auto msg = std::format("FFI module {} has called abort()!\n - Message: "
                                  "{}\n - Filename: {}\n - Line: {}\n - Column: {}",
                                  modInfo->name, message ? message : "none", filename ? filename : "unknown", lineNumber, columnNumber);
     g.logger->critical(msg);

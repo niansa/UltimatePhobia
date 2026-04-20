@@ -4,13 +4,14 @@
 #include "misc_utils.hpp"
 
 #include <string>
+#include <format>
 #include <stdexcept>
 #include <libloaderapi.h>
 
 DLLFFI::DLLFFI(const std::filesystem::path& modPath) : modPathStr(modPath.string()) {
     chandle = LoadLibraryA(modPathStr.c_str());
     if (!chandle)
-        throw std::runtime_error(fmt::format("dlopen(\"{}\"): {}", modPathStr, lastWinErrorString()));
+        throw std::runtime_error(std::format("dlopen(\"{}\"): {}", modPathStr, lastWinErrorString()));
 
     const static FFIInterface::Exports exports;
     void initImportsDummy(const FFIInterface::Exports *);

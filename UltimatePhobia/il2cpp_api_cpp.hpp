@@ -8,6 +8,7 @@
 #include <vector>
 #include <span>
 #include <source_location>
+#include <format>
 #include <utility>
 #include <spdlog/spdlog.h>
 
@@ -583,7 +584,7 @@ template <typename NameT, typename... ArgsT> Object call(Class klass, Object __t
     Method method = getMethodHandle();
 
     if (!method)
-        throw Error(fmt::format("Attempted to call non-existent method '{}' on class '{}' using function '{}' with {} arguments",
+        throw Error(std::format("Attempted to call non-existent method '{}' on class '{}' using function '{}' with {} arguments",
                                 static_cast<const char *>(methodSel), klass.name(), std::source_location::current().function_name(), ArgCount));
 
     return method.invoke_convert(__this, csArgs);
@@ -596,7 +597,7 @@ template <typename NameT, typename... ArgsT> Object call(Class klass, NameT&& me
 template <typename NameT, typename... ArgsT> Object call(Object __this, NameT&& methodSel, ArgsT... args) {
     constexpr size_t ArgCount = sizeof...(ArgsT);
     if (!__this)
-        throw Error(fmt::format("Attempted to call method '{}' on null using function '{}' with {} arguments", static_cast<const char *>(methodSel),
+        throw Error(std::format("Attempted to call method '{}' on null using function '{}' with {} arguments", static_cast<const char *>(methodSel),
                                 std::source_location::current().function_name(), ArgCount));
 
     return call(__this.klass(), __this, methodSel, std::forward<ArgsT>(args)...);

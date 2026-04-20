@@ -3,6 +3,7 @@
 #include "global_state.hpp"
 
 #include <string>
+#include <format>
 #include <imgui.h>
 
 namespace Dynamic = Il2Cpp::Dynamic;
@@ -14,7 +15,7 @@ extern "C" void *tracerModHook(void *a, void *b, void *c, void *d, void *e, void
 
     const auto method = Dynamic::getMethod(GameHook::getTrampolineCaller());
     auto& hook = tracerInfo.get<Tracer>()->getHook(method.signature);
-    tracerInfo.get<Tracer>()->log(fmt::format("{}{}<{}>(...)\n", std::string(depth, '>'), method.name, GameHook::getTrampolineCaller()));
+    tracerInfo.get<Tracer>()->log(std::format("{}{}<{}>(...)\n", std::string(depth, '>'), method.name, GameHook::getTrampolineCaller()));
 
     GameHookRelease GHR(hook);
     ++depth;
@@ -71,7 +72,7 @@ void Tracer::HookButton(std::string_view signature, bool isDefinitelyHooked) {
     if (!hooked)
         hooked = hooks.find(signature) != hooks.end();
 
-    if (ImGui::Button((fmt::format("{} {}", hooked ? '-' : '+', signature)).c_str())) {
+    if (ImGui::Button((std::format("{} {}", hooked ? '-' : '+', signature)).c_str())) {
         const auto method = Dynamic::getMethod(signature);
         if (!hooked) {
             auto hook = GameHook::safeCreate(method.getFullAddress(), reinterpret_cast<void *>(hookTrampoline_tracerModHook), true);
@@ -81,7 +82,7 @@ void Tracer::HookButton(std::string_view signature, bool isDefinitelyHooked) {
         } else {
             hooks.erase(hooks.find(signature));
         }
-        log(fmt::format(" {} {} <{}>\n", hooked ? '-' : '+', method.name, method.getFullAddress()));
+        log(std::format(" {} {} <{}>\n", hooked ? '-' : '+', method.name, method.getFullAddress()));
     }
 }
 
