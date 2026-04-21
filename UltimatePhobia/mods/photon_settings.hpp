@@ -17,11 +17,13 @@ class HandlerBase;
 class GameServerProxy;
 
 class PhotonSettings final : public Mod {
-    struct P2PSettings {
+    struct P2PSettings {        
         char stun_server_host[64] = "stun.l.google.com";
         uint16_t stun_server_port = 19302;
 
         char signaling_base[64] = "http://photon.tuxifan.net:5059";
+
+        bool enable_ipv6 = true;
     } p2p_settings;
 
     struct GameServerProxy {

@@ -97,16 +97,53 @@ void PhotonSettings::uiUpdate() {
 #undef CONVBOOLFIELD
 #undef CONVINTFIELD
 #undef CONVSTRFIELD
-    EndDisabled();
 
     Separator();
+
+    Spacing();
+
+    Checkbox("Enable IPv6", &p2p_settings.enable_ipv6);
+
+    ImGui::AlignTextToFramePadding();
+    ImGui::Text("STUN server:");
+    ImGui::SameLine();
+
+    ImGui::SetNextItemWidth(150.0f);
+    ImGui::InputText("##stun_host", p2p_settings.stun_server_host, sizeof(p2p_settings.stun_server_host));
+    ImGui::SameLine();
+
+    ImGui::Text(":");
+    ImGui::SameLine();
+
+    ImGui::SetNextItemWidth(50.0f);
+    ImGui::InputScalar("##stun_port", ImGuiDataType_U16, &p2p_settings.stun_server_port, nullptr, nullptr, "%u");
+
+    EndDisabled();
+
+    Spacing();
 
     if (!serman) {
         if (Button("Start P2P Service"))
             startP2P();
     } else {
-        if (Button("Stop P2P Service"))
+        if (Button("Stop P2P Service")) {
             stopP2P();
+            return;
+        }
+        SameLine();
+
+        if (!client_proxy->proxy_ep) {
+            Text("Waiting for STUN NAT punch response...");
+        } else if (client_proxy->server_ep) {
+            if (client_proxy->client_notified)
+                Text("Proxy active! Forwarding game traffic.");
+            else
+                Text("Punching NAT to remote host...");
+        } else if (current_game_id != 0) {
+            Text("Hosting P2P game...");
+        } else {
+            Text("Service ready. Waiting to host or join a game.");
+        }
     }
     End();
 }
@@ -345,7 +382,7 @@ void PhotonSettings::startPollingServer(luxon::enet::EnetServer& server) {
 }
 
 PhotonSettings::GameServerProxy::GameServerProxy(const PhotonSettings::P2PSettings& p2p_settings) {
-    socket.bind_any(5059);
+    socket.bind_any(5059, p2p_settings.enable_ipv6);
     socket.set_nonblocking(true);
 
     // Start STUN binding request
