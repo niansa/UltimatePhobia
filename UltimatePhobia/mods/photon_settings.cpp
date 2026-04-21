@@ -321,7 +321,7 @@ void PhotonSettings::startPollingProxy() {
     if (!client_proxy->socket.send_to(reinterpret_cast<const uint8_t *>(""), 1, client_proxy->stun_server_ep))
         g.logger->warn("Failed to keep alive proxy STUN binding");
 
-    serman->add_scheduled_task(10000, std::bind(&PhotonSettings::startPollingProxy, this));
+    serman->add_scheduled_task(16000, std::bind(&PhotonSettings::startPollingProxy, this));
 }
 
 void PhotonSettings::startPollingServer(luxon::enet::EnetServer& server) {
@@ -340,10 +340,6 @@ void PhotonSettings::startPollingServer(luxon::enet::EnetServer& server) {
     } else {
         current_game_id = 0;
     }
-
-    // STUN keepalive
-    if (!server.keepalive_stun_binding())
-        g.logger->warn("Failed to keep alive server STUN binding");
 
     serman->add_scheduled_task(12000, std::bind(&PhotonSettings::startPollingServer, this, std::ref(server)));
 }
