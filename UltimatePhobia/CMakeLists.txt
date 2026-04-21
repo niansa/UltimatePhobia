@@ -3,7 +3,7 @@ set(CMAKE_POLICY_DEFAULT_CMP0069 NEW)
 
 project(UltimatePhobia LANGUAGES RC CXX)
 
-set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_INTERPROCEDURAL_OPTIMIZATION ON)
 
@@ -80,6 +80,8 @@ set(SDL_TESTS OFF)
 
 set(LUXON_SERVER_ENABLE_WEBSERVER OFF CACHE INTERNAL "" FORCE)
 set(LUXON_SERVER_USE_SPDLOG OFF CACHE INTERNAL "" FORCE)
+set(LUXON_SERVER_HOOKPOINTS ON CACHE INTERNAL "" FORCE)
+set(LUXON_SERVER_POLL ON CACHE INTERNAL "" FORCE)
 
 add_subdirectory(../deps/commoncpp commoncpp)
 add_subdirectory(../deps/spdlog spdlog)
@@ -137,9 +139,9 @@ add_executable(UltimatePhobia WIN32 main.cpp icon.rc
     mods/explorer.hpp mods/explorer.cpp
     deobfuscations.hpp deobfuscations.cpp
     il2cpp_api_cpp.cpp
-
+    signaling_client.hpp signaling_client.cpp
 )
-target_link_libraries(UltimatePhobia PRIVATE dbghelp commoncpp spdlog imgui m3 wasm3_cpp ws2_32 elfldpp)
+target_link_libraries(UltimatePhobia PRIVATE dbghelp commoncpp spdlog imgui m3 wasm3_cpp ws2_32 winhttp elfldpp luxon_server_lib)
 target_include_directories(UltimatePhobia PRIVATE . ../il2cpp_dump)
 target_precompile_headers(UltimatePhobia PRIVATE ../il2cpp_dump/il2cpp.h generated/il2cpp.hpp)
 #target_precompile_headers(UltimatePhobia PRIVATE ../il2cpp_dump/il2cpp.h)

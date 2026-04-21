@@ -7,7 +7,13 @@
 #include <functional>
 #include <memory>
 
-class Mod;
+class Mod {
+public:
+    Mod() {}
+    virtual ~Mod() {}
+
+    virtual void uiUpdate() {}
+};
 
 struct ModInfo {
     const std::string name;
@@ -51,12 +57,4 @@ public:
     }
     const char *where() const { return mod.name.c_str(); }
     const char *what() const { return msg.c_str(); }
-};
-
-class Mod {
-public:
-    Mod() {}
-    virtual ~Mod() {}
-
-    virtual void uiUpdate() {}
 };
