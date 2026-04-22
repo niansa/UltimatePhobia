@@ -386,7 +386,7 @@ PhotonSettings::GameServerProxy::GameServerProxy(const PhotonSettings::P2PSettin
     socket.set_nonblocking(true);
 
     // Start STUN binding request
-    const auto stun_server_ep_opt = socket.lookup_hostname(p2p_settings.stun_server_host, p2p_settings.stun_server_port);
+    const auto stun_server_ep_opt = socket.lookup_hostname(p2p_settings.stun_server_host, p2p_settings.enable_ipv6, p2p_settings.stun_server_port);
     if (stun_server_ep_opt) {
         stun_server_ep = *stun_server_ep_opt;
         if (!socket.send_stun_binding_request(stun_server_ep))
