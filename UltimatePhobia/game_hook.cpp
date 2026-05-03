@@ -32,6 +32,13 @@ std::optional<GameHook> GameHook::safeCreate(void *fnc, void *hook, bool useTram
     return fres;
 }
 
+GameHook *GameHook::safeCreatePtr(void *fnc, void *hook, bool useTrampoline) {
+    auto fres = std::unique_ptr<GameHook>(new GameHook(fnc, hook, useTrampoline));
+    if (fres->isActive())
+        return fres.release();
+    return nullptr;
+}
+
 void GameHook::safeCreate(std::optional<GameHook>& fres, void *fnc, void *hook, bool useTrampoline) {
     fres.reset();
     if (isHookAt(fnc)) {

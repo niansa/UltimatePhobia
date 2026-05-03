@@ -19,5 +19,20 @@
     "GhostActivity$$",
     "Door$$",
     "Key$$",
-    "PainKillers$$"
+    "PainKillers$$",
+    "LevelControler$$",
+    "LevelRoom$$",
+    "LobbyManager$$",
+    "LiftButton$$",
+    "ServerManager$$",
+    "Prop$$",
+    "MainManager$$",
+    "LightSource$$",
+    "LightSwitch$$",
+    "LightPulse$$",
+    "GraphicsManager$$",
+    "GameController$$",
+    "$$Update",
+    "$$FixedUpdate",
+    "$$Start"
 ]

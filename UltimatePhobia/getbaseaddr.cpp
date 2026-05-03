@@ -9,13 +9,18 @@ static std::function<void()> finalCallback;
 static std::optional<GameHook> LoadLibraryWHook;
 
 static HMODULE LoadLibraryWFnc(LPWSTR lpLibFileName) {
-    GameHookRelease GHR(*LoadLibraryWHook);
 
     const std::string lpLibFileNameA = utf8Encode(lpLibFileName);
-    const HMODULE fres = LoadLibraryW(lpLibFileName);
+
+    HMODULE fres;
+    {
+        GameHookRelease GHR(*LoadLibraryWHook);
+        fres = LoadLibraryW(lpLibFileName);
+    }
 
     g.logger->debug("Loading module {}...", lpLibFileNameA);
     if (lpLibFileNameA == "GameAssembly.dll") {
+        LoadLibraryWHook.reset();
         g.base = reinterpret_cast<uintptr_t>(fres);
         if (finalCallback)
             std::exchange(finalCallback, nullptr)();

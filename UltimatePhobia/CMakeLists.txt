@@ -7,8 +7,12 @@ set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_INTERPROCEDURAL_OPTIMIZATION ON)
 
+add_compile_options(-gcodeview)
+add_link_options(-Wl,--pdb=UltimatePhobia.pdb)
+
 include(CheckLinkerFlag)
 
+option(ULTIMATEPHOBIA_PROFILER "Build Tracy profiler" OFF)
 option(ULTIMATEPHOBIA_CHEATS "Build cheats module" ON)
 if (ULTIMATEPHOBIA_CHEATS)
     option(ULTIMATEPHOBIA_EXTRA_CHEATS "Build extra cheats module" OFF)
@@ -140,9 +144,11 @@ add_executable(UltimatePhobia WIN32 main.cpp icon.rc
     deobfuscations.hpp deobfuscations.cpp
     il2cpp_api_cpp.cpp
     signaling_client.hpp signaling_client.cpp
+
+    ../deps/tracy/public/tracy/Tracy.hpp
 )
 target_link_libraries(UltimatePhobia PRIVATE dbghelp commoncpp spdlog imgui m3 wasm3_cpp ws2_32 winhttp elfldpp luxon_server_lib)
-target_include_directories(UltimatePhobia PRIVATE . ../il2cpp_dump)
+target_include_directories(UltimatePhobia PRIVATE . ../il2cpp_dump ../deps/tracy/public)
 target_precompile_headers(UltimatePhobia PRIVATE ../il2cpp_dump/il2cpp.h generated/il2cpp.hpp)
 #target_precompile_headers(UltimatePhobia PRIVATE ../il2cpp_dump/il2cpp.h)
 target_compile_definitions(UltimatePhobia PUBLIC _CRT_SECURE_NO_WARNINGS COMPILER_INFO="${COMPILER_INFO}")
@@ -151,6 +157,10 @@ if (ULTIMATEPHOBIA_CHEATS)
     if (ULTIMATEPHOBIA_EXTRA_CHEATS)
         target_compile_definitions(UltimatePhobia PRIVATE MOD_ENABLE_CHEATS_EXTRA)
     endif()
+endif()
+if (ULTIMATEPHOBIA_PROFILER)
+    target_sources(UltimatePhobia PRIVATE ../deps/tracy/public/TracyClient.cpp generated/profiling.cpp)
+    target_compile_definitions(UltimatePhobia PRIVATE TRACY_ENABLE TRACY_ON_DEMAND TRACY_DELAYED_INIT TRACY_MANUAL_LIFETIME TRACY_NO_CRASH_HANDLER TRACY_NO_SYSTEM_TRACING)
 endif()
 check_linker_flag(CXX -Wl,--subsystem,windows LINKER_CAN_SELECT_SUBSYSTEM)
 if (LINKER_CAN_SELECT_SUBSYSTEM)

@@ -9,6 +9,10 @@ class Application {
 
     std::vector<ModInfo *> mods;
 
+#ifdef TRACY_ENABLE
+    bool tracingHooksInstalled = false;
+#endif
+
     void init();
     void update();
 

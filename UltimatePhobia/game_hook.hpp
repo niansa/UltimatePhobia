@@ -39,6 +39,7 @@ public:
     GameHook(GameHook&& o) : fnc(o.fnc), hook(o.hook), use2NdTrampoline(o.use2NdTrampoline), original(o.original), released(o.released) { o.released = true; }
 
     static std::optional<GameHook> safeCreate(void *fnc, void *hook, bool useTrampoline = false);
+    static GameHook *safeCreatePtr(void *fnc, void *hook, bool useTrampoline = false);
     static void safeCreate(std::optional<GameHook>& fres, void *fnc, void *hook, bool useTrampoline = false);
     static GameHook safeCreateOrPanic(ModInfo& mod, void *fnc, void *hook, bool useTrampoline = false);
     static GameHook unsafeCreate(void *fnc, void *hook, bool useTrampoline = false);

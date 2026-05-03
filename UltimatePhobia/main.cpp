@@ -13,6 +13,7 @@
 #include <filesystem>
 #include <windows.h>
 #include <psapi.h>
+#include <tracy/Tracy.hpp>
 #include <spdlog/spdlog.h>
 #include <spdlog/sinks/basic_file_sink.h>
 
@@ -21,6 +22,11 @@ int UnityMain(HINSTANCE hInstance, HINSTANCE hPrevInstanc, LPWSTR lpCmdLine, int
 static void onLoad() {
     g.logger->info("Getting GameAssembly base address...");
     getBaseAddr([]() {
+#ifdef TRACY_ENABLE
+        g.logger->info("Starting Tracy...");
+        tracy::StartupProfiler();
+#endif
+        g.logger->info("Starting application...");
         // setupCrashHandler();
         g.logger->info("Found GameAssembly base address at {}", reinterpret_cast<void *>(g.base));
         ImGuiMan::init();

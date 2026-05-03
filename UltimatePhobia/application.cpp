@@ -25,6 +25,10 @@
 #include <exception>
 #include <imgui.h>
 
+namespace Il2Cpp::Profiling {
+void InstallHooks();
+}
+
 static Application *currentApplication = nullptr;
 
 struct ApplicationHooks {
@@ -159,6 +163,15 @@ void Application::update() {
 
         if (Button("Exit game"))
             exit(0);
+
+#ifdef TRACY_ENABLE
+        BeginDisabled(tracingHooksInstalled);
+        if (Button("Install profiling hooks")) {
+            g.logger->info("Installing profiling hooks...");
+            Il2Cpp::Profiling::InstallHooks();
+        }
+        EndDisabled();
+#endif
 
         End();
     }
