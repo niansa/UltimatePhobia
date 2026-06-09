@@ -2,6 +2,7 @@
 
 #include "base.hpp"
 #include "game_hook.hpp"
+#include "il2cpp_api_cpp.hpp"
 #include "signaling_client.hpp"
 
 #include <string_view>
@@ -74,12 +75,18 @@ class PhotonSettings final : public Mod {
         bool override_EnableLobbyStatistics;
         int NetworkLogging;
         bool override_NetworkLogging;
+
+        bool override_SendRate;
+        int SendRate;
+        bool override_SerializationRate;
+        int SerializationRate;
     } client_settings;
 
     std::unique_ptr<server::ServerManager> serman;
     std::optional<GameServerProxy> client_proxy;
     std::optional<signaling::SignalingClient> signaling;
     luxon::enet::EnetEndpoint server_stun_binding_ep;
+    Il2Cpp::API::Class photonNetworkClass;
 
     std::size_t current_game_id{};
 

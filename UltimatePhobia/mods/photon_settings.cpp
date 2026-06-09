@@ -64,6 +64,10 @@ PhotonSettings::PhotonSettings()
           photonSettingsInfo, Il2Cpp::Photon::Pun::PhotonNetwork::ConnectUsingSettings_getPtr<Photon_Realtime_AppSettings_o *, bool>(),
           reinterpret_cast<void *>(photonNetwork$$ConnectUsingSettingsFnc))) {
     memset(&client_settings, 0, sizeof(client_settings));
+    client_settings.override_SendRate = true;
+    client_settings.SendRate = 50;
+    client_settings.override_SerializationRate = true;
+    client_settings.SerializationRate = 50;
 }
 
 void PhotonSettings::uiUpdate() {
@@ -97,6 +101,20 @@ void PhotonSettings::uiUpdate() {
 #undef CONVBOOLFIELD
 #undef CONVINTFIELD
 #undef CONVSTRFIELD
+
+    PushID("override_SendRate");
+    Checkbox("Override", &client_settings.override_SendRate);
+    PopID();
+    SameLine();
+    if (InputInt("SendRate", &client_settings.SendRate))
+        call(photonNetworkClass, "set_SendRate", client_settings.SendRate);
+
+    PushID("override_SerializationRate");
+    Checkbox("Override", &client_settings.override_SerializationRate);
+    PopID();
+    SameLine();
+    if (InputInt("SerializationRate", &client_settings.SerializationRate))
+        call(photonNetworkClass, "set_SerializationRate", client_settings.SerializationRate);
 
     Separator();
 
@@ -169,6 +187,16 @@ void PhotonSettings::fromIl2CppClass(const Photon_Realtime_AppSettings_Fields& o
 #undef CONVBOOLFIELD
 #undef CONVINTFIELD
 #undef CONVSTRFIELD
+
+    using namespace Il2Cpp::API;
+    try {
+        photonNetworkClass = get_image_cached<"PhotonUnityNetworking">().get_class("Photon.Pun", "PhotonNetwork");
+        if (!client_settings.override_SendRate)
+            client_settings.SendRate = *object_unbox<int>(call(photonNetworkClass, "get_SendRate"));
+        if (!client_settings.override_SerializationRate)
+            client_settings.SerializationRate = *object_unbox<int>(call(photonNetworkClass, "get_SerializationRate"));
+    } catch (const ManagedException& e) {
+    }
 }
 
 void PhotonSettings::toIl2CppClass(Photon_Realtime_AppSettings_Fields& o){
@@ -179,6 +207,11 @@ void PhotonSettings::toIl2CppClass(Photon_Realtime_AppSettings_Fields& o){
 #undef CONVBOOLFIELD
 #undef CONVINTFIELD
 #undef CONVSTRFIELD
+
+    if (client_settings.override_SendRate)
+        call(photonNetworkClass, "set_SendRate", client_settings.SendRate);
+    if (client_settings.override_SerializationRate)
+        call(photonNetworkClass, "set_SerializationRate", client_settings.SerializationRate);
 }
 
 void PhotonSettings::startP2P() {
