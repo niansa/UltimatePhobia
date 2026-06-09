@@ -5,6 +5,7 @@
 #include <string>
 #include <string_view>
 #include <format>
+#include <chrono>
 #include <charconv>
 #include <utility>
 #include <stdexcept>
@@ -71,11 +72,6 @@ PhotonSettings::PhotonSettings()
 }
 
 void PhotonSettings::uiUpdate() {
-    if (serman)
-        serman->run_once();
-    if (client_proxy)
-        client_proxy->run_once();
-
     using namespace ImGui;
     Begin("Photon Settings");
 
@@ -150,14 +146,14 @@ void PhotonSettings::uiUpdate() {
         }
         SameLine();
 
-        if (!client_proxy->proxy_ep) {
+        if (!client_proxy || !client_proxy->proxyReady()) {
             Text("Waiting for STUN NAT punch response...");
-        } else if (client_proxy->server_ep) {
-            if (client_proxy->client_notified)
+        } else if (client_proxy->hasActiveServer()) {
+            if (client_proxy->isClientNotified())
                 Text("Proxy active! Forwarding game traffic.");
             else
                 Text("Punching NAT to remote host...");
-        } else if (current_game_id != 0) {
+        } else if (current_game_id.load() != 0) {
             Text("Hosting P2P game...");
         } else {
             Text("Service ready. Waiting to host or join a game.");
@@ -216,6 +212,12 @@ void PhotonSettings::toIl2CppClass(Photon_Realtime_AppSettings_Fields& o){
 
 void PhotonSettings::startP2P() {
     using namespace server;
+
+    if (serman || client_proxy)
+        return;
+
+    pending_join_handler = nullptr;
+    current_game_id.store(0);
 
     // Set initial settings
     setServer("127.0.0.1");
@@ -305,9 +307,9 @@ void PhotonSettings::startP2P() {
         }
 
         // Continue game creation flow
-        current_game_id = game_id_hash;
+        current_game_id.store(game_id_hash);
 
-        g.logger->info("P2P game create done!", game_id, game_id_hash);
+        g.logger->info("P2P game create done!");
         return false;
     };
 
@@ -320,7 +322,7 @@ void PhotonSettings::startP2P() {
         client_proxy->reset();
 
         // Make sure proxy has completed NAT punch
-        if (!client_proxy->proxy_ep) {
+        if (!client_proxy->proxyReady()) {
             const ser::OperationResponseMessage resp{.operation_code = luxon::OpCodes::Matchmaking::JoinGame,
                                                      .return_code = luxon::ErrorCodes::Matchmaking::ServerCheckFailed,
                                                      .debug_message = "Proxy NAT punch not completed"};
@@ -329,8 +331,16 @@ void PhotonSettings::startP2P() {
         }
 
         // Get all the details we need to publish
+        if (!proxy_ep_opt) {
+            const ser::OperationResponseMessage resp{.operation_code = luxon::OpCodes::Matchmaking::JoinGame,
+                                                     .return_code = luxon::ErrorCodes::Matchmaking::ServerCheckFailed,
+                                                     .debug_message = "Proxy endpoint unavailable"};
+            handler.send(handler.get_peer()->protocol->Serialize(resp));
+            return true;
+        }
+
         const std::size_t game_id_hash = server::string_hash(game_id);
-        const auto [stun_binding_host, stun_binding_port] = endpoint_split_addr(*client_proxy->proxy_ep);
+        const auto [stun_binding_host, stun_binding_port] = endpoint_split_addr(*proxy_ep_opt);
 
         g.logger->info("Attempting to P2P join game '{}' (Hash: {})", game_id, game_id_hash);
 
@@ -363,42 +373,97 @@ void PhotonSettings::startP2P() {
             handler.send(handler.get_peer()->protocol->Serialize(resp));
             return true;
         }
-        client_proxy->server_ep = server_ep_opt;
 
-        // Open joiner-side NAT toward host server
-        client_proxy->socket.send_to(reinterpret_cast<const uint8_t *>(""), 1, *client_proxy->server_ep);
-
-        // Treat this request as handled for now, we'll respond later
-        client_proxy->handler = &handler;
+        client_proxy->request_join(*server_ep_opt);
+        pending_join_handler = &handler;
 
         g.logger->info("P2P game join pending...");
         return true;
     };
 
-    startPollingProxy();
+    auto *serman_ptr = serman.get();
+    auto *client_proxy_ptr = &*client_proxy;
+
+    try {
+        server_manager_thread.emplace([this, serman_ptr](std::stop_token stop_token) {
+            using namespace std::chrono_literals;
+
+            while (!stop_token.stop_requested()) {
+                try {
+                    serman_ptr->run_once();
+                    flushPendingJoinResponse();
+                } catch (const std::exception& e) {
+                    g.logger->error("Server manager thread stopped: {}", e.what());
+                    break;
+                }
+
+                std::this_thread::sleep_for(2ms);
+            }
+        });
+
+        client_proxy_thread.emplace([client_proxy_ptr](std::stop_token stop_token) {
+            using namespace std::chrono_literals;
+
+            client_proxy_ptr->sendStunKeepalive();
+            auto next_keepalive = std::chrono::steady_clock::now() + 16s;
+
+            while (!stop_token.stop_requested()) {
+                try {
+                    client_proxy_ptr->run_once();
+
+                    const auto now = std::chrono::steady_clock::now();
+                    if (now >= next_keepalive) {
+                        client_proxy_ptr->sendStunKeepalive();
+                        next_keepalive = now + 16s;
+                    }
+                } catch (const std::exception& e) {
+                    g.logger->error("Client proxy thread stopped: {}", e.what());
+                    break;
+                }
+
+                std::this_thread::sleep_for(2ms);
+            }
+        });
+    } catch (...) {
+        stopP2P();
+        throw;
+    }
 }
 
 void PhotonSettings::stopP2P() {
-    serman.reset();
+    if (server_manager_thread)
+        server_manager_thread->request_stop();
+    if (client_proxy_thread)
+        client_proxy_thread->request_stop();
+
+    if (server_manager_thread && server_manager_thread->joinable())
+        server_manager_thread->join();
+    if (client_proxy_thread && client_proxy_thread->joinable())
+        client_proxy_thread->join();
+
+    server_manager_thread.reset();
+    client_proxy_thread.reset();
+
+    pending_join_handler = nullptr;
+    current_game_id.store(0);
+
+    signaling.reset();
     client_proxy.reset();
+    serman.reset();
 }
 
 void PhotonSettings::startPollingProxy() {
-    if (!serman || !client_proxy)
-        return;
-
-    // STUN keepalive
-    if (!client_proxy->socket.send_to(reinterpret_cast<const uint8_t *>(""), 1, client_proxy->stun_server_ep))
-        g.logger->warn("Failed to keep alive proxy STUN binding");
-
-    serman->add_scheduled_task(16000, std::bind(&PhotonSettings::startPollingProxy, this));
+    if (client_proxy)
+        client_proxy->sendStunKeepalive();
 }
 
 void PhotonSettings::startPollingServer(luxon::enet::EnetServer& server) {
-    if (current_game_id && serman->get_connection_count() != 0) {
+    const auto game_id = current_game_id.load();
+
+    if (game_id != 0 && serman->get_connection_count() != 0) {
         try {
             // Allow clients in
-            for (const auto& client : signaling->poll_room(current_game_id).clients) {
+            for (const auto& client : signaling->poll_room(game_id).clients) {
                 if (const auto client_ep_opt = luxon::enet::EnetEndpoint::from(client.ip.c_str(), client.port)) {
                     server.socket().send_to(reinterpret_cast<const uint8_t *>(""), 1, *client_ep_opt);
                     g.logger->info("P2P Hello to {}", client_ep_opt->to_string());
@@ -408,10 +473,27 @@ void PhotonSettings::startPollingServer(luxon::enet::EnetServer& server) {
             g.logger->error("Failed to poll P2P signaling server: {}", e.what());
         }
     } else {
-        current_game_id = 0;
+        current_game_id.store(0);
     }
 
     serman->add_scheduled_task(12000, std::bind(&PhotonSettings::startPollingServer, this, std::ref(server)));
+}
+
+void PhotonSettings::flushPendingJoinResponse() {
+    if (!pending_join_handler || !client_proxy || !client_proxy->consumeJoinReady())
+        return;
+
+    using namespace luxon;
+
+    ser::OperationResponseMessage resp{.operation_code = OpCodes::Matchmaking::JoinGame, .return_code = ErrorCodes::Core::Ok};
+    resp.parameters[DictKeyCodes::LoadBalancing::Address] = "127.0.0.1:5059";
+    resp.parameters[DictKeyCodes::LoadBalancing::Token] = std::monostate{};
+    pending_join_handler->send(pending_join_handler->get_peer()->protocol->Serialize(resp));
+
+    g.logger->info("P2P game join done!");
+    g.logger->info("Server NAT hole punched. Instructing local client to connect.");
+
+    pending_join_handler = nullptr;
 }
 
 PhotonSettings::GameServerProxy::GameServerProxy(const PhotonSettings::P2PSettings& p2p_settings) {
@@ -431,6 +513,17 @@ PhotonSettings::GameServerProxy::GameServerProxy(const PhotonSettings::P2PSettin
 
 void PhotonSettings::GameServerProxy::run_once() {
     // Receive datagram
+    {
+        std::lock_guard lock(state_mutex);
+        if (kick_server_ep && server_ep) {
+            kick_ep = server_ep;
+            kick_server_ep = false;
+        }
+    }
+
+    if (kick_ep && !socket.send_to(reinterpret_cast<const uint8_t *>(""), 1, *kick_ep))
+        g.logger->warn("Failed to open proxy NAT toward remote server");
+
     luxon::enet::EnetEndpoint from_ep;
     luxon::enet::DatagramBuffer datagram_buf;
     size_t datagram_len = 0;
@@ -440,49 +533,97 @@ void PhotonSettings::GameServerProxy::run_once() {
     const luxon::enet::DatagramView datagram{datagram_buf.begin(), datagram_buf.begin() + datagram_len};
 
     // Get proxy STUN binding response
-    if (!proxy_ep && from_ep == stun_server_ep) {
+    if (!proxy_ready.load() && from_ep == stun_server_ep) {
         if (const auto proxy_ep_opt = socket.parse_stun_binding_response(datagram)) {
-            proxy_ep = *proxy_ep_opt;
-            g.logger->info("Got proxy STUN binding: {}", proxy_ep->to_string());
+            {
+                std::lock_guard lock(state_mutex);
+                proxy_ep = *proxy_ep_opt;
+            }
+            proxy_ready.store(true);
+            g.logger->info("Got proxy STUN binding: {}", proxy_ep_opt->to_string());
         }
         return;
     }
 
-    // Stop here if we haven't processed JoinGame request yet
-    if (!handler || !server_ep)
+    std::optional<luxon::enet::EnetEndpoint> current_server_ep;
+    {
+        std::lock_guard lock(state_mutex);
+        current_server_ep = server_ep;
+    }
+
+    if (!current_server_ep)
         return;
 
-    // Handle incoming packet from remote server
-    if (from_ep == *server_ep) {
-        // The server has successfully punched its NAT
-        if (!client_notified) {
-            using namespace luxon;
-            ser::OperationResponseMessage resp{.operation_code = OpCodes::Matchmaking::JoinGame, .return_code = ErrorCodes::Core::Ok};
-            resp.parameters[DictKeyCodes::LoadBalancing::Address] = "127.0.0.1:5059";
-            resp.parameters[DictKeyCodes::LoadBalancing::Token] = std::monostate{}; // Let client authenticate from scratch
-            handler->send(handler->get_peer()->protocol->Serialize(resp));
+    if (from_ep == *current_server_ep) {
+        std::optional<luxon::enet::EnetEndpoint> current_client_ep;
+        bool first_server_packet = false;
 
-            g.logger->info("P2P game join done!");
-            g.logger->info("Server NAT hole punched. Instructing local client to connect.");
-            client_notified = true;
+        {
+            std::lock_guard lock(state_mutex);
+            if (!client_notified) {
+                client_notified = true;
+                client_notified_flag.store(true);
+                join_ready.store(true);
+                first_server_packet = true;
+            }
+            current_client_ep = client_ep;
         }
 
-        // Forward server's packet to local client
-        if (client_ep)
-            socket.send_to(datagram.data(), datagram.size(), *client_ep);
+        if (first_server_packet)
+            g.logger->info("Server NAT hole punched.");
+
+        if (current_client_ep)
+            socket.send_to(datagram.data(), datagram.size(), *current_client_ep);
 
         return;
     }
 
-    // Handle incoming packet from local client
-    if (!client_ep) {
-        client_ep = from_ep;
-        g.logger->info("Got local client endpoint: {}", client_ep->to_string());
+    std::optional<luxon::enet::EnetEndpoint> current_client_ep;
+    bool got_local_client = false;
+    {
+        std::lock_guard lock(state_mutex);
+        if (!client_ep) {
+            client_ep = from_ep;
+            got_local_client = true;
+        }
+        current_client_ep = client_ep;
+        current_server_ep = server_ep;
     }
 
-    // Forward client's packet to remote server
-    if (client_ep && from_ep == *client_ep)
-        socket.send_to(datagram.data(), datagram.size(), *server_ep);
+    if (got_local_client)
+        g.logger->info("Got local client endpoint: {}", from_ep.to_string());
+
+    if (current_client_ep && current_server_ep && from_ep == *current_client_ep)
+        socket.send_to(datagram.data(), datagram.size(), *current_server_ep);
+}
+
+void PhotonSettings::GameServerProxy::sendStunKeepalive() {
+    if (!socket.send_to(reinterpret_cast<const uint8_t *>(""), 1, stun_server_ep))
+        g.logger->warn("Failed to keep alive proxy STUN binding");
+}
+
+void PhotonSettings::GameServerProxy::request_join(const luxon::enet::EnetEndpoint& remote_server_ep) {
+    std::lock_guard lock(state_mutex);
+    server_ep = remote_server_ep;
+    client_ep.reset();
+    client_notified = false;
+    kick_server_ep = true;
+
+    server_active.store(true);
+    client_notified_flag.store(false);
+    join_ready.store(false);
+}
+
+void PhotonSettings::GameServerProxy::reset() {
+    std::lock_guard lock(state_mutex);
+    server_ep.reset();
+    client_ep.reset();
+    client_notified = false;
+    kick_server_ep = false;
+
+    server_active.store(false);
+    client_notified_flag.store(false);
+    join_ready.store(false);
 }
 
 ModInfo photonSettingsInfo {

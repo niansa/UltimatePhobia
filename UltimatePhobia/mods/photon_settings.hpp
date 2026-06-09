@@ -8,6 +8,9 @@
 #include <string_view>
 #include <optional>
 #include <memory>
+#include <atomic>
+#include <mutex>
+#include <thread>
 #include <luxon/enet_peer.hpp>
 
 namespace server {
@@ -29,19 +32,34 @@ class PhotonSettings final : public Mod {
 
     struct GameServerProxy {
         luxon::enet::EnetEndpoint stun_server_ep;
-        std::optional<luxon::enet::EnetEndpoint> proxy_ep, client_ep, server_ep;
         luxon::enet::UdpSocket socket;
-        server::HandlerBase *handler{};
-        bool client_notified = false;
 
         GameServerProxy(const PhotonSettings::P2PSettings& stun);
         void run_once();
-        void reset() {
-            handler = nullptr;
-            server_ep.reset();
-            client_ep.reset();
-            client_notified = false;
+        void sendStunKeepalive();
+
+        void request_join(const luxon::enet::EnetEndpoint& remote_server_ep);
+        void reset();
+
+        bool proxyReady() const noexcept { return proxy_ready.load(); }
+        bool hasActiveServer() const noexcept { return server_active.load(); }
+        bool isClientNotified() const noexcept { return client_notified_flag.load(); }
+        bool consumeJoinReady() noexcept { return join_ready.exchange(false); }
+        std::optional<luxon::enet::EnetEndpoint> takeProxyEndpoint() const {
+            std::lock_guard lock(state_mutex);
+            return proxy_ep;
         }
+
+    private:
+        mutable std::mutex state_mutex;
+        std::optional<luxon::enet::EnetEndpoint> proxy_ep, client_ep, server_ep;
+        bool client_notified = false;
+        bool kick_server_ep = false;
+
+        std::atomic_bool proxy_ready{false};
+        std::atomic_bool server_active{false};
+        std::atomic_bool client_notified_flag{false};
+        std::atomic_bool join_ready{false};
     };
 
     struct ClientSettings {
@@ -88,7 +106,10 @@ class PhotonSettings final : public Mod {
     luxon::enet::EnetEndpoint server_stun_binding_ep;
     Il2Cpp::API::Class photonNetworkClass;
 
-    std::size_t current_game_id{};
+    std::optional<std::jthread> server_manager_thread;
+    std::optional<std::jthread> client_proxy_thread;
+    server::HandlerBase *pending_join_handler{};
+    std::atomic_size_t current_game_id{0};
 
 public:
     GameHook photonNetwork$$ConnectUsingSettingsHook;
@@ -107,6 +128,9 @@ public:
 
     void startPollingProxy();
     void startPollingServer(luxon::enet::EnetServer& server);
+
+private:
+    void flushPendingJoinResponse();
 };
 
 extern ModInfo photonSettingsInfo;
