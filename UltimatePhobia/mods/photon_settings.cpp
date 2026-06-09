@@ -331,6 +331,7 @@ void PhotonSettings::startP2P() {
         }
 
         // Get all the details we need to publish
+        const auto proxy_ep_opt = client_proxy->takeProxyEndpoint();
         if (!proxy_ep_opt) {
             const ser::OperationResponseMessage resp{.operation_code = luxon::OpCodes::Matchmaking::JoinGame,
                                                      .return_code = luxon::ErrorCodes::Matchmaking::ServerCheckFailed,
@@ -513,6 +514,7 @@ PhotonSettings::GameServerProxy::GameServerProxy(const PhotonSettings::P2PSettin
 
 void PhotonSettings::GameServerProxy::run_once() {
     // Receive datagram
+    std::optional<luxon::enet::EnetEndpoint> kick_ep;
     {
         std::lock_guard lock(state_mutex);
         if (kick_server_ep && server_ep) {
