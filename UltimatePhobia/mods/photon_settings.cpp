@@ -264,11 +264,14 @@ void PhotonSettings::startP2P() {
     ServerManagerConfig config;
     config.max_connections = 4;
     config.max_game_peers = 4;
-    config.servers.emplace_back(ServerConfig{ServerType::NameServer, 5058});
-    config.servers.emplace_back(ServerConfig{ServerType::MasterServer, 5055});
-    config.servers.emplace_back(ServerConfig{ServerType::GameServer, 5056, true, p2p_settings.stun_server_host, p2p_settings.stun_server_port});
-    config.add_endpoint(ServerType::MasterServer, ServerProtocol::UDP, "127.0.0.1:5055");
-    config.add_endpoint(ServerType::GameServer, ServerProtocol::UDP, "127.0.0.1:5056");
+    config.servers.emplace_back(ServerConfig{.type = ServerType::NameServer, .port = 5058, .external_address = "127.0.0.1:5058"});
+    config.servers.emplace_back(ServerConfig{.type = ServerType::MasterServer, .port = 5055, .external_address = "127.0.0.1:5055"});
+    config.servers.emplace_back(ServerConfig{.type = ServerType::GameServer,
+                                             .port = 5056,
+                                             .allow_unsolicited = true,
+                                             .stun_server_host = p2p_settings.stun_server_host,
+                                             .stun_server_port = p2p_settings.stun_server_port,
+                                             .external_address = "127.0.0.1:5056"});
 
     // Create luxon server manager
     serman = std::make_unique<server::ServerManager>(std::move(config));
