@@ -34,6 +34,14 @@ void init() {
         return;
     }
 
+    // Enforce software rendering if mangohud is active
+    if (const char *env_mangohud = std::getenv("MANGOHUD")) {
+        if (std::string(env_mangohud) == "1") {
+            g.logger->info("MangoHud detected. Forcing SDL software renderer to prevent Vulkan context collisions.");
+            SDL_SetHint(SDL_HINT_RENDER_DRIVER, "software");
+        }
+    }
+
     // Create renderer
     renderer = SDL_CreateRenderer(window, nullptr);
     g.logger->info("Using {} renderer", SDL_GetRendererName(renderer));
