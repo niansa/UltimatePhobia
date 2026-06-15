@@ -145,6 +145,7 @@ add_executable(UltimatePhobia WIN32 main.cpp icon.rc
     signaling_client.hpp signaling_client.cpp
 
     ../deps/tracy/public/tracy/Tracy.hpp
+    linux.hpp linux.cpp
 )
 target_link_libraries(UltimatePhobia PRIVATE dbghelp commoncpp spdlog imgui m3 wasm3_cpp ws2_32 winhttp elfldpp luxon_server_lib)
 target_include_directories(UltimatePhobia PRIVATE . ../il2cpp_dump ../deps/tracy/public)

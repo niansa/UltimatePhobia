@@ -1,6 +1,7 @@
 #include "application.hpp"
 #include "global_state.hpp"
 #include "il2cpp.h"
+#include "linux.hpp"
 #include "game_hook.hpp"
 #include "imgui_man.hpp"
 #include "safe_path.hpp"
@@ -163,6 +164,12 @@ void Application::update() {
 
         if (Button("Exit game"))
             exit(0);
+        if (linux::isMangoHudAvailable()) {
+            SameLine();
+            bool enabled = linux::isMangoHudEnabled();
+            if (Checkbox("Enable MangoHud", &enabled))
+                linux::restartWithMangoHud(enabled);
+        }
 
 #ifdef TRACY_ENABLE
         BeginDisabled(tracingHooksInstalled);
@@ -186,9 +193,31 @@ void Application::update() {
 
 void Application::exit(int code) {
     g.logger->info("Exiting application...");
-    Il2Cpp::UnityEngine::Application::Quit();
-    ImGuiMan::deinit();
-    ApplicationHooks::appUpdateHook.reset();
+    ExitProcess(code);
 }
 
 bool Application::isActive() { return ApplicationHooks::appUpdateHook.has_value() && ApplicationHooks::appUpdateHook.value().isActive(); }
+
+std::string getLinuxWineLoader() {
+    // Wine maps the raw Linux root directory to Z:
+    std::ifstream file("Z:\\proc\\self\\environ", std::ios::binary);
+    if (!file.is_open()) {
+        return "wine"; // Failsafe fallback
+    }
+
+    std::string envVar;
+    // /proc/self/environ separates variables with a null character (\0)
+    while (std::getline(file, envVar, '\0')) {
+        if (envVar.find("WINELOADER=") == 0) {
+            std::string loader = envVar.substr(11); // Length of "WINELOADER="
+
+            // Strip "-preloader" if it exists to avoid EACCES permission blocks
+            size_t pos = loader.find("-preloader");
+            if (pos != std::string::npos) {
+                loader.erase(pos, 10);
+            }
+            return loader;
+        }
+    }
+    return "wine"; // Failsafe fallback if WINELOADER is missing
+}
