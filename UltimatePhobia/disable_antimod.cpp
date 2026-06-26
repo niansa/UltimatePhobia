@@ -36,12 +36,11 @@ static bool maybeForbiddenFile(std::string path, bool dllSearch = false) {
 static void *tryCheckFnc(System_String_o *path, const MethodInfo *method) {
     auto cpp_path = Il2Cpp::CppInterop::ToCppString(path);
     fixPath(cpp_path);
-    g.logger->debug("Game is trying to check if {} exists!", cpp_path);
-    g.logger->flush();
+    // g.logger->debug("Game is trying to check if {} exists!", cpp_path);
 
     // Prevent mod detection
     if (maybeForbiddenFile(cpp_path)) {
-        g.logger->info("Denying existence of {}.", cpp_path);
+        // g.logger->info("Denying existence of {}.", cpp_path);
         return nullptr;
     }
 
@@ -60,12 +59,11 @@ static void *tryCheckFnc(System_String_o *path, const MethodInfo *method) {
 GAMEHOOK_TRAMPOLINE(tryCheckFnc)
 
 HMODULE GetModuleHandleAFnc(LPCSTR lpModuleName) {
-    g.logger->debug("Game is trying to check if {} is loaded!", lpModuleName);
-    g.logger->flush();
+    // g.logger->debug("Game is trying to check if {} is loaded!", lpModuleName);
 
     // Prevent mod detection
     if (maybeForbiddenFile(lpModuleName, true)) {
-        g.logger->info("Denying {} being loaded.", lpModuleName);
+        // g.logger->info("Denying {} being loaded.", lpModuleName);
         return nullptr;
     }
 

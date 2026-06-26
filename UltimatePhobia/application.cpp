@@ -6,6 +6,7 @@
 #include "imgui_man.hpp"
 #include "safe_path.hpp"
 #include "ffi_loader.hpp"
+#include "dx11_hook.hpp"
 #include "il2cpp_dynamic.hpp"
 #include "generated/il2cpp.hpp"
 
@@ -94,6 +95,8 @@ Application::Application() {
                          reinterpret_cast<void *>(ApplicationHooks::hookTrampoline_il2cppInitFnc), true);
     GameHook::safeCreate(ApplicationHooks::splashScreenCtorHook, Il2Cpp::SplashScreen::_ctor_getPtr(),
                          reinterpret_cast<void *>(ApplicationHooks::splashScreenCtorFnc));
+
+    DX11Hook::init();
 }
 
 void Application::init() {

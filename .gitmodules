@@ -25,3 +25,6 @@
 [submodule "deps/LuxonServer"]
 	path = deps/LuxonServer
 	url = https://gitlab.com/luxon_project/LuxonServer.git
+[submodule "deps/DirectXMath"]
+	path = deps/DirectXMath
+	url = https://github.com/microsoft/DirectXMath.git

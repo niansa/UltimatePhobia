@@ -6,6 +6,7 @@
 #include <string_view>
 #include <functional>
 #include <memory>
+#include <dxgi.h>
 
 class Mod {
 public:
@@ -13,6 +14,9 @@ public:
     virtual ~Mod() {}
 
     virtual void uiUpdate() {}
+
+    virtual void onDX11Present(IDXGISwapChain *swapChain, UINT syncInterval, UINT flags) {}
+    virtual void onDX11ResizeBuffers(IDXGISwapChain *swapChain, UINT bufferCount, UINT width, UINT height, DXGI_FORMAT newFormat, UINT swapChainFlags) {}
 };
 
 struct ModInfo {

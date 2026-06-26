@@ -82,6 +82,7 @@ set(SDL_SENSOR OFF)
 set(SDL_DIALOG OFF)
 set(SDL_TESTS OFF)
 
+set(BUILD_TESTING OFF CACHE INTERNAL "" FORCE)
 set(LUXON_SERVER_ENABLE_WEBSERVER OFF CACHE INTERNAL "" FORCE)
 set(LUXON_SERVER_USE_SPDLOG OFF CACHE INTERNAL "" FORCE)
 set(LUXON_SERVER_HOOKPOINTS ON CACHE INTERNAL "" FORCE)
@@ -90,8 +91,10 @@ add_subdirectory(../deps/commoncpp commoncpp)
 add_subdirectory(../deps/spdlog spdlog)
 add_subdirectory(../deps/wasm3/source wasm3)
 add_subdirectory(../deps/wasm3/platforms/cpp/wasm3_cpp wasm3_cpp)
+add_subdirectory(../deps/DirectXMath directxmath)
 add_subdirectory(../deps/SDL sdl3)
 add_subdirectory(../deps/elfld elfld)
+add_subdirectory(../deps/Slugger slugger)
 add_subdirectory(../deps/LuxonServer luxon_server)
 
 add_library(imgui STATIC
@@ -146,11 +149,12 @@ add_executable(UltimatePhobia WIN32 main.cpp icon.rc
 
     ../deps/tracy/public/tracy/Tracy.hpp
     linux.hpp linux.cpp
+    dx11_hook.hpp
+    dx11_hook.cpp
 )
-target_link_libraries(UltimatePhobia PRIVATE dbghelp commoncpp spdlog imgui m3 wasm3_cpp ws2_32 winhttp elfldpp luxon_server_lib)
+target_link_libraries(UltimatePhobia PRIVATE dbghelp commoncpp spdlog imgui m3 wasm3_cpp ws2_32 winhttp elfldpp luxon_server_lib Slugger)
 target_include_directories(UltimatePhobia PRIVATE . ../il2cpp_dump ../deps/tracy/public)
 target_precompile_headers(UltimatePhobia PRIVATE ../il2cpp_dump/il2cpp.h generated/il2cpp.hpp)
-#target_precompile_headers(UltimatePhobia PRIVATE ../il2cpp_dump/il2cpp.h)
 target_compile_definitions(UltimatePhobia PUBLIC _CRT_SECURE_NO_WARNINGS COMPILER_INFO="${COMPILER_INFO}")
 if (ULTIMATEPHOBIA_CHEATS)
     target_compile_definitions(UltimatePhobia PRIVATE MOD_ENABLE_CHEATS)
