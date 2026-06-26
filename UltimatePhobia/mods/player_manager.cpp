@@ -271,7 +271,7 @@ void PlayerManager::onDX11Present(IDXGISwapChain *swapChain, UINT syncInterval, 
 
         // Clamped distance-based scale
         float scaledFontScale = baseFontScale * (3.0f / std::max(data.depth, 1.0f));
-        options.scale = std::clamp(scaledFontScale, baseFontScale * 0.40f, baseFontScale * 1.50f);
+        options.scale = std::clamp(scaledFontScale, baseFontScale * 0.50f, baseFontScale * 1.50f);
 
         auto vertices = m_fontBuilder->BuildTextVertices(data.text, options);
         if (vertices.empty())
