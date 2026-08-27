@@ -610,7 +610,7 @@ void WhisperVoice::WorkerThreadLoop() {
 
         {
             std::lock_guard lock(phraseMutex);
-            lastRawRecognizedText = normalizedText;
+            lastRecognizedText = normalizedText;
         }
 
         if (normalizedText.empty())
@@ -633,7 +633,7 @@ void WhisperVoice::WorkerThreadLoop() {
         }
 
         if (matchedPhrase.empty())
-            continue;
+            matchedPhrase = normalizedText;
 
         {
             std::lock_guard lock(phraseMutex);
@@ -684,7 +684,7 @@ void WhisperVoice::uiUpdate() {
     ImGui::Text("Recognizers: %zu", recognizerCount);
     ImGui::Text("Keywords: %zu", keywordCount);
     ImGui::Text("Queued Audio Jobs: %zu", queuedAudioJobs);
-    ImGui::Text("Last recognized: %s", lastRawRecognizedText.c_str());
+    ImGui::Text("Last recognized: %s", lastRecognizedText.c_str());
     ImGui::End();
 
     if (!activeMicrophoneClip || !wctx || !fvad)
@@ -814,11 +814,6 @@ void WhisperVoice::FireGameDelegates(std::string_view recognizedText) {
     {
         std::lock_guard lock(recognizersMutex);
         for (const auto& [recognizer, registration] : recognizers) {
-            (void)recognizer;
-
-            if (!registration.keywords.contains(normalizedPhrase))
-                continue;
-
             delegatesToInvoke.insert(delegatesToInvoke.end(), registration.delegates.begin(), registration.delegates.end());
         }
     }

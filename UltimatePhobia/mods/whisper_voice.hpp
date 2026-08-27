@@ -63,7 +63,7 @@ public:
     // Recognized phrases are consumed on Unity's main thread.
     std::mutex phraseMutex;
     std::queue<std::string> pendingPhrasesQueue;
-    std::string lastRawRecognizedText = "None";
+    std::string lastRecognizedText = "None";
 
     WhisperVoice();
     ~WhisperVoice() override;
