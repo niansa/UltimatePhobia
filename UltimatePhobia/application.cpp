@@ -20,6 +20,7 @@
 #include "mods/fixes.hpp"
 #include "mods/improvements.hpp"
 #include "mods/cheats.hpp"
+#include "mods/whisper_voice.hpp"
 
 #include <optional>
 #include <filesystem>
@@ -82,7 +83,8 @@ struct ApplicationHooks {
 Application::Application() {
     currentApplication = this;
     mods = {
-        &photonSettingsInfo, &saveFileManagerInfo, &fixesInfo, &playerManagerInfo, &goldbergEmuManagerInfo, &tracerInfo, &explorerInfo, &improvementsInfo,
+        &photonSettingsInfo, &saveFileManagerInfo, &fixesInfo,        &playerManagerInfo, &goldbergEmuManagerInfo,
+        &tracerInfo,         &explorerInfo,        &whisperVoiceInfo, &improvementsInfo,
 #ifdef MOD_ENABLE_CHEATS
         &cheatsInfo,
 #endif

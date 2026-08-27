@@ -13,7 +13,7 @@ using namespace Il2Cpp;
 
 namespace {
 constexpr float kHeadWorldYOffset = 0.2f;
-constexpr float kTargetFontSize = 26.0f;
+constexpr float kTargetFontSize = 32.0f;
 } // namespace
 
 void player$$UpdateFnc(Player_o *__this, const MethodInfo *method) {
@@ -271,7 +271,7 @@ void PlayerManager::onDX11Present(IDXGISwapChain *swapChain, UINT syncInterval, 
 
         // Clamped distance-based scale
         float scaledFontScale = baseFontScale * (3.0f / std::max(data.depth, 1.0f));
-        options.scale = std::clamp(scaledFontScale, baseFontScale * 0.50f, baseFontScale * 1.50f);
+        options.scale = std::clamp(scaledFontScale, baseFontScale * 0.60f, baseFontScale * 1.50f);
 
         auto vertices = m_fontBuilder->BuildTextVertices(data.text, options);
         if (vertices.empty())

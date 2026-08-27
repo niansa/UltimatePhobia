@@ -24,6 +24,33 @@ static inline void fixPlayerController(Object player) {
         call(characterController, cml, false);
 }
 
+static inline void fixPlayerHeadlight(Object player) {
+    if (!player)
+        return;
+
+    // Resolve the player's GameObject
+    Object playerGo = call(player, "get_gameObject");
+
+    if (!playerGo)
+        return;
+
+    Object transform = call(playerGo, "get_transform");
+    if (!transform)
+        return;
+
+    static CachedMethodLookup findCml("Find");
+    auto unityObjectClass = get_class_cached<"UnityEngine.CoreModule", "UnityEngine", "Object">();
+    static CachedMethodLookup destroyCml("Destroy");
+
+    // Locate and destroy PCAreaLight
+    if (Object areaLightT = call(transform, findCml, "PCPlayerHead/PCAreaLight")) {
+        if (Object areaLightGo = call(areaLightT, "get_gameObject")) {
+            g.logger->info("Destroying PCAreaLight...");
+            call(unityObjectClass, destroyCml, areaLightGo);
+        }
+    }
+}
+
 static bool photonNetwork$$ConnectToBestCloudServerFnc(const MethodInfo *method) {
     // TODO: Use last region instead
     auto photonNet = get_class_cached<"PhotonUnityNetworking", "Photon.Pun", "PhotonNetwork">();
@@ -56,8 +83,11 @@ void Fixes::sceneFix() {
 }
 
 void Fixes::playerFix() {
-    if (auto player = globalInstanceManagerInfo.get<GlobalInstanceManager>()->getPlayer())
-        fixPlayerController(Object{reinterpret_cast<Il2Cpp::API::Il2CppObject *>(player)});
+    if (auto player = globalInstanceManagerInfo.get<GlobalInstanceManager>()->getPlayer()) {
+        Object playerObj{reinterpret_cast<Il2Cpp::API::Il2CppObject *>(player)};
+        fixPlayerController(playerObj);
+        // fixPlayerHeadlight(playerObj);
+    }
 }
 
 void Fixes::uiUpdate() {

@@ -87,6 +87,10 @@ set(LUXON_SERVER_ENABLE_WEBSERVER OFF CACHE INTERNAL "" FORCE)
 set(LUXON_SERVER_USE_SPDLOG OFF CACHE INTERNAL "" FORCE)
 set(LUXON_SERVER_HOOKPOINTS ON CACHE INTERNAL "" FORCE)
 
+set(WHISPER_BUILD_TESTS OFF CACHE INTERNAL "" FORCE)
+set(WHISPER_BUILD_EXAMPLES OFF CACHE INTERNAL "" FORCE)
+set(WHISPER_BUILD_SERVER OFF CACHE INTERNAL "" FORCE)
+
 add_subdirectory(../deps/commoncpp commoncpp)
 add_subdirectory(../deps/spdlog spdlog)
 add_subdirectory(../deps/wasm3/source wasm3)
@@ -96,6 +100,8 @@ add_subdirectory(../deps/SDL sdl3)
 add_subdirectory(../deps/elfld elfld)
 add_subdirectory(../deps/Slugger slugger)
 add_subdirectory(../deps/LuxonServer luxon_server)
+add_subdirectory(../deps/libfvad libfvad)
+add_subdirectory(../deps/whisper.cpp whisper.cpp)
 
 add_library(imgui STATIC
     ../deps/imgui/imgui.cpp ../deps/imgui/imgui_draw.cpp ../deps/imgui/imgui_tables.cpp ../deps/imgui/imgui_widgets.cpp
@@ -123,6 +129,7 @@ add_executable(UltimatePhobia WIN32 main.cpp icon.rc
     mods/save_file_manager.hpp mods/save_file_manager.cpp
     bindings/unityengine.hpp bindings/unityengine.cpp
     mods/goldberg_emu_manager.hpp mods/goldberg_emu_manager.cpp
+    mods/whisper_voice.hpp mods/whisper_voice.cpp
     disable_antimod.hpp disable_antimod.cpp
     crash_handler.hpp crash_handler.cpp
     disable_splashscreen.hpp disable_splashscreen.cpp
@@ -152,7 +159,7 @@ add_executable(UltimatePhobia WIN32 main.cpp icon.rc
     dx11_hook.hpp
     dx11_hook.cpp
 )
-target_link_libraries(UltimatePhobia PRIVATE dbghelp commoncpp spdlog imgui m3 wasm3_cpp ws2_32 winhttp elfldpp luxon_server_lib Slugger)
+target_link_libraries(UltimatePhobia PRIVATE dbghelp commoncpp spdlog imgui m3 wasm3_cpp ws2_32 winhttp elfldpp luxon_server_lib Slugger whisper fvad)
 target_include_directories(UltimatePhobia PRIVATE . ../il2cpp_dump ../deps/tracy/public)
 target_precompile_headers(UltimatePhobia PRIVATE ../il2cpp_dump/il2cpp.h generated/il2cpp.hpp)
 target_compile_definitions(UltimatePhobia PUBLIC _CRT_SECURE_NO_WARNINGS COMPILER_INFO="${COMPILER_INFO}")
