@@ -1,9 +1,8 @@
 #include "whisper_voice.hpp"
 
 #include "game_hook.hpp"
-#include "global_instance_manager.hpp"
 #include "il2cpp_api_cpp.hpp"
-#include "misc_utils.hpp"
+#include "global_instance_manager.hpp"
 
 #include <algorithm>
 #include <cctype>
@@ -752,7 +751,8 @@ void WhisperVoice::ProcessAudioAndRecognize() {
     const Class floatClass = get_class_cached<"mscorlib", "System", "Single">();
     Array managedArray = Array::New(floatClass, valueCount);
 
-    Object getDataResult = call(activeMicrophoneClip, "GetData", managedArray, lastMicPosition);
+    static CachedMethodLookup CML("GetData");
+    Object getDataResult = call(activeMicrophoneClip, CML, managedArray, lastMicPosition);
 
     if (getDataResult) {
         const bool *success = object_unbox<bool>(getDataResult);
@@ -809,6 +809,8 @@ void WhisperVoice::FireGameDelegates(std::string_view recognizedText) {
     if (normalizedPhrase.empty())
         return;
 
+    const std::string normalizedPhraseUpper = char(std::toupper(normalizedPhrase[0])) + normalizedPhrase.substr(1);
+
     std::vector<Object> delegatesToInvoke;
 
     {
@@ -829,13 +831,9 @@ void WhisperVoice::FireGameDelegates(std::string_view recognizedText) {
     if (!spoofedArgs)
         return;
 
-    const Field textField = argsClass.get_field("text");
     const Field confidenceField = argsClass.get_field("confidence");
     const Field semanticMeaningsField = argsClass.get_field("semanticMeanings");
-
-    if (textField) {
-        textField.set_value_object(spoofedArgs, make_string(normalizedPhrase));
-    }
+    const Field textField = argsClass.get_field("text");
 
     if (confidenceField) {
         // UnityEngine.Windows.Speech.ConfidenceLevel.High == 0
@@ -851,17 +849,23 @@ void WhisperVoice::FireGameDelegates(std::string_view recognizedText) {
         }
     }
 
-    // Invoke a snapshot. Event handlers are allowed to subscribe or unsubscribe while they are running
-    for (Object& delegateObject : delegatesToInvoke) {
-        if (!delegateObject)
-            continue;
+    for (const std::string_view phrase : {normalizedPhrase, normalizedPhraseUpper}) {
+        if (textField)
+            textField.set_value_object(spoofedArgs, make_string(phrase));
 
-        try {
-            call(delegateObject, "Invoke", spoofedArgs);
-        } catch (const ManagedException& exception) {
-            g.logger->warn("WhisperVoice: delegate execution failure: {}", exception.what());
-        } catch (const Error& exception) {
-            g.logger->warn("WhisperVoice: delegate invocation failure: {}", exception.what());
+        // Invoke a snapshot. Event handlers are allowed to subscribe or unsubscribe while they are running
+        for (Object& delegateObject : delegatesToInvoke) {
+            if (!delegateObject)
+                continue;
+
+            try {
+                static CachedMethodLookup CML("Invoke");
+                call(delegateObject, CML, spoofedArgs);
+            } catch (const ManagedException& exception) {
+                g.logger->warn("WhisperVoice: delegate execution failure: {}", exception.what());
+            } catch (const Error& exception) {
+                g.logger->warn("WhisperVoice: delegate invocation failure: {}", exception.what());
+            }
         }
     }
 }
