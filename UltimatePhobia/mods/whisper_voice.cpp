@@ -850,8 +850,7 @@ void WhisperVoice::FireGameDelegates(std::string_view recognizedText) {
     }
 
     for (const std::string_view phrase : {normalizedPhrase, normalizedPhraseUpper}) {
-        if (textField)
-            textField.set_value_object(spoofedArgs, make_string(phrase));
+        textField.set_value_object(spoofedArgs, make_string(phrase));
 
         // Invoke a snapshot. Event handlers are allowed to subscribe or unsubscribe while they are running
         for (Object& delegateObject : delegatesToInvoke) {
