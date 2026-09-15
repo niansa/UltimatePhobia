@@ -16,42 +16,42 @@
 namespace console {
 
 namespace {
-struct EchoOptions {
-    bool noNewline = false;
-    bool enableEscapes = false;
-    std::vector<std::string> arguments;
-};
+class BasicCommandHandler final : public CommandHandler {
+    struct EchoOptions {
+        bool noNewline = false;
+        bool enableEscapes = false;
+        std::vector<std::string> arguments;
+    };
 
-struct PrintfOptions {
-    std::string format;
-    std::vector<std::string> arguments;
-};
+    struct PrintfOptions {
+        std::string format;
+        std::vector<std::string> arguments;
+    };
 
-void executeEcho(const EchoOptions& options) {
-    std::string output;
-    bool continueOutput = true;
+    static inline void executeEcho(const EchoOptions& options) {
+        std::string output;
+        bool continueOutput = true;
 
-    for (std::size_t i = 0; i < options.arguments.size(); ++i) {
-        if (i != 0)
-            output.push_back(' ');
+        for (std::size_t i = 0; i < options.arguments.size(); ++i) {
+            if (i != 0)
+                output.push_back(' ');
 
-        if (options.enableEscapes) {
-            if (!appendEscaped(options.arguments[i], output)) {
-                continueOutput = false; // Encountered \c
-                break;
+            if (options.enableEscapes) {
+                if (!appendEscaped(options.arguments[i], output)) {
+                    continueOutput = false; // Encountered \c
+                    break;
+                }
+            } else {
+                output += options.arguments[i];
             }
-        } else {
-            output += options.arguments[i];
         }
+
+        if (!options.noNewline && continueOutput)
+            output.push_back('\n');
+
+        print(output);
     }
 
-    if (!options.noNewline && continueOutput)
-        output.push_back('\n');
-
-    print(output);
-}
-
-class BasicCommandHandler final : public CommandHandler {
 public:
     void updateApp(CLI::App& app) override {
         // Keep command state alive for as long as the CLI::App callbacks exist.
