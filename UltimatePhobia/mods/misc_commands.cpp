@@ -60,7 +60,7 @@ public:
         CLI::App *playerCmd = app.add_subcommand("player", "Player management commands");
 
         // DropAllVRObjects
-        CLI::App *dropVrCmd = playerCmd->add_subcommand("drop_all_vr_objects", "Force player to drop all VR objects");
+        CLI::App *dropVrCmd = playerCmd->add_subcommand("drop_vr_objects", "Force player to drop all VR objects");
         auto dropVrTarget = std::make_shared<std::string>("me");
         dropVrCmd->add_option("target", *dropVrTarget, "Target player");
         dropVrCmd->callback([dropVrTarget]() {
