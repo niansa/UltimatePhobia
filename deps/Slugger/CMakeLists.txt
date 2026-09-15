@@ -61,20 +61,7 @@ endfunction()
 embed_shader("${SHADER_DIR}/SlugVertexShader.hlsl" "g_SlugVertexShader" "${GENERATED_DIR}/SlugVertexShader.h")
 embed_shader("${SHADER_DIR}/SlugPixelShader.hlsl" "g_SlugPixelShader" "${GENERATED_DIR}/SlugPixelShader.h")
 
-# Ensure library depends on generated headers
 target_sources(Slugger PRIVATE 
     "${GENERATED_DIR}/SlugVertexShader.h"
     "${GENERATED_DIR}/SlugPixelShader.h"
 )
-
-# Create example application
-add_executable(SluggerExample WIN32 src/example.cpp)
-target_link_libraries(SluggerExample Slugger)
-target_compile_definitions(SluggerExample PUBLIC
-    WINVER=0x0A00
-    _WIN32_WINNT=0x0A00
-    NTDDI_VERSION=0x0A000000
-)
-if (MINGW)
-    target_link_options(SluggerExample PRIVATE -static)
-endif()

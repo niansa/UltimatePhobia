@@ -44,7 +44,7 @@ static void *tryCheckFnc(System_String_o *path, const MethodInfo *method) {
         return nullptr;
     }
 
-    // Run actual check (shortcut over std::filesystem)
+    // Run actual check
     GameHook *hook;
     void *caller = GameHook::getTrampolineCaller();
     if (caller == file$$ExistsHook->getAddr())

@@ -23,4 +23,8 @@ public:
 
     static void exit(int code);
     static bool isActive();
+
+    std::vector<ModInfo *> getMods() const { return mods; }
 };
+
+extern Application *currentApplication;

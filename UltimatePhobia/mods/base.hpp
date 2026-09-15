@@ -8,6 +8,8 @@
 #include <memory>
 #include <dxgi.h>
 
+class CommandHandler;
+
 class Mod {
 public:
     Mod() {}
@@ -17,6 +19,8 @@ public:
 
     virtual void onDX11Present(IDXGISwapChain *swapChain, UINT syncInterval, UINT flags) {}
     virtual void onDX11ResizeBuffers(IDXGISwapChain *swapChain, UINT bufferCount, UINT width, UINT height, DXGI_FORMAT newFormat, UINT swapChainFlags) {}
+
+    virtual std::unique_ptr<CommandHandler> getCommandHandler() { return nullptr; }
 };
 
 struct ModInfo {

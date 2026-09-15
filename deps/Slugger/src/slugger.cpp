@@ -454,11 +454,19 @@ std::vector<SlugVertex> SlugFontBuilder::BuildTextVertices(std::string_view text
         float texW = 0.0f;
         g.GetBandingAndTexData(bnd, texZ, texW);
 
+        // Dilate quad geometry by 2 pixels in font units so anti-aliasing & curve overshoot do not get clipped
+        const float pad = (options.scale > 0.0f) ? (2.0f / options.scale) : 64.0f;
+
+        const float minX = g.bboxMinX - pad;
+        const float maxX = g.bboxMaxX + pad;
+        const float minY = g.bboxMinY - pad;
+        const float maxY = g.bboxMaxY + pad;
+
         // Handle DX11 Y-axis flip and scaling
-        const float x0 = (penX + g.bboxMinX) * options.scale;
-        const float y0 = (penY + g.bboxMinY) * -options.scale;
-        const float x1 = (penX + g.bboxMaxX) * options.scale;
-        const float y1 = (penY + g.bboxMaxY) * -options.scale;
+        const float x0 = (penX + minX) * options.scale;
+        const float y0 = (penY + minY) * -options.scale;
+        const float x1 = (penX + maxX) * options.scale;
+        const float y1 = (penY + maxY) * -options.scale;
 
         // Calculate the shader derivatives mapping screen -> texture
         XMFLOAT4 computedJacobian = {1.0f / options.scale, 0.0f, 0.0f, 1.0f / -options.scale};
@@ -473,13 +481,13 @@ std::vector<SlugVertex> SlugFontBuilder::BuildTextVertices(std::string_view text
             return v;
         };
 
-        vertices.push_back(makeVertex(x0, y0, g.bboxMinX, g.bboxMinY, options.minYColor));
-        vertices.push_back(makeVertex(x1, y0, g.bboxMaxX, g.bboxMinY, options.minYColor));
-        vertices.push_back(makeVertex(x1, y1, g.bboxMaxX, g.bboxMaxY, options.maxYColor));
+        vertices.push_back(makeVertex(x0, y0, minX, minY, options.minYColor));
+        vertices.push_back(makeVertex(x1, y0, maxX, minY, options.minYColor));
+        vertices.push_back(makeVertex(x1, y1, maxX, maxY, options.maxYColor));
 
-        vertices.push_back(makeVertex(x0, y0, g.bboxMinX, g.bboxMinY, options.minYColor));
-        vertices.push_back(makeVertex(x1, y1, g.bboxMaxX, g.bboxMaxY, options.maxYColor));
-        vertices.push_back(makeVertex(x0, y1, g.bboxMinX, g.bboxMaxY, options.maxYColor));
+        vertices.push_back(makeVertex(x0, y0, minX, minY, options.minYColor));
+        vertices.push_back(makeVertex(x1, y1, maxX, maxY, options.maxYColor));
+        vertices.push_back(makeVertex(x0, y1, minX, maxY, options.maxYColor));
 
         penX += g.advanceWidth;
     };
@@ -644,142 +652,6 @@ void SlugRenderer::DrawVertices(std::span<const SlugVertex> vertices) {
     m_context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 
     m_context->Draw(vertexCount, 0);
-}
-
-// OverlayWindow
-
-OverlayWindow::OverlayWindow(int width, int height, HWND targetOwner) : m_width(width), m_height(height) {
-    WNDCLASSEXW wc = {sizeof(WNDCLASSEXW), CS_CLASSDC, DefWindowProcW, 0L, 0L, GetModuleHandle(NULL), NULL, NULL, NULL, NULL, kOverlayWindowClassName, NULL};
-    RegisterClassExW(&wc);
-
-    hwnd = CreateWindowExW(WS_EX_LAYERED | WS_EX_TRANSPARENT | WS_EX_NOACTIVATE | WS_EX_TOOLWINDOW, wc.lpszClassName, L"Slug Overlay", WS_POPUP, 0, 0, width,
-                           height, targetOwner, NULL, wc.hInstance, NULL);
-
-    SetLayeredWindowAttributes(hwnd, RGB(0, 0, 0), 255, LWA_ALPHA);
-
-    MARGINS margins = {-1, -1, -1, -1};
-    DwmExtendFrameIntoClientArea(hwnd, &margins);
-
-    ShowWindow(hwnd, SW_SHOWDEFAULT);
-    UpdateWindow(hwnd);
-}
-
-OverlayWindow::~OverlayWindow() {
-    if (hwnd) {
-        DestroyWindow(hwnd);
-        hwnd = nullptr;
-    }
-}
-
-void OverlayWindow::SetupSwapchain(ComPtr<IDXGIFactory2> factory, ComPtr<ID3D11Device> device) {
-    DXGI_SWAP_CHAIN_DESC1 sd = {};
-    sd.Width = 0;
-    sd.Height = 0;
-    sd.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
-    sd.SampleDesc.Count = 1;
-    sd.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
-    sd.BufferCount = 2;
-    sd.SwapEffect = DXGI_SWAP_EFFECT_FLIP_DISCARD;
-    sd.AlphaMode = DXGI_ALPHA_MODE_PREMULTIPLIED;
-
-    ThrowIfFailed(factory->CreateSwapChainForHwnd(device.Get(), hwnd, &sd, nullptr, nullptr, &swapchain), "Failed to create Swapchain");
-
-    RECT rc{};
-    GetClientRect(hwnd, &rc);
-    m_width = std::max(1L, rc.right - rc.left);
-    m_height = std::max(1L, rc.bottom - rc.top);
-
-    CreateBackbufferRTV(device);
-}
-
-bool OverlayWindow::SyncToTarget(HWND target, bool clientArea, bool topmost) {
-    if (!target || !IsWindow(target)) {
-        ShowWindow(hwnd, SW_HIDE);
-        return false;
-    }
-
-    if (!IsWindowVisible(target) || IsIconic(target)) {
-        ShowWindow(hwnd, SW_HIDE);
-        return false;
-    }
-
-    RECT rc = GetTargetRectOnScreen(target, clientArea);
-    const int w = std::max(1L, rc.right - rc.left);
-    const int h = std::max(1L, rc.bottom - rc.top);
-
-    if (topmost) {
-        SetWindowLongPtrW(hwnd, GWLP_HWNDPARENT, 0);
-        SetWindowPos(hwnd, HWND_TOPMOST, rc.left, rc.top, w, h, SWP_NOACTIVATE | SWP_SHOWWINDOW);
-    } else {
-        SetWindowLongPtrW(hwnd, GWLP_HWNDPARENT, reinterpret_cast<LONG_PTR>(target));
-        SetWindowPos(hwnd, HWND_NOTOPMOST, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE | SWP_NOOWNERZORDER);
-        SetWindowPos(hwnd, nullptr, rc.left, rc.top, w, h, SWP_NOZORDER | SWP_NOACTIVATE | SWP_SHOWWINDOW);
-    }
-
-    return true;
-}
-
-bool OverlayWindow::SyncAndResizeToTarget(HWND target, ComPtr<ID3D11Device> device, ComPtr<ID3D11DeviceContext> context, bool clientArea, bool topmost) {
-    if (!SyncToTarget(target, clientArea, topmost))
-        return false;
-
-    RECT rc = GetTargetRectOnScreen(target, clientArea);
-    Resize(device, context, std::max(1L, rc.right - rc.left), std::max(1L, rc.bottom - rc.top));
-
-    return true;
-}
-
-void OverlayWindow::Resize(ComPtr<ID3D11Device> device, ComPtr<ID3D11DeviceContext> context, int width, int height) {
-    width = std::max(1, width);
-    height = std::max(1, height);
-
-    if (!swapchain) {
-        throw std::runtime_error("OverlayWindow swapchain has not been created.");
-    }
-
-    if (m_rtv && width == m_width && height == m_height) {
-        return;
-    }
-
-    context->OMSetRenderTargets(0, nullptr, nullptr);
-    m_rtv.Reset();
-
-    ThrowIfFailed(swapchain->ResizeBuffers(0, width, height, DXGI_FORMAT_UNKNOWN, 0), "ResizeBuffers failed");
-
-    m_width = width;
-    m_height = height;
-
-    CreateBackbufferRTV(device);
-}
-
-void OverlayWindow::SetOwner(HWND owner) { SetWindowLongPtrW(hwnd, GWLP_HWNDPARENT, reinterpret_cast<LONG_PTR>(owner)); }
-
-void OverlayWindow::Bind(ComPtr<ID3D11DeviceContext> context) const {
-    ID3D11RenderTargetView *rtv = m_rtv.Get();
-    context->OMSetRenderTargets(1, &rtv, nullptr);
-
-    D3D11_VIEWPORT vp{};
-    vp.TopLeftX = 0.0f;
-    vp.TopLeftY = 0.0f;
-    vp.Width = static_cast<float>(m_width);
-    vp.Height = static_cast<float>(m_height);
-    vp.MinDepth = 0.0f;
-    vp.MaxDepth = 1.0f;
-
-    context->RSSetViewports(1, &vp);
-}
-
-void OverlayWindow::Clear(ComPtr<ID3D11DeviceContext> context, const float clearColor[4]) const {
-    if (m_rtv)
-        context->ClearRenderTargetView(m_rtv.Get(), clearColor);
-}
-
-void OverlayWindow::Present(UINT syncInterval, UINT flags) { ThrowIfFailed(swapchain->Present(syncInterval, flags), "Present failed"); }
-
-void OverlayWindow::CreateBackbufferRTV(ComPtr<ID3D11Device> device) {
-    ComPtr<ID3D11Texture2D> backbuffer;
-    ThrowIfFailed(swapchain->GetBuffer(0, IID_PPV_ARGS(&backbuffer)), "GetBuffer(backbuffer) failed");
-    ThrowIfFailed(device->CreateRenderTargetView(backbuffer.Get(), nullptr, &m_rtv), "CreateRenderTargetView failed");
 }
 
 } // namespace Slugger

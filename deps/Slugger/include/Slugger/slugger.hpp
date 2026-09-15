@@ -170,49 +170,4 @@ private:
     void InitializePipeline();
 };
 
-class OverlayWindow {
-public:
-    HWND hwnd = nullptr;
-    ComPtr<IDXGISwapChain1> swapchain;
-
-    OverlayWindow(int width, int height, HWND targetOwner = NULL);
-    ~OverlayWindow();
-
-    OverlayWindow(const OverlayWindow&) = delete;
-    OverlayWindow& operator=(const OverlayWindow&) = delete;
-
-    void SetupSwapchain(ComPtr<IDXGIFactory2> factory, ComPtr<ID3D11Device> device);
-
-    bool SyncToTarget(HWND target, bool clientArea = false, bool topmost = false);
-    bool SyncAndResizeToTarget(HWND target, ComPtr<ID3D11Device> device, ComPtr<ID3D11DeviceContext> context, bool clientArea = false, bool topmost = false);
-
-    void Resize(ComPtr<ID3D11Device> device, ComPtr<ID3D11DeviceContext> context, int width, int height);
-
-    void SetOwner(HWND owner);
-
-    void Bind(ComPtr<ID3D11DeviceContext> context) const;
-    void Clear(ComPtr<ID3D11DeviceContext> context, const float clearColor[4]) const;
-    void Present(UINT syncInterval = 1, UINT flags = 0);
-
-    [[nodiscard]]
-    int GetWidth() const noexcept {
-        return m_width;
-    }
-    [[nodiscard]]
-    int GetHeight() const noexcept {
-        return m_height;
-    }
-    [[nodiscard]]
-    ID3D11RenderTargetView *GetRenderTargetView() const noexcept {
-        return m_rtv.Get();
-    }
-
-private:
-    ComPtr<ID3D11RenderTargetView> m_rtv;
-    int m_width = 0;
-    int m_height = 0;
-
-    void CreateBackbufferRTV(ComPtr<ID3D11Device> device);
-};
-
 } // namespace Slugger

@@ -18,6 +18,7 @@
 #include "mods/player_manager.hpp"
 #include "mods/goldberg_emu_manager.hpp"
 #include "mods/fixes.hpp"
+#include "mods/game_console.hpp"
 #include "mods/improvements.hpp"
 #include "mods/cheats.hpp"
 #include "mods/whisper_voice.hpp"
@@ -32,7 +33,7 @@ namespace Il2Cpp::Profiling {
 void InstallHooks();
 }
 
-static Application *currentApplication = nullptr;
+Application *currentApplication = nullptr;
 
 struct ApplicationHooks {
     inline static std::optional<GameHook> appUpdateHook, splashScreenCtorHook, il2cppInitHook, il2cppInitUtf8Hook;
@@ -84,7 +85,7 @@ Application::Application() {
     currentApplication = this;
     mods = {
         &photonSettingsInfo, &saveFileManagerInfo, &fixesInfo,        &playerManagerInfo, &goldbergEmuManagerInfo,
-        &tracerInfo,         &explorerInfo,        &whisperVoiceInfo, &improvementsInfo,
+        &tracerInfo,         &explorerInfo,        &whisperVoiceInfo, &improvementsInfo,  &gameConsoleInfo,
 #ifdef MOD_ENABLE_CHEATS
         &cheatsInfo,
 #endif
