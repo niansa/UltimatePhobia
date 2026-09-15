@@ -18,10 +18,11 @@
 #include "mods/player_manager.hpp"
 #include "mods/goldberg_emu_manager.hpp"
 #include "mods/fixes.hpp"
-#include "mods/game_console.hpp"
 #include "mods/improvements.hpp"
 #include "mods/cheats.hpp"
 #include "mods/whisper_voice.hpp"
+#include "mods/game_console.hpp"
+#include "mods/misc_commands.hpp"
 
 #include <optional>
 #include <filesystem>
@@ -84,8 +85,8 @@ struct ApplicationHooks {
 Application::Application() {
     currentApplication = this;
     mods = {
-        &photonSettingsInfo, &saveFileManagerInfo, &fixesInfo,        &playerManagerInfo, &goldbergEmuManagerInfo,
-        &tracerInfo,         &explorerInfo,        &whisperVoiceInfo, &improvementsInfo,  &gameConsoleInfo,
+        &photonSettingsInfo, &saveFileManagerInfo, &fixesInfo,        &playerManagerInfo, &goldbergEmuManagerInfo, &tracerInfo,
+        &explorerInfo,       &whisperVoiceInfo,    &improvementsInfo, &gameConsoleInfo,   &miscCommandsInfo,
 #ifdef MOD_ENABLE_CHEATS
         &cheatsInfo,
 #endif

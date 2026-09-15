@@ -163,6 +163,7 @@ add_executable(UltimatePhobia WIN32 main.cpp icon.rc
     dx11_hook.cpp
     console.hpp console.cpp
     command_handler.hpp
+    mods/misc_commands.hpp mods/misc_commands.cpp
 )
 target_link_libraries(UltimatePhobia PRIVATE dbghelp commoncpp spdlog imgui m3 wasm3_cpp VTerm::vterm ws2_32 winhttp elfldpp luxon_server_lib Slugger whisper fvad)
 target_include_directories(UltimatePhobia PRIVATE . ../il2cpp_dump ../deps/tracy/public)

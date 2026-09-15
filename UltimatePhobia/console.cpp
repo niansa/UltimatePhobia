@@ -1,31 +1,102 @@
 #include "console.hpp"
 #include "application.hpp"
 #include "command_handler.hpp"
+#include "misc_utils.hpp"
 #include "mods/game_console.hpp"
 #include "CLI11.hpp"
 
+#include <algorithm>
 #include <format>
 #include <memory>
+#include <sstream>
+#include <string>
+#include <string_view>
+#include <vector>
 
 namespace console {
 
 namespace {
-class ExitCommandHandler final : public CommandHandler {
-private:
-    int exitCode_ = 0;
+struct EchoOptions {
+    bool noNewline = false;
+    bool enableEscapes = false;
+    std::vector<std::string> arguments;
+};
 
+struct PrintfOptions {
+    std::string format;
+    std::vector<std::string> arguments;
+};
+
+void executeEcho(const EchoOptions& options) {
+    std::string output;
+    bool continueOutput = true;
+
+    for (std::size_t i = 0; i < options.arguments.size(); ++i) {
+        if (i != 0)
+            output.push_back(' ');
+
+        if (options.enableEscapes) {
+            if (!appendEscaped(options.arguments[i], output)) {
+                continueOutput = false; // Encountered \c
+                break;
+            }
+        } else {
+            output += options.arguments[i];
+        }
+    }
+
+    if (!options.noNewline && continueOutput)
+        output.push_back('\n');
+
+    print(output);
+}
+
+class BasicCommandHandler final : public CommandHandler {
 public:
     void updateApp(CLI::App& app) override {
-        CLI::App *cmdExit = app.add_subcommand("exit", "Exits the application");
-        cmdExit->add_option("code", exitCode_, "Exit code to return to the OS")->default_val(0);
-        cmdExit->callback([this]() { Application::exit(exitCode_); });
+        // Keep command state alive for as long as the CLI::App callbacks exist.
+        auto exitCode = std::make_shared<int>(0);
+
+        auto *cmdExit = app.add_subcommand("exit", "Exits the application");
+        cmdExit->alias("quit");
+        cmdExit->add_option("code", *exitCode, "Exit code to return to the OS")->default_val(0);
+        cmdExit->callback([exitCode] { Application::exit(*exitCode); });
+
+        auto *cmdClear = app.add_subcommand("clear", "Clears the console");
+        cmdClear->alias("cls");
+        cmdClear->callback([] {
+            // Clear visible screen, scrollback, and move the cursor home.
+            print("\x1b[2J\x1b[3J\x1b[H");
+        });
+
+        auto echoOptions = std::make_shared<EchoOptions>();
+
+        auto *cmdEcho = app.add_subcommand("echo", "Prints the supplied arguments");
+        cmdEcho->add_flag("-n,--no-newline", echoOptions->noNewline, "Do not print the trailing newline");
+        cmdEcho->add_flag("-e,--enable-escapes", echoOptions->enableEscapes, "Interpret backslash escape sequences");
+        cmdEcho->add_option("arguments", echoOptions->arguments, "Arguments to print")->expected(0, -1);
+        cmdEcho->callback([echoOptions] { executeEcho(*echoOptions); });
+
+        auto printfOptions = std::make_shared<PrintfOptions>();
+
+        auto *cmdPrintf = app.add_subcommand("printf", "Prints a formatted string without an implicit newline");
+        cmdPrintf->add_option("format", printfOptions->format, "Format string")->required();
+        cmdPrintf->add_option("arguments", printfOptions->arguments, "Values used by format conversions")->expected(0, -1);
+        cmdPrintf->callback([printfOptions] {
+            std::vector<std::string> arguments;
+            arguments.reserve(printfOptions->arguments.size() + 1);
+            arguments.push_back(printfOptions->format);
+            arguments.insert(arguments.end(), printfOptions->arguments.begin(), printfOptions->arguments.end());
+
+            print(formatPrintf(arguments));
+        });
     }
 };
 
 std::unique_ptr<CLI::App> buildApp() {
     auto app = std::make_unique<CLI::App>();
 
-    static ExitCommandHandler exitCommand;
+    static BasicCommandHandler exitCommand;
     exitCommand.updateApp(*app);
 
     for (const auto& modInfo : currentApplication->getMods()) {

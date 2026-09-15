@@ -23,6 +23,11 @@ public:
     GoldbergEmuManager();
 
     void uiUpdate() override;
+    std::unique_ptr<CommandHandler> getCommandHandler() override;
+
+    void setAccountName(std::string_view name);
+    void setLanguage(std::string_view lang);
+    void printStatus() const;
 };
 
 extern ModInfo goldbergEmuManagerInfo;

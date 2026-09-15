@@ -17,6 +17,22 @@ bool isWideCodepoint(char32_t codepoint);
 int codepointWidth(char32_t codepoint);
 std::size_t displayWidth(std::u32string_view text, std::size_t characterCount);
 
+int digitValue(char c);
+
+bool appendEscape(std::string_view input, std::size_t& index, std::string& output);
+
+bool appendEscaped(std::string_view input, std::string& output);
+
+long long parseSigned(std::string_view value);
+
+unsigned long long parseUnsigned(std::string_view value);
+
+std::string unsignedToBase(unsigned long long value, unsigned base, bool uppercase = false);
+
+std::string formatPrintf(const std::vector<std::string>& arguments);
+
+std::string joinArguments(const std::vector<std::string>& arguments);
+
 std::string lastWinErrorString();
 bool hookToggle(const char *description, std::optional<GameHook>& hook, bool& boolean, void *method, void *hookFnc);
 bool hookToggle(const char *description, GameHookPool& hookPool, bool& boolean, void *method, void *hookFnc);

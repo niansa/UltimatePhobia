@@ -168,7 +168,7 @@ int codepointWidth(char32_t codepoint) {
     if (codepoint == 0)
         return 0;
 
-    // Common combining character ranges.
+    // Common combining character ranges
     if ((codepoint >= 0x0300 && codepoint <= 0x036F) || (codepoint >= 0x1AB0 && codepoint <= 0x1AFF) || (codepoint >= 0x1DC0 && codepoint <= 0x1DFF) ||
         (codepoint >= 0x20D0 && codepoint <= 0x20FF) || (codepoint >= 0xFE20 && codepoint <= 0xFE2F)) {
         return 0;
@@ -186,6 +186,256 @@ std::size_t displayWidth(std::u32string_view text, std::size_t characterCount) {
         width += static_cast<std::size_t>(std::max(codepointWidth(text[i]), 0));
 
     return width;
+}
+
+int digitValue(char c) {
+    if (c >= '0' && c <= '9')
+        return c - '0';
+    if (c >= 'a' && c <= 'f')
+        return c - 'a' + 10;
+    if (c >= 'A' && c <= 'F')
+        return c - 'A' + 10;
+    return -1;
+}
+
+bool appendEscape(std::string_view input, std::size_t& index, std::string& output) {
+    if (index + 1 >= input.size()) {
+        output.push_back('\\');
+        return true;
+    }
+
+    const char escape = input[++index];
+
+    switch (escape) {
+    case '\\':
+        output.push_back('\\');
+        break;
+    case 'a':
+        output.push_back('\a');
+        break;
+    case 'b':
+        output.push_back('\b');
+        break;
+    case 'e':
+        output.push_back('\x1b');
+        break;
+    case 'f':
+        output.push_back('\f');
+        break;
+    case 'n':
+        output.push_back('\n');
+        break;
+    case 'r':
+        output.push_back('\r');
+        break;
+    case 't':
+        output.push_back('\t');
+        break;
+    case 'v':
+        output.push_back('\v');
+        break;
+    case 'c':
+        return false;
+
+    case 'x': {
+        unsigned value = 0;
+        std::size_t digits = 0;
+
+        while (index + 1 < input.size() && digits < 2) {
+            const int digit = digitValue(input[index + 1]);
+            if (digit < 0)
+                break;
+
+            value = value * 16 + static_cast<unsigned>(digit);
+            ++index;
+            ++digits;
+        }
+
+        if (digits == 0) {
+            output += "\\x";
+        } else {
+            output.push_back(static_cast<char>(value));
+        }
+        break;
+    }
+
+    case '0': {
+        unsigned value = 0;
+        std::size_t digits = 1;
+
+        while (index + 1 < input.size() && digits < 3) {
+            const char digit = input[index + 1];
+            if (digit < '0' || digit > '7')
+                break;
+
+            value = value * 8 + static_cast<unsigned>(digit - '0');
+            ++index;
+            ++digits;
+        }
+
+        output.push_back(static_cast<char>(value));
+        break;
+    }
+
+    default:
+        // Preserve unknown escape sequences
+        output.push_back('\\');
+        output.push_back(escape);
+        break;
+    }
+
+    return true;
+}
+
+bool appendEscaped(std::string_view input, std::string& output) {
+    for (std::size_t i = 0; i < input.size(); ++i) {
+        if (input[i] == '\\') {
+            if (!appendEscape(input, i, output))
+                return false;
+        } else {
+            output.push_back(input[i]);
+        }
+    }
+
+    return true;
+}
+
+long long parseSigned(std::string_view value) {
+    try {
+        std::size_t consumed = 0;
+        const long long result = std::stoll(std::string(value), &consumed, 0);
+        return consumed == value.size() ? result : 0;
+    } catch (...) {
+        return 0;
+    }
+}
+
+unsigned long long parseUnsigned(std::string_view value) {
+    try {
+        std::size_t consumed = 0;
+        const unsigned long long result = std::stoull(std::string(value), &consumed, 0);
+        return consumed == value.size() ? result : 0;
+    } catch (...) {
+        return 0;
+    }
+}
+
+std::string unsignedToBase(unsigned long long value, unsigned base, bool uppercase) {
+    constexpr std::string_view lowerDigits = "0123456789abcdef";
+    constexpr std::string_view upperDigits = "0123456789ABCDEF";
+    const auto digits = uppercase ? upperDigits : lowerDigits;
+
+    if (value == 0)
+        return "0";
+
+    std::string result;
+
+    while (value != 0) {
+        result.push_back(digits[value % base]);
+        value /= base;
+    }
+
+    std::reverse(result.begin(), result.end());
+    return result;
+}
+
+std::string formatPrintf(const std::vector<std::string>& arguments) {
+    if (arguments.empty())
+        return {};
+
+    const std::string_view format = arguments.front();
+    std::size_t argumentIndex = 1;
+    std::string output;
+
+    auto nextArgument = [&]() -> std::string_view {
+        if (argumentIndex >= arguments.size())
+            return {};
+        return arguments[argumentIndex++];
+    };
+
+    for (std::size_t i = 0; i < format.size(); ++i) {
+        if (format[i] == '\\') {
+            if (!appendEscape(format, i, output))
+                break;
+            continue;
+        }
+
+        if (format[i] != '%') {
+            output.push_back(format[i]);
+            continue;
+        }
+
+        if (i + 1 >= format.size()) {
+            output.push_back('%');
+            break;
+        }
+
+        const char conversion = format[++i];
+
+        switch (conversion) {
+        case '%':
+            output.push_back('%');
+            break;
+
+        case 's':
+            output += nextArgument();
+            break;
+
+        case 'b':
+            if (!appendEscaped(nextArgument(), output))
+                return output;
+            break;
+
+        case 'c': {
+            const std::string_view value = nextArgument();
+            if (!value.empty())
+                output.push_back(value.front());
+            break;
+        }
+
+        case 'd':
+        case 'i':
+            output += std::to_string(parseSigned(nextArgument()));
+            break;
+
+        case 'u':
+            output += std::to_string(parseUnsigned(nextArgument()));
+            break;
+
+        case 'o':
+            output += unsignedToBase(parseUnsigned(nextArgument()), 8);
+            break;
+
+        case 'x':
+            output += unsignedToBase(parseUnsigned(nextArgument()), 16);
+            break;
+
+        case 'X':
+            output += unsignedToBase(parseUnsigned(nextArgument()), 16, true);
+            break;
+
+        default:
+            // Preserve unsupported conversion specifiers
+            output.push_back('%');
+            output.push_back(conversion);
+            break;
+        }
+    }
+
+    return output;
+}
+
+std::string joinArguments(const std::vector<std::string>& arguments) {
+    std::string result;
+
+    for (std::size_t i = 0; i < arguments.size(); ++i) {
+        if (i != 0)
+            result.push_back(' ');
+
+        result += arguments[i];
+    }
+
+    return result;
 }
 
 std::string lastWinErrorString() {

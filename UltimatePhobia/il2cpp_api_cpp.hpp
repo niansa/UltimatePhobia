@@ -527,6 +527,10 @@ template <typename T> Class value_class(T value) {
         return get_class_cached<"mscorlib", "System", "Int64">();
     else if constexpr (std::is_same_v<T, uint64_t>)
         return get_class_cached<"mscorlib", "System", "UInt64">();
+    else if constexpr (std::is_same_v<T, float>)
+        return get_class_cached<"mscorlib", "System", "Single">();
+    else if constexpr (std::is_same_v<T, double>)
+        return get_class_cached<"mscorlib", "System", "Double">();
     else if constexpr (std::is_pointer_v<T>)
         return Object{reinterpret_cast<Il2CppObject *>(value)}.klass();
     else
