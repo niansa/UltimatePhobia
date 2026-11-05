@@ -334,8 +334,8 @@ void PhotonSettings::startP2P() {
         }
 
         // Get all the details we need to publish
-        const auto proxy_ep_opt = client_proxy->takeProxyEndpoint();
-        if (!proxy_ep_opt) {
+        const auto proxy_ep = client_proxy->takeProxyEndpoint();
+        if (!proxy_ep) {
             const ser::OperationResponseMessage resp{.operation_code = luxon::OpCodes::Matchmaking::JoinGame,
                                                      .return_code = luxon::ErrorCodes::Matchmaking::ServerCheckFailed,
                                                      .debug_message = "Proxy endpoint unavailable"};
@@ -344,14 +344,15 @@ void PhotonSettings::startP2P() {
         }
 
         const std::size_t game_id_hash = server::string_hash(game_id);
-        const auto [stun_binding_host, stun_binding_port] = endpoint_split_addr(*proxy_ep_opt);
+        const auto [stun_binding_host, stun_binding_port] = endpoint_split_addr(proxy_ep);
 
         g.logger->info("Attempting to P2P join game '{}' (Hash: {})", game_id, game_id_hash);
 
         // Signal game join
         signaling::Endpoint server_signal_ep;
         try {
-            if (const auto server_signal_ep_opt = signaling->join_room(game_id_hash, stun_binding_host, stun_binding_port)) {
+            if (const auto server_signal_ep_opt =
+                    signaling->join_room(game_id_hash, stun_binding_host, stun_binding_port)) {
                 server_signal_ep = *server_signal_ep_opt;
             } else {
                 const ser::OperationResponseMessage resp{.operation_code = luxon::OpCodes::Matchmaking::JoinGame,
@@ -369,8 +370,8 @@ void PhotonSettings::startP2P() {
         }
 
         // Turn signaling endpoint into enet endpoint
-        const auto server_ep_opt = enet::EnetEndpoint::from(server_signal_ep.ip.c_str(), server_signal_ep.port);
-        if (!server_ep_opt) {
+        const auto server_ep = enet::EnetEndpoint::from(server_signal_ep.ip.c_str(), server_signal_ep.port);
+        if (!server_ep) {
             const ser::OperationResponseMessage resp{.operation_code = luxon::OpCodes::Matchmaking::JoinGame,
                                                      .return_code = luxon::ErrorCodes::Matchmaking::ServerCheckFailed,
                                                      .debug_message = std::format("Signaling error: Got invalid IP address: {}", server_signal_ep.ip)};
@@ -378,7 +379,7 @@ void PhotonSettings::startP2P() {
             return true;
         }
 
-        client_proxy->request_join(*server_ep_opt);
+        client_proxy->request_join(server_ep);
         pending_join_handler = &handler;
 
         g.logger->info("P2P game join pending...");
@@ -468,9 +469,9 @@ void PhotonSettings::startPollingServer(luxon::enet::EnetServer& server) {
         try {
             // Allow clients in
             for (const auto& client : signaling->poll_room(game_id).clients) {
-                if (const auto client_ep_opt = luxon::enet::EnetEndpoint::from(client.ip.c_str(), client.port)) {
-                    server.socket().send_to(reinterpret_cast<const uint8_t *>(""), 1, *client_ep_opt);
-                    g.logger->info("P2P Hello to {}", client_ep_opt->to_string());
+                if (const auto client_ep = luxon::enet::EnetEndpoint::from(client.ip.c_str(), client.port)) {
+                    server.socket().send_to(reinterpret_cast<const uint8_t *>(""), 1, client_ep);
+                    g.logger->info("P2P Hello to {}", client_ep.to_string());
                 }
             }
         } catch (const signaling::SignalingError& e) {
@@ -505,9 +506,10 @@ PhotonSettings::GameServerProxy::GameServerProxy(const PhotonSettings::P2PSettin
     socket.set_nonblocking(true);
 
     // Start STUN binding request
-    const auto stun_server_ep_opt = socket.lookup_hostname(p2p_settings.stun_server_host, p2p_settings.enable_ipv6, p2p_settings.stun_server_port);
+    const auto stun_server_ep_opt =
+        socket.lookup_hostname(p2p_settings.stun_server_host, p2p_settings.enable_ipv6, p2p_settings.stun_server_port);
     if (stun_server_ep_opt) {
-        stun_server_ep = *stun_server_ep_opt;
+        stun_server_ep = stun_server_ep_opt;
         if (!socket.send_stun_binding_request(stun_server_ep))
             throw std::runtime_error("Failed to send STUN binding request");
     } else {
@@ -517,7 +519,7 @@ PhotonSettings::GameServerProxy::GameServerProxy(const PhotonSettings::P2PSettin
 
 void PhotonSettings::GameServerProxy::run_once() {
     // Receive datagram
-    std::optional<luxon::enet::EnetEndpoint> kick_ep;
+    luxon::enet::EnetEndpoint kick_ep;
     {
         std::lock_guard lock(state_mutex);
         if (kick_server_ep && server_ep) {
@@ -526,7 +528,7 @@ void PhotonSettings::GameServerProxy::run_once() {
         }
     }
 
-    if (kick_ep && !socket.send_to(reinterpret_cast<const uint8_t *>(""), 1, *kick_ep))
+    if (kick_ep && !socket.send_to(reinterpret_cast<const uint8_t *>(""), 1, kick_ep))
         g.logger->warn("Failed to open proxy NAT toward remote server");
 
     luxon::enet::EnetEndpoint from_ep;
@@ -542,15 +544,15 @@ void PhotonSettings::GameServerProxy::run_once() {
         if (const auto proxy_ep_opt = socket.parse_stun_binding_response(datagram)) {
             {
                 std::lock_guard lock(state_mutex);
-                proxy_ep = *proxy_ep_opt;
+                proxy_ep = proxy_ep_opt;
             }
             proxy_ready.store(true);
-            g.logger->info("Got proxy STUN binding: {}", proxy_ep_opt->to_string());
+            g.logger->info("Got proxy STUN binding: {}", proxy_ep.to_string());
         }
         return;
     }
 
-    std::optional<luxon::enet::EnetEndpoint> current_server_ep;
+    luxon::enet::EnetEndpoint current_server_ep;
     {
         std::lock_guard lock(state_mutex);
         current_server_ep = server_ep;
@@ -559,8 +561,8 @@ void PhotonSettings::GameServerProxy::run_once() {
     if (!current_server_ep)
         return;
 
-    if (from_ep == *current_server_ep) {
-        std::optional<luxon::enet::EnetEndpoint> current_client_ep;
+    if (from_ep == current_server_ep) {
+        luxon::enet::EnetEndpoint current_client_ep;
         bool first_server_packet = false;
 
         {
@@ -578,12 +580,12 @@ void PhotonSettings::GameServerProxy::run_once() {
             g.logger->info("Server NAT hole punched.");
 
         if (current_client_ep)
-            socket.send_to(datagram.data(), datagram.size(), *current_client_ep);
+            socket.send_to(datagram.data(), datagram.size(), current_client_ep);
 
         return;
     }
 
-    std::optional<luxon::enet::EnetEndpoint> current_client_ep;
+    luxon::enet::EnetEndpoint current_client_ep;
     bool got_local_client = false;
     {
         std::lock_guard lock(state_mutex);
@@ -598,8 +600,8 @@ void PhotonSettings::GameServerProxy::run_once() {
     if (got_local_client)
         g.logger->info("Got local client endpoint: {}", from_ep.to_string());
 
-    if (current_client_ep && current_server_ep && from_ep == *current_client_ep)
-        socket.send_to(datagram.data(), datagram.size(), *current_server_ep);
+    if (current_client_ep && current_server_ep && from_ep == current_client_ep)
+        socket.send_to(datagram.data(), datagram.size(), current_server_ep);
 }
 
 void PhotonSettings::GameServerProxy::sendStunKeepalive() {

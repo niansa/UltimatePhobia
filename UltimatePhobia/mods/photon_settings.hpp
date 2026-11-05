@@ -45,14 +45,14 @@ class PhotonSettings final : public Mod {
         bool hasActiveServer() const noexcept { return server_active.load(); }
         bool isClientNotified() const noexcept { return client_notified_flag.load(); }
         bool consumeJoinReady() noexcept { return join_ready.exchange(false); }
-        std::optional<luxon::enet::EnetEndpoint> takeProxyEndpoint() const {
+        luxon::enet::EnetEndpoint takeProxyEndpoint() const {
             std::lock_guard lock(state_mutex);
             return proxy_ep;
         }
 
     private:
         mutable std::mutex state_mutex;
-        std::optional<luxon::enet::EnetEndpoint> proxy_ep, client_ep, server_ep;
+        luxon::enet::EnetEndpoint proxy_ep, client_ep, server_ep;
         bool client_notified = false;
         bool kick_server_ep = false;
 
