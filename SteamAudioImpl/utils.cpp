@@ -16,12 +16,8 @@ ObjectHandle createErrorMessage_(const char *what, auto why) {
 }
 } // namespace
 
-ObjectHandle createErrorMessage(const char *what, IPLerror why) {
-    return createErrorMessage_(what, why);
-}
-ObjectHandle createErrorMessage(const char *what, ma_result why) {
-    return createErrorMessage_(what, why);
-}
+ObjectHandle createErrorMessage(const char *what, IPLerror why) { return createErrorMessage_(what, why); }
+ObjectHandle createErrorMessage(const char *what, ma_result why) { return createErrorMessage_(what, why); }
 
 const char *errorToMessage(IPLerror error) {
     switch (error) {
@@ -36,13 +32,13 @@ const char *errorToMessage(IPLerror error) {
     }
     return "Invalid error.";
 }
-const char *errorToMessage(ma_result error) {
-    return ma_result_description(error);
-}
+const char *errorToMessage(ma_result error) { return ma_result_description(error); }
 
-std::string formatPos(IPLVector3 pos) { return '[' + std::to_string(pos.x) + ", " + std::to_string(pos.x) + ", " + std::to_string(pos.x) + ']'; }
+std::string formatPos(IPLVector3 pos) {
+    return '[' + std::to_string(pos.x) + ", " + std::to_string(pos.x) + ", " + std::to_string(pos.x) + ']';
+}
 std::string formatCoord(IPLCoordinateSpace3 coord) {
-    return "{origin: " + formatPos(coord.origin) + ", up: " + formatPos(coord.up) + ", ahead: " + formatPos(coord.ahead) +
-           ", right: " + formatPos(coord.right) + "}";
+    return "{origin: " + formatPos(coord.origin) + ", up: " + formatPos(coord.up) +
+           ", ahead: " + formatPos(coord.ahead) + ", right: " + formatPos(coord.right) + "}";
 }
 } // namespace Utils

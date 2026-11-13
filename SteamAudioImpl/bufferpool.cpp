@@ -7,11 +7,9 @@
 namespace PhononPlayback {
 BufferPool::BufferPool(IPLint32 channels, IPLint32 samples) {
     for (auto& buffer : buffers_) {
-        IPLerror status = iplAudioBufferAllocate(GlobalState::phononCtx,
-                                                 channels, samples, &buffer);
+        IPLerror status = iplAudioBufferAllocate(GlobalState::phononCtx, channels, samples, &buffer);
         if (status != IPL_STATUS_SUCCESS)
-            FFI logError(Utils::createErrorMessage(
-                "create buffer for buffer pool", status));
+            FFI logError(Utils::createErrorMessage("create buffer for buffer pool", status));
     }
 }
 BufferPool::~BufferPool() {

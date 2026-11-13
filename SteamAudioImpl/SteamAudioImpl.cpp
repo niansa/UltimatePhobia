@@ -46,22 +46,21 @@ STEAMAUDIOIMPL_EXPORT void onAudioSourcePlay() {
     bool isOneShot = false;
 
     // Get properties from arguments
-    if (getMethodCached<
-            "void UnityEngine_AudioSource__PlayOneShot (UnityEngine_AudioSource_o* __this, UnityEngine_AudioClip_o* clip, const MethodInfo* method);">() ==
-        original) {
+    if (getMethodCached<"void UnityEngine_AudioSource__PlayOneShot (UnityEngine_AudioSource_o* __this, "
+                        "UnityEngine_AudioClip_o* clip, const MethodInfo* method);">() == original) {
         audioClip = FFI getValueObject(1);
         isOneShot = true;
-    } else if (getMethodCached<
-                   "void UnityEngine_AudioSource__PlayOneShot (UnityEngine_AudioSource_o* __this, UnityEngine_AudioClip_o* clip, float volumeScale, const "
-                   "MethodInfo* method);">() == original) {
+    } else if (getMethodCached<"void UnityEngine_AudioSource__PlayOneShot (UnityEngine_AudioSource_o* __this, "
+                               "UnityEngine_AudioClip_o* clip, float volumeScale, const "
+                               "MethodInfo* method);">() == original) {
         audioClip = FFI getValueObject(1);
         volumeScale = FFI getValueFloat(2);
         isOneShot = true;
-    } else if (getMethodCached<"void UnityEngine_AudioSource__Play (UnityEngine_AudioSource_o* __this, double delay, const MethodInfo* method);">() ==
-               original) {
+    } else if (getMethodCached<"void UnityEngine_AudioSource__Play (UnityEngine_AudioSource_o* __this, double delay, "
+                               "const MethodInfo* method);">() == original) {
         delay = FFI getValueDouble(1);
-    } else if (getMethodCached<"void UnityEngine_AudioSource__Play (UnityEngine_AudioSource_o* __this, uint64_t delay, const MethodInfo* method);">() ==
-               original) {
+    } else if (getMethodCached<"void UnityEngine_AudioSource__Play (UnityEngine_AudioSource_o* __this, uint64_t delay, "
+                               "const MethodInfo* method);">() == original) {
         delay = FFI getValueI64(1);
     }
 
@@ -72,7 +71,8 @@ STEAMAUDIOIMPL_EXPORT void onAudioSourcePlay() {
         // Make sure source isn't already playing
         std::scoped_lock L(playbackMutex);
         for (auto& playback : playbackQueue) {
-            if (!playback.hasReachedEnd() && call<"UnityEngine.Object$$Equals", bool>(audioSource, playback.audioSource, nullptr)) {
+            if (!playback.hasReachedEnd() &&
+                call<"UnityEngine.Object$$Equals", bool>(audioSource, playback.audioSource, nullptr)) {
                 FFI logDebug("Not playing audio because it is already being played"_cs);
                 return;
             }
@@ -119,7 +119,8 @@ STEAMAUDIOIMPL_EXPORT void onAudioSourceStop() {
     const auto audioSource = FFI getValueObject(0);
 
     bool stopOneShots = true;
-    if (getMethodCached<"void UnityEngine_AudioSource__Stop (UnityEngine_AudioSource_o* __this, bool stopOneShots, const MethodInfo* method);">() == original)
+    if (getMethodCached<"void UnityEngine_AudioSource__Stop (UnityEngine_AudioSource_o* __this, bool stopOneShots, "
+                        "const MethodInfo* method);">() == original)
         stopOneShots = FFI getValueI32(1) & 0xff;
 
     // Call original method
@@ -129,7 +130,8 @@ STEAMAUDIOIMPL_EXPORT void onAudioSourceStop() {
     {
         std::scoped_lock L(playbackMutex);
         for (auto it = playbackQueue.begin(); it != playbackQueue.end(); ++it) {
-            if (call<"UnityEngine.Object$$Equals", bool>(audioSource, it->audioSource, nullptr) && (!it->isOneShot || stopOneShots)) {
+            if (call<"UnityEngine.Object$$Equals", bool>(audioSource, it->audioSource, nullptr) &&
+                (!it->isOneShot || stopOneShots)) {
                 playbackQueue.erase(it);
                 break;
             }
@@ -286,16 +288,22 @@ STEAMAUDIOIMPL_EXPORT void onLoad() {
         ma_device_start(&GlobalState::maDevice);
     }
 
-    hooks.add<"void UnityEngine_AudioSource__Play (UnityEngine_AudioSource_o* __this, const MethodInfo* method);">("onAudioSourcePlay");
-    hooks.add<"void UnityEngine_AudioSource__PlayOneShot (UnityEngine_AudioSource_o* __this, UnityEngine_AudioClip_o* clip, const MethodInfo* method);">(
+    hooks.add<"void UnityEngine_AudioSource__Play (UnityEngine_AudioSource_o* __this, const MethodInfo* method);">(
         "onAudioSourcePlay");
-    hooks.add<"void UnityEngine_AudioSource__PlayOneShot (UnityEngine_AudioSource_o* __this, UnityEngine_AudioClip_o* clip, float volumeScale, "
+    hooks.add<"void UnityEngine_AudioSource__PlayOneShot (UnityEngine_AudioSource_o* __this, UnityEngine_AudioClip_o* "
+              "clip, const MethodInfo* method);">("onAudioSourcePlay");
+    hooks.add<"void UnityEngine_AudioSource__PlayOneShot (UnityEngine_AudioSource_o* __this, UnityEngine_AudioClip_o* "
+              "clip, float volumeScale, "
               "const MethodInfo* method);">("onAudioSourcePlay");
-    hooks.add<"void UnityEngine_AudioSource__Play (UnityEngine_AudioSource_o* __this, double delay, const MethodInfo* method);">("onAudioSourcePlay");
-    hooks.add<"void UnityEngine_AudioSource__Play (UnityEngine_AudioSource_o* __this, uint64_t delay, const MethodInfo* method);">("onAudioSourcePlay");
+    hooks.add<"void UnityEngine_AudioSource__Play (UnityEngine_AudioSource_o* __this, double delay, const MethodInfo* "
+              "method);">("onAudioSourcePlay");
+    hooks.add<"void UnityEngine_AudioSource__Play (UnityEngine_AudioSource_o* __this, uint64_t delay, const "
+              "MethodInfo* method);">("onAudioSourcePlay");
 
-    hooks.add<"void UnityEngine_AudioSource__Stop (UnityEngine_AudioSource_o* __this, const MethodInfo* method);">("onAudioSourceStop");
-    hooks.add<"void UnityEngine_AudioSource__Stop (UnityEngine_AudioSource_o* __this, bool stopOneShots, const MethodInfo* method);">("onAudioSourceStop");
+    hooks.add<"void UnityEngine_AudioSource__Stop (UnityEngine_AudioSource_o* __this, const MethodInfo* method);">(
+        "onAudioSourceStop");
+    hooks.add<"void UnityEngine_AudioSource__Stop (UnityEngine_AudioSource_o* __this, bool stopOneShots, const "
+              "MethodInfo* method);">("onAudioSourceStop");
 
     hooks.add<"UnityEngine.AudioSource$$get_isPlaying">("onAudioSourceGetIsPlaying");
     // hooks.add<"UnityEngine.AudioSource$$set_volume">(), "onAudioSourceSetVolume");
@@ -329,7 +337,8 @@ STEAMAUDIOIMPL_EXPORT void onUiUpdate() {
     if (camera != ObjectHandle::Null) {
         ObjectHandle cameraObject = call<"UnityEngine.Component$$get_gameObject", ObjectHandle>(camera, nullptr);
         if (cameraObject != ObjectHandle::Null) {
-            ObjectHandle cameraTransform = call<"UnityEngine.GameObject$$get_transform", ObjectHandle>(cameraObject, nullptr);
+            ObjectHandle cameraTransform =
+                call<"UnityEngine.GameObject$$get_transform", ObjectHandle>(cameraObject, nullptr);
 
             if (cameraTransform != ObjectHandle::Null) {
                 // Update player position and direction
@@ -349,11 +358,12 @@ STEAMAUDIOIMPL_EXPORT void onUiUpdate() {
         FFI ImGuiBegin("Steam Audio Stats");
         FFI ImGuiText(FFI toCsString(("Active sources: " + std::to_string(playbackQueue.size())).c_str()));
         FFI ImGuiText(FFI toCsString(("Frame size: " + std::to_string(env->audioSettings.frameSize)).c_str()));
-        FFI ImGuiText(FFI toCsString(
-            ("Frames processed: " + std::to_string(GlobalState::stats.framesFinished) + '/' + std::to_string(GlobalState::stats.framesStarted)).c_str()));
-        FFI ImGuiText(FFI toCsString(
-            ("Playbacks processed: " + std::to_string(GlobalState::stats.playbacksFinished) + '/' + std::to_string(GlobalState::stats.playbacksStarted))
-                .c_str()));
+        FFI ImGuiText(FFI toCsString(("Frames processed: " + std::to_string(GlobalState::stats.framesFinished) + '/' +
+                                      std::to_string(GlobalState::stats.framesStarted))
+                                         .c_str()));
+        FFI ImGuiText(FFI toCsString(("Playbacks processed: " + std::to_string(GlobalState::stats.playbacksFinished) +
+                                      '/' + std::to_string(GlobalState::stats.playbacksStarted))
+                                         .c_str()));
         FFI ImGuiText(FFI toCsString(("World transform: " + Utils::formatCoord(GlobalState::playerCoord)).c_str()));
     }
 
@@ -369,8 +379,11 @@ STEAMAUDIOIMPL_EXPORT void onUiUpdate() {
                 FFI ImGuiText(FFI toCsString(("Volume Scale: " + std::to_string(playback->volumeScale)).c_str()));
                 FFI ImGuiText(FFI toCsString(("Spatial blend: " + std::to_string(playback->spatialBlend)).c_str()));
                 FFI ImGuiText(FFI toCsString(("Max distance: " + std::to_string(playback->maxDistance)).c_str()));
-                FFI ImGuiText(FFI toCsString(
-                    ("Loop: " + std::string(call<"UnityEngine.AudioSource$$get_loop", bool>(playback->audioSource, nullptr) ? "yes" : "no")).c_str()));
+                FFI ImGuiText(FFI toCsString(("Loop: " + std::string(call<"UnityEngine.AudioSource$$get_loop", bool>(
+                                                                         playback->audioSource, nullptr)
+                                                                         ? "yes"
+                                                                         : "no"))
+                                                 .c_str()));
                 FFI ImGuiText(FFI toCsString(("World position: " + Utils::formatPos(playback->worldPosition)).c_str()));
             }
         } else {

@@ -14,21 +14,28 @@ using namespace Helpers;
 
 namespace {
 namespace Materials {
-static IPLMaterial presets[11] = {{0.10f, 0.20f, 0.30f, 0.05f, 0.100f, 0.050f, 0.030f}, {0.03f, 0.04f, 0.07f, 0.05f, 0.015f, 0.015f, 0.015f},
-                                  {0.05f, 0.07f, 0.08f, 0.05f, 0.015f, 0.002f, 0.001f}, {0.01f, 0.02f, 0.02f, 0.05f, 0.060f, 0.044f, 0.011f},
-                                  {0.60f, 0.70f, 0.80f, 0.05f, 0.031f, 0.012f, 0.008f}, {0.24f, 0.69f, 0.73f, 0.05f, 0.020f, 0.005f, 0.003f},
-                                  {0.06f, 0.03f, 0.02f, 0.05f, 0.060f, 0.044f, 0.011f}, {0.12f, 0.06f, 0.04f, 0.05f, 0.056f, 0.056f, 0.004f},
-                                  {0.11f, 0.07f, 0.06f, 0.05f, 0.070f, 0.014f, 0.005f}, {0.20f, 0.07f, 0.06f, 0.05f, 0.200f, 0.025f, 0.010f},
-                                  {0.13f, 0.20f, 0.24f, 0.05f, 0.015f, 0.002f, 0.001f}};
+static IPLMaterial presets[11] = {
+    {0.10f, 0.20f, 0.30f, 0.05f, 0.100f, 0.050f, 0.030f}, {0.03f, 0.04f, 0.07f, 0.05f, 0.015f, 0.015f, 0.015f},
+    {0.05f, 0.07f, 0.08f, 0.05f, 0.015f, 0.002f, 0.001f}, {0.01f, 0.02f, 0.02f, 0.05f, 0.060f, 0.044f, 0.011f},
+    {0.60f, 0.70f, 0.80f, 0.05f, 0.031f, 0.012f, 0.008f}, {0.24f, 0.69f, 0.73f, 0.05f, 0.020f, 0.005f, 0.003f},
+    {0.06f, 0.03f, 0.02f, 0.05f, 0.060f, 0.044f, 0.011f}, {0.12f, 0.06f, 0.04f, 0.05f, 0.056f, 0.056f, 0.004f},
+    {0.11f, 0.07f, 0.06f, 0.05f, 0.070f, 0.014f, 0.005f}, {0.20f, 0.07f, 0.06f, 0.05f, 0.200f, 0.025f, 0.010f},
+    {0.13f, 0.20f, 0.24f, 0.05f, 0.015f, 0.002f, 0.001f}};
 enum { Generic, Brick, Concrete, Ceramic, Gravel, Carpet, Glass, Plaster, Wood, Metal, Rock };
 } // namespace Materials
 } // namespace
 
 namespace PhononTools {
 namespace TransformUtils {
-IPLVector3 get_position(FFIInterface::ObjectHandle transform) { return callRetStruct<"UnityEngine.Transform$$get_position", IPLVector3>(transform, nullptr); }
-IPLVector3 get_forward(FFIInterface::ObjectHandle transform) { return callRetStruct<"UnityEngine.Transform$$get_forward", IPLVector3>(transform, nullptr); }
-IPLVector3 get_up(FFIInterface::ObjectHandle transform) { return callRetStruct<"UnityEngine.Transform$$get_up", IPLVector3>(transform, nullptr); }
+IPLVector3 get_position(FFIInterface::ObjectHandle transform) {
+    return callRetStruct<"UnityEngine.Transform$$get_position", IPLVector3>(transform, nullptr);
+}
+IPLVector3 get_forward(FFIInterface::ObjectHandle transform) {
+    return callRetStruct<"UnityEngine.Transform$$get_forward", IPLVector3>(transform, nullptr);
+}
+IPLVector3 get_up(FFIInterface::ObjectHandle transform) {
+    return callRetStruct<"UnityEngine.Transform$$get_up", IPLVector3>(transform, nullptr);
+}
 IPLVector3 get_right(FFIInterface::ObjectHandle transform) {
     return callRetStruct<"UnityEngine.Transform$$get_right", IPLVector3>(transform, nullptr);
 }
@@ -41,10 +48,8 @@ IPLAudioBuffer audioBufferFromAudioClip(FFIInterface::ObjectHandle audioClip) {
     IPLAudioBuffer fres;
 
     // Get basic properties
-    fres.numSamples =
-        call<"UnityEngine.AudioClip$$get_samples", int32_t>(audioClip, nullptr);
-    fres.numChannels = call<"UnityEngine.AudioClip$$get_channels", int32_t>(
-        audioClip, nullptr);
+    fres.numSamples = call<"UnityEngine.AudioClip$$get_samples", int32_t>(audioClip, nullptr);
+    fres.numChannels = call<"UnityEngine.AudioClip$$get_channels", int32_t>(audioClip, nullptr);
 
     // Get data
     static ClassHandle singleArrayClass = []() {
@@ -65,11 +70,9 @@ IPLAudioBuffer audioBufferFromAudioClip(FFIInterface::ObjectHandle audioClip) {
     FFI dropObject(csData);
 
     // Allocate buffer
-    IPLerror status = iplAudioBufferAllocate(
-        GlobalState::phononCtx, fres.numChannels, fres.numSamples, &fres);
+    IPLerror status = iplAudioBufferAllocate(GlobalState::phononCtx, fres.numChannels, fres.numSamples, &fres);
     if (status != IPL_STATUS_SUCCESS)
-        FFI logError(
-            Utils::createErrorMessage("allocate input audio buffer", status));
+        FFI logError(Utils::createErrorMessage("allocate input audio buffer", status));
 
     // Deinterleave Unity provided buffer
     iplAudioBufferDeinterleave(GlobalState::phononCtx, data.data(), &fres);
@@ -77,11 +80,9 @@ IPLAudioBuffer audioBufferFromAudioClip(FFIInterface::ObjectHandle audioClip) {
     // Ensure buffer is no more than stereo
     if (fres.numChannels > 2) {
         IPLAudioBuffer stereoFres;
-        status = iplAudioBufferAllocate(GlobalState::phononCtx, 2,
-                                        fres.numSamples, &stereoFres);
+        status = iplAudioBufferAllocate(GlobalState::phononCtx, 2, fres.numSamples, &stereoFres);
         if (status != IPL_STATUS_SUCCESS)
-            FFI logError(Utils::createErrorMessage(
-                "allocate downmixed input audio buffer", status));
+            FFI logError(Utils::createErrorMessage("allocate downmixed input audio buffer", status));
         iplAudioBufferDownmix(GlobalState::phononCtx, &fres, &stereoFres);
         iplAudioBufferFree(GlobalState::phononCtx, &fres);
         fres = stereoFres;
@@ -136,7 +137,8 @@ IPLStaticMesh staticMeshFromMesh(IPLScene scene, FFIInterface::ObjectHandle mesh
 
 bool updatePlayback(PhononPlayback::Playback& p, bool initial) {
     // Make sure playback hasn't expired
-    if (p.audioSource == ObjectHandle::Null || !call<"UnityEngine.Object$$IsNativeObjectAlive", bool>(p.audioSource, nullptr) || call_error) {
+    if (p.audioSource == ObjectHandle::Null ||
+        !call<"UnityEngine.Object$$IsNativeObjectAlive", bool>(p.audioSource, nullptr) || call_error) {
         FFI logDebug(FFI toCsString("Playback ended because native source object died!"));
         return false;
     }

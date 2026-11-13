@@ -29,12 +29,13 @@ struct Playback {
     IPLBinauralEffect binauralEffect = nullptr;
     IPLDirectEffect directEffect = nullptr;
 
-    Playback(FFIInterface::ObjectHandle audioSource, const IPLAudioBuffer& audioBuffer, uint64_t delay, float volumeScale, bool isOneShot);
+    Playback(FFIInterface::ObjectHandle audioSource, const IPLAudioBuffer& audioBuffer, uint64_t delay,
+             float volumeScale, bool isOneShot);
     ~Playback();
     Playback(const Playback&) = delete;
     Playback(Playback&& o)
-        : audioSource(o.audioSource), audioSourceGc(o.audioSourceGc), audioBuffer(o.audioBuffer), delay(o.delay), volumeScale(o.volumeScale),
-          playPosition(o.playPosition) {
+        : audioSource(o.audioSource), audioSourceGc(o.audioSourceGc), audioBuffer(o.audioBuffer), delay(o.delay),
+          volumeScale(o.volumeScale), playPosition(o.playPosition) {
         o.audioSource = FFIInterface::ObjectHandle::Invalid;
     }
 
@@ -45,6 +46,5 @@ struct Playback {
 extern std::list<Playback> playbackQueue;
 extern std::mutex playbackMutex;
 
-void dataCallback(ma_device *pDevice, float *pOutput, const float *pInput,
-                  ma_uint32 sampleCount);
+void dataCallback(ma_device *pDevice, float *pOutput, const float *pInput, ma_uint32 sampleCount);
 } // namespace PhononPlayback
