@@ -12,18 +12,17 @@ public:
     ~BufferPool();
     BufferPool(const BufferPool&) = delete;
     BufferPool(BufferPool&&) = delete;
+    BufferPool& operator=(const BufferPool&) = delete;
+    BufferPool& operator=(BufferPool&&) = delete;
 
     IPLAudioBuffer& GetCurrentBuffer() { return buffers_[bufferIdx_]; }
     IPLAudioBuffer& GetNextBuffer() { return buffers_[GetNextBufferIndex()]; }
     void SwitchToNextBuffer() { bufferIdx_ = GetNextBufferIndex(); }
 
 private:
-    // Returns next buffer index.
     unsigned GetNextBufferIndex() const;
 
-    // Current buffer index.
     unsigned bufferIdx_ = 0;
-    // Different audio buffers for processing.
-    std::array<IPLAudioBuffer, 4> buffers_;
+    std::array<IPLAudioBuffer, 4> buffers_{};
 };
 } // namespace PhononPlayback

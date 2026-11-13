@@ -15,34 +15,42 @@ struct Playback {
     FFIInterface::ObjectHandle audioSource;
     FFIInterface::GCHandle audioSourceGc;
     AudioRolloffMode rolloffMode = Linear;
-    uint64_t delay;
-    float volumeScale;
+    uint64_t delay = 0;
+    float volumeScale = 1.0f;
     float volume = 0.5f;
     float spatialBlend = 1.0f;
     float maxDistance = 1000.0f;
-    bool isOneShot;
+    bool isOneShot = false;
     bool loop = false;
     uint64_t playPosition = 0;
     IPLVector3 worldPosition{};
 
-    IPLAudioBuffer audioBuffer;
+    IPLAudioBuffer audioBuffer{};
+    IPLAudioBuffer inputScratch{};
+    IPLAudioBuffer monoScratch{};
+
     IPLBinauralEffect binauralEffect = nullptr;
     IPLDirectEffect directEffect = nullptr;
+    IPLReflectionEffect reflectionEffect = nullptr;
+    IPLSource raySource = nullptr;
+
+    IPLint32 effectFrameSize = 0;
 
     Playback(FFIInterface::ObjectHandle audioSource, const IPLAudioBuffer& audioBuffer, uint64_t delay,
              float volumeScale, bool isOneShot);
     ~Playback();
+
     Playback(const Playback&) = delete;
-    Playback(Playback&& o)
-        : audioSource(o.audioSource), audioSourceGc(o.audioSourceGc), audioBuffer(o.audioBuffer), delay(o.delay),
-          volumeScale(o.volumeScale), playPosition(o.playPosition) {
-        o.audioSource = FFIInterface::ObjectHandle::Invalid;
-    }
+    Playback(Playback&&) = delete;
+    Playback& operator=(const Playback&) = delete;
+    Playback& operator=(Playback&&) = delete;
 
     IPLAudioBuffer& operator=(const IPLAudioBuffer& audioBuffer);
 
-    bool hasReachedEnd() const { return playPosition >= audioBuffer.numSamples; }
+    bool EnsureAudioResources(IPLint32 frameSize);
+    bool hasReachedEnd() const { return !loop && playPosition >= static_cast<uint64_t>(audioBuffer.numSamples); }
 };
+
 extern std::list<Playback> playbackQueue;
 extern std::mutex playbackMutex;
 

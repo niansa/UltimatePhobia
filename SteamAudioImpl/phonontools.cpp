@@ -45,7 +45,7 @@ IPLMatrix4x4 get_localToWorldMatrix(FFIInterface::ObjectHandle transform) {
 } // namespace TransformUtils
 
 IPLAudioBuffer audioBufferFromAudioClip(FFIInterface::ObjectHandle audioClip) {
-    IPLAudioBuffer fres;
+    IPLAudioBuffer fres{};
 
     // Get basic properties
     fres.numSamples = call<"UnityEngine.AudioClip$$get_samples", int32_t>(audioClip, nullptr);
@@ -92,28 +92,51 @@ IPLAudioBuffer audioBufferFromAudioClip(FFIInterface::ObjectHandle audioClip) {
 }
 
 IPLStaticMesh staticMeshFromMesh(IPLScene scene, FFIInterface::ObjectHandle mesh) {
+    if (mesh == ObjectHandle::Null || mesh == ObjectHandle::Invalid ||
+        !call<"UnityEngine.Object$$IsNativeObjectAlive", bool>(mesh, nullptr) || call_error)
+        return nullptr;
+
+    if (!call<"UnityEngine.Mesh$$get_isReadable", bool>(mesh, nullptr) || call_error)
+        return nullptr;
+
+    ObjectHandle nameObj = call<"UnityEngine.Object$$get_name", ObjectHandle>(mesh, nullptr);
+    if (nameObj == ObjectHandle::Null || nameObj == ObjectHandle::Invalid)
+        return nullptr;
+
+    FFI logError(FFI toCsString(("Extracting mesh: " + std::string(getCString(nameObj))).c_str()));
+
     // Get vertices
     const auto verticeArray = call<"UnityEngine.Mesh$$get_vertices", ObjectHandle>(mesh, nullptr);
-    if (call_error)
+    if (call_error || verticeArray == ObjectHandle::Null || verticeArray == ObjectHandle::Invalid)
         return nullptr;
-    if (verticeArray == ObjectHandle::Null)
+
+    const int32_t arrayVertCount = call<"System.Array$$get_Length", int32_t>(verticeArray, nullptr);
+    if (call_error || arrayVertCount <= 0) {
+        FFI dropObject(verticeArray);
         return nullptr;
-    std::vector<IPLVector3> vertices(call<"System.Array$$get_Length", int32_t>(verticeArray, nullptr));
+    }
+
+    std::vector<IPLVector3> vertices(arrayVertCount);
     FFI copyArrayBytes(verticeArray, 0, vertices.size() * sizeof(IPLVector3), vertices.data());
     FFI dropObject(verticeArray);
 
     // Get triangles
     const auto triangleArray = call<"UnityEngine.Mesh$$get_triangles", ObjectHandle>(mesh, nullptr);
-    if (call_error)
+    if (call_error || triangleArray == ObjectHandle::Null || triangleArray == ObjectHandle::Invalid)
         return nullptr;
-    if (triangleArray == ObjectHandle::Null)
+
+    const int32_t triIndexCount = call<"System.Array$$get_Length", int32_t>(triangleArray, nullptr);
+    if (call_error || triIndexCount < 3) {
+        FFI dropObject(triangleArray);
         return nullptr;
-    std::vector<IPLTriangle> triangles(call<"System.Array$$get_Length", int32_t>(triangleArray, nullptr) / 3);
+    }
+
+    std::vector<IPLTriangle> triangles(triIndexCount / 3);
     FFI copyArrayBytes(triangleArray, 0, triangles.size() * sizeof(IPLTriangle), triangles.data());
     FFI dropObject(triangleArray);
 
     // Get materials (TODO: Just a dummy for now)
-    std::vector<IPLint32> materials(triangles.size(), Materials::Brick);
+    std::vector<IPLint32> materials(triangles.size(), 0);
 
     // Create settings
     IPLStaticMeshSettings staticMeshSettings{};
@@ -123,7 +146,7 @@ IPLStaticMesh staticMeshFromMesh(IPLScene scene, FFIInterface::ObjectHandle mesh
     staticMeshSettings.vertices = vertices.data();
     staticMeshSettings.triangles = triangles.data();
     staticMeshSettings.materialIndices = materials.data();
-    staticMeshSettings.materials = Materials::presets;
+    staticMeshSettings.materials = &Materials::presets[Materials::Brick];
 
     // Create final static mesh
     IPLStaticMesh fres;
@@ -170,5 +193,58 @@ bool updatePlayback(PhononPlayback::Playback& p, bool initial) {
     // We're all good
     FFI dropObject(sourceTransform);
     return true;
+}
+
+IPLStaticMesh staticMeshFromBoxCollider(IPLScene scene, FFIInterface::ObjectHandle boxCollider) {
+    if (boxCollider == ObjectHandle::Null || boxCollider == ObjectHandle::Invalid)
+        return nullptr;
+
+    const IPLVector3 center = callRetStruct<"UnityEngine.BoxCollider$$get_center", IPLVector3>(boxCollider, nullptr);
+    const IPLVector3 size = callRetStruct<"UnityEngine.BoxCollider$$get_size", IPLVector3>(boxCollider, nullptr);
+
+    const float hx = size.x * 0.5f;
+    const float hy = size.y * 0.5f;
+    const float hz = size.z * 0.5f;
+
+    // Define 8 corners of the box in local space
+    IPLVector3 vertices[8] = {
+        {center.x - hx, center.y - hy, center.z - hz}, // 0: -X, -Y, -Z
+        {center.x + hx, center.y - hy, center.z - hz}, // 1: +X, -Y, -Z
+        {center.x - hx, center.y + hy, center.z - hz}, // 2: -X, +Y, -Z
+        {center.x + hx, center.y + hy, center.z - hz}, // 3: +X, +Y, -Z
+        {center.x - hx, center.y - hy, center.z + hz}, // 4: -X, -Y, +Z
+        {center.x + hx, center.y - hy, center.z + hz}, // 5: +X, -Y, +Z
+        {center.x - hx, center.y + hy, center.z + hz}, // 6: -X, +Y, +Z
+        {center.x + hx, center.y + hy, center.z + hz}  // 7: +X, +Y, +Z
+    };
+
+    // 12 triangles (2 per face)
+    IPLTriangle triangles[12] = {
+        {0, 2, 1}, {1, 2, 3}, // Front (-Z)
+        {5, 7, 4}, {4, 7, 6}, // Back (+Z)
+        {4, 6, 0}, {0, 6, 2}, // Left (-X)
+        {1, 3, 5}, {5, 3, 7}, // Right (+X)
+        {2, 6, 3}, {3, 6, 7}, // Top (+Y)
+        {4, 0, 5}, {5, 0, 1}  // Bottom (-Y)
+    };
+
+    IPLint32 materials[12] = {0};
+
+    IPLStaticMeshSettings staticMeshSettings{};
+    staticMeshSettings.numVertices = 8;
+    staticMeshSettings.numTriangles = 12;
+    staticMeshSettings.numMaterials = 1;
+    staticMeshSettings.vertices = vertices;
+    staticMeshSettings.triangles = triangles;
+    staticMeshSettings.materialIndices = materials;
+    staticMeshSettings.materials = &Materials::presets[Materials::Wood]; // Map to Wood/Plaster or desired default
+
+    IPLStaticMesh fres;
+    const auto status = iplStaticMeshCreate(scene, &staticMeshSettings, &fres);
+    if (status != IPL_STATUS_SUCCESS) {
+        FFI logError(Utils::createErrorMessage("create static mesh from BoxCollider", status));
+        return nullptr;
+    }
+    return fres;
 }
 } // namespace PhononTools

@@ -1,12 +1,13 @@
 #include "playback.hpp"
+
 #include "SteamAudioImpl.hpp"
 #include "playback_environment.hpp"
 #include "fixedsettings.hpp"
 #include "utils.hpp"
 
 #include <algorithm>
-#include <cstring>
 #include <cmath>
+#include <cstring>
 #include <phonon.h>
 #include <ffi_interface.hpp>
 
@@ -18,214 +19,353 @@ std::mutex playbackMutex;
 
 namespace Math {
 float distance(const IPLVector3& a, const IPLVector3& b) {
-    return sqrt(pow(b.x - a.x, 2) + pow(b.y - a.y, 2) + pow(b.z - a.z, 2));
+    const float x = b.x - a.x;
+    const float y = b.y - a.y;
+    const float z = b.z - a.z;
+    return std::sqrt(x * x + y * y + z * z);
 }
 
 float maxDistanceAttenuation(float distance, float maxDistance) {
-    if (maxDistance <= 0.0f) {
-        // Handle invalid parameters
-        return (distance <= 0.0f) ? 1.0f : 0.0f;
-    }
+    if (maxDistance <= 0.0f)
+        return distance <= 0.0f ? 1.0f : 0.0f;
 
-    float normalizedDistance = distance / maxDistance;
-    normalizedDistance = std::clamp(normalizedDistance, 0.0f, 1.0f);
-
-    // Square the normalized distance to make falloff increase with distance
-    float exponent = -1.0f * normalizedDistance * normalizedDistance;
-    float numerator = expf(exponent) - expf(-1.0f);
-    float denominator = 1.0f - expf(-1.0f);
-
+    float normalizedDistance = std::clamp(distance / maxDistance, 0.0f, 1.0f);
+    const float exponent = -normalizedDistance * normalizedDistance;
+    const float numerator = std::exp(exponent) - std::exp(-1.0f);
+    const float denominator = 1.0f - std::exp(-1.0f);
     return numerator / denominator;
-}
-
-consteval unsigned int ambisonicsChannelCount(unsigned int order) {
-    switch (order) {
-    case 1:
-        return 4;
-    case 2:
-        return 9;
-    case 3:
-        return 16;
-    case 4:
-        return 25;
-    case 5:
-        return 36;
-    case 6:
-        return 49;
-    default:
-        return 0;
-    }
 }
 } // namespace Math
 
-Playback::Playback(FFIInterface::ObjectHandle audioSource, const IPLAudioBuffer& audioBuffer, uint64_t delay,
-                   float volumeScale, bool isOneShot)
-    : audioSource(audioSource), audioBuffer(audioBuffer), delay(delay), volumeScale(volumeScale), isOneShot(isOneShot) {
+namespace {
+void clearBuffer(IPLAudioBuffer& buffer) {
+    for (IPLint32 channel = 0; channel < buffer.numChannels; ++channel)
+        std::fill_n(buffer.data[channel], buffer.numSamples, 0.0f);
+}
+
+bool allocateBuffer(IPLint32 channels, IPLint32 samples, IPLAudioBuffer& buffer, const char *operation) {
+    const IPLerror status = iplAudioBufferAllocate(GlobalState::phononCtx, channels, samples, &buffer);
+    if (status == IPL_STATUS_SUCCESS)
+        return true;
+
+    FFI logError(Utils::createErrorMessage(operation, status));
+    buffer = {};
+    return false;
+}
+} // namespace
+
+Playback::Playback(ObjectHandle audioSource, const IPLAudioBuffer& audioBuffer, uint64_t delay, float volumeScale,
+                   bool isOneShot)
+    : audioSource(audioSource), delay(delay), volumeScale(volumeScale), isOneShot(isOneShot), audioBuffer(audioBuffer) {
     audioSourceGc = FFI gcCreateHandle(audioSource, true);
-
-    {
-        IPLBinauralEffectSettings effectSettings{.hrtf = env->hrtf};
-        iplBinauralEffectCreate(GlobalState::phononCtx, &env->audioSettings, &effectSettings, &binauralEffect);
-    }
-
-    {
-        IPLDirectEffectSettings directEffectSettings{.numChannels = FixedSettings::outputChannels};
-        iplDirectEffectCreate(GlobalState::phononCtx, const_cast<IPLAudioSettings *>(&env->audioSettings),
-                              &directEffectSettings, &directEffect);
-    }
+    raySource = rayTracer.CreateSource();
 }
+
 Playback::~Playback() {
-    if (audioSource == ObjectHandle::Null)
-        return;
-    iplAudioBufferFree(GlobalState::phononCtx, &audioBuffer);
-    iplBinauralEffectRelease(&binauralEffect);
-    iplDirectEffectRelease(&directEffect);
+    if (inputScratch.data)
+        iplAudioBufferFree(GlobalState::phononCtx, &inputScratch);
+    if (monoScratch.data)
+        iplAudioBufferFree(GlobalState::phononCtx, &monoScratch);
+    if (audioBuffer.data)
+        iplAudioBufferFree(GlobalState::phononCtx, &audioBuffer);
 
-    FFI dropObject(audioSource);
-    FFI gcDeleteHandle(audioSourceGc);
+    if (reflectionEffect)
+        iplReflectionEffectRelease(&reflectionEffect);
+    if (binauralEffect)
+        iplBinauralEffectRelease(&binauralEffect);
+    if (directEffect)
+        iplDirectEffectRelease(&directEffect);
+
+    if (raySource)
+        rayTracer.DestroySource(raySource);
+
+    if (audioSource != ObjectHandle::Null && audioSource != ObjectHandle::Invalid) {
+        FFI dropObject(audioSource);
+        FFI gcDeleteHandle(audioSourceGc);
+    }
 }
 
-IPLAudioBuffer& Playback::operator=(const IPLAudioBuffer& audioBuffer) {
-    iplAudioBufferFree(GlobalState::phononCtx, &this->audioBuffer);
+bool Playback::EnsureAudioResources(IPLint32 frameSize) {
+    if (!env || frameSize <= 0)
+        return false;
+
+    if (effectFrameSize == frameSize && inputScratch.data && monoScratch.data && binauralEffect && directEffect &&
+        reflectionEffect) {
+        return true;
+    }
+
+    if (inputScratch.data)
+        iplAudioBufferFree(GlobalState::phononCtx, &inputScratch);
+    if (monoScratch.data)
+        iplAudioBufferFree(GlobalState::phononCtx, &monoScratch);
+    if (reflectionEffect)
+        iplReflectionEffectRelease(&reflectionEffect);
+    if (binauralEffect)
+        iplBinauralEffectRelease(&binauralEffect);
+    if (directEffect)
+        iplDirectEffectRelease(&directEffect);
+
+    effectFrameSize = 0;
+
+    if (!allocateBuffer(audioBuffer.numChannels, frameSize, inputScratch, "allocate an input audio scratch buffer"))
+        return false;
+    if (!allocateBuffer(1, frameSize, monoScratch, "allocate a mono audio scratch buffer"))
+        return false;
+
+    IPLBinauralEffectSettings binauralSettings{};
+    binauralSettings.hrtf = env->hrtf;
+    IPLerror status =
+        iplBinauralEffectCreate(GlobalState::phononCtx, &env->audioSettings, &binauralSettings, &binauralEffect);
+    if (status != IPL_STATUS_SUCCESS) {
+        FFI logError(Utils::createErrorMessage("create a binaural effect", status));
+        return false;
+    }
+
+    IPLDirectEffectSettings directSettings{};
+    directSettings.numChannels = FixedSettings::outputChannels;
+    status = iplDirectEffectCreate(GlobalState::phononCtx, &env->audioSettings, &directSettings, &directEffect);
+    if (status != IPL_STATUS_SUCCESS) {
+        FFI logError(Utils::createErrorMessage("create a direct sound effect", status));
+        return false;
+    }
+
+    IPLReflectionEffectSettings reflectionSettings{};
+    reflectionSettings.type = IPL_REFLECTIONEFFECTTYPE_CONVOLUTION;
+    reflectionSettings.irSize =
+        static_cast<IPLint32>(std::ceil(env->audioSettings.samplingRate * FixedSettings::reflectionDurationSeconds));
+    reflectionSettings.numChannels = FixedSettings::ambisonicsChannels;
+
+    status =
+        iplReflectionEffectCreate(GlobalState::phononCtx, &env->audioSettings, &reflectionSettings, &reflectionEffect);
+    if (status != IPL_STATUS_SUCCESS) {
+        FFI logError(Utils::createErrorMessage("create a reflection effect", status));
+        return false;
+    }
+
+    effectFrameSize = frameSize;
+    return true;
+}
+
+IPLAudioBuffer& Playback::operator=(const IPLAudioBuffer& newAudioBuffer) {
+    if (audioBuffer.data)
+        iplAudioBufferFree(GlobalState::phononCtx, &audioBuffer);
+
+    if (inputScratch.data) {
+        iplAudioBufferFree(GlobalState::phononCtx, &inputScratch);
+        inputScratch = {};
+    }
+    if (monoScratch.data) {
+        iplAudioBufferFree(GlobalState::phononCtx, &monoScratch);
+        monoScratch = {};
+    }
+
+    effectFrameSize = 0;
     playPosition = 0;
-    return this->audioBuffer = audioBuffer;
+    audioBuffer = newAudioBuffer;
+    return audioBuffer;
 }
 
 void dataCallback(ma_device *pDevice, float *pOutput, const float *pInput, ma_uint32 sampleCount) {
+    (void)pDevice;
+    (void)pInput;
+
     ++GlobalState::stats.framesStarted;
 
-    // Reconstruct environment if frame size is wrong
-    if (!env.has_value() || env->audioSettings.frameSize != sampleCount)
-        env.emplace(sampleCount);
+    if (!pOutput || sampleCount == 0) {
+        ++GlobalState::stats.framesFinished;
+        return;
+    }
 
-    // Allocate frame buffer
-    IPLAudioBuffer frameBuffer{};
-    IPLerror status =
-        iplAudioBufferAllocate(GlobalState::phononCtx, FixedSettings::outputChannels, sampleCount, &frameBuffer);
-    if (status != IPL_STATUS_SUCCESS)
-        FFI logError(Utils::createErrorMessage("create output frame buffer", status));
+    if (!env.has_value() || env->audioSettings.frameSize != static_cast<IPLint32>(sampleCount)) {
+        env.emplace(static_cast<IPLint32>(sampleCount));
+    }
 
-    // Clear frame buffer
-    for (unsigned channel = 0; channel != frameBuffer.numChannels; channel++)
-        for (unsigned sample = 0; sample != frameBuffer.numSamples; sample++)
-            frameBuffer.data[channel][sample] = 0.0f;
+    IPLAudioBuffer& frameBuffer = env->frameBuffer;
+    clearBuffer(frameBuffer);
+
+    bool reflectionInputApplied = false;
 
     {
-        std::scoped_lock L(playbackMutex);
-        for (auto& playback : playbackQueue) {
+        std::scoped_lock lock(playbackMutex);
+
+        for (Playback& playback : playbackQueue) {
             ++GlobalState::stats.playbacksStarted;
 
-            // Process delay
-            if (playback.delay > 0) {
-                playback.delay -= sampleCount;
+            if (!playback.EnsureAudioResources(static_cast<IPLint32>(sampleCount))) {
                 continue;
             }
 
-            // Skip buffers that have reached the end
+            if (playback.audioBuffer.numSamples <= 0 || playback.audioBuffer.numChannels <= 0) {
+                continue;
+            }
+
+            std::size_t silentPrefix = 0;
+            if (playback.delay >= sampleCount) {
+                playback.delay -= sampleCount;
+                ++GlobalState::stats.playbacksFinished;
+                continue;
+            } else if (playback.delay > 0) {
+                silentPrefix = static_cast<std::size_t>(playback.delay);
+                playback.delay = 0;
+            }
+
             if (playback.hasReachedEnd())
                 continue;
 
-            // Calculate available samples from input
-            const auto availableSamples = playback.audioBuffer.numSamples - playback.playPosition;
+            clearBuffer(playback.inputScratch);
 
-            // Allocate input buffer
-            IPLAudioBuffer inputBuffer;
-            IPLerror status = iplAudioBufferAllocate(GlobalState::phononCtx, playback.audioBuffer.numChannels,
-                                                     sampleCount, &inputBuffer);
-            if (status != IPL_STATUS_SUCCESS)
-                FFI logError(Utils::createErrorMessage("create input snippet buffer", status));
+            const float volume = std::max(0.0f, playback.volume * playback.volumeScale);
+            const uint64_t samplesConsumed = sampleCount - static_cast<ma_uint32>(silentPrefix);
 
-            // Copy audio data while applying volume
-            const float volume =
-                playback.volume <= 1.0f ? std::min<float>(playback.volume * playback.volumeScale, 1.0f) * 4.0f : 0.0f;
-            for (unsigned channel = 0; channel != inputBuffer.numChannels; channel++) {
-                for (unsigned sample = 0; sample != inputBuffer.numSamples; ++sample) {
-                    const auto position = playback.playPosition + sample;
-                    float value;
+            for (IPLint32 channel = 0; channel < playback.inputScratch.numChannels; ++channel) {
+                for (ma_uint32 sample = static_cast<ma_uint32>(silentPrefix); sample < sampleCount; ++sample) {
+                    const uint64_t sourceOffset = sample - static_cast<ma_uint32>(silentPrefix);
+                    const uint64_t position = playback.playPosition + sourceOffset;
+
+                    float value = 0.0f;
                     if (playback.loop) {
-                        value = playback.audioBuffer.data[channel][position % playback.audioBuffer.numSamples];
-                    } else {
-                        if (sample < availableSamples)
-                            value = playback.audioBuffer.data[channel][position];
-                        else
-                            value = 0.0f;
+                        const uint64_t wrapped = position % playback.audioBuffer.numSamples;
+                        value = playback.audioBuffer.data[channel][wrapped];
+                    } else if (position < static_cast<uint64_t>(playback.audioBuffer.numSamples)) {
+                        value = playback.audioBuffer.data[channel][position];
                     }
-                    inputBuffer.data[channel][sample] = value * volume;
+
+                    playback.inputScratch.data[channel][sample] = value * volume;
                 }
             }
 
-            if (playback.spatialBlend != 0.0f) {
-                // Apply binaural effect
-                IPLBinauralEffectParams effectParams{.interpolation = IPL_HRTFINTERPOLATION_BILINEAR,
-                                                     .spatialBlend = playback.spatialBlend,
-                                                     .hrtf = env->hrtf,
-                                                     .peakDelays = nullptr};
-                effectParams.direction = iplCalculateRelativeDirection(
+            if (playback.inputScratch.numChannels == 1) {
+                std::memcpy(playback.monoScratch.data[0], playback.inputScratch.data[0], sampleCount * sizeof(float));
+            } else {
+                iplAudioBufferDownmix(GlobalState::phononCtx, &playback.inputScratch, &playback.monoScratch);
+            }
+
+            IPLSimulationOutputs simulationOutputs{};
+            bool haveSimulationOutput = false;
+            if (playback.raySource && rayTracer.IsInitialized()) {
+                iplSourceGetOutputs(
+                    playback.raySource,
+                    static_cast<IPLSimulationFlags>(IPL_SIMULATIONFLAGS_DIRECT | IPL_SIMULATIONFLAGS_REFLECTIONS),
+                    &simulationOutputs);
+                haveSimulationOutput = true;
+            }
+
+            if (haveSimulationOutput && rayTracer.ReflectionsReady() && playback.reflectionEffect &&
+                env->reflectionMixer) {
+                iplReflectionEffectApply(playback.reflectionEffect, &simulationOutputs.reflections,
+                                         &playback.monoScratch, &env->ambisonicsBufferPool.GetCurrentBuffer(),
+                                         env->reflectionMixer);
+                reflectionInputApplied = true;
+            }
+
+            IPLAudioBuffer& spatialized = env->bufferPool.GetCurrentBuffer();
+
+            if (playback.spatialBlend > 0.0f) {
+                IPLBinauralEffectParams binauralParams{};
+                binauralParams.interpolation = IPL_HRTFINTERPOLATION_BILINEAR;
+                binauralParams.spatialBlend = std::clamp(playback.spatialBlend, 0.0f, 1.0f);
+                binauralParams.hrtf = env->hrtf;
+                binauralParams.peakDelays = nullptr;
+                binauralParams.direction = iplCalculateRelativeDirection(
                     GlobalState::phononCtx, playback.worldPosition, GlobalState::playerCoord.origin,
                     GlobalState::playerCoord.ahead, GlobalState::playerCoord.up);
-                effectParams.direction.x = -effectParams.direction.x;
-                iplBinauralEffectApply(playback.binauralEffect, &effectParams, &inputBuffer,
-                                       &env->bufferPool.GetCurrentBuffer());
+                binauralParams.direction.x = -binauralParams.direction.x;
+
+                iplBinauralEffectApply(playback.binauralEffect, &binauralParams, &playback.monoScratch, &spatialized);
+            } else if (playback.inputScratch.numChannels == FixedSettings::outputChannels) {
+                for (unsigned channel = 0; channel < FixedSettings::outputChannels; ++channel) {
+                    std::memcpy(spatialized.data[channel], playback.inputScratch.data[channel],
+                                sampleCount * sizeof(float));
+                }
+            } else if (playback.inputScratch.numChannels > FixedSettings::outputChannels) {
+                iplAudioBufferDownmix(GlobalState::phononCtx, &playback.inputScratch, &spatialized);
             } else {
-                // Copy input to output without spatialization, up/down mix as needed
-                if (inputBuffer.numChannels > FixedSettings::outputChannels) {
-                    // Downmix
-                    iplAudioBufferDownmix(GlobalState::phononCtx, &inputBuffer, &env->bufferPool.GetCurrentBuffer());
-                } else if (inputBuffer.numChannels == FixedSettings::outputChannels) {
-                    // Copy
-                    auto& nbuf = env->bufferPool.GetCurrentBuffer();
-                    for (unsigned channel = 0; channel != FixedSettings::outputChannels; ++channel)
-                        memcpy(nbuf.data[channel], inputBuffer.data[channel], nbuf.numSamples * sizeof(float));
-                } else {
-                    // Upmix
-                    auto& nbuf = env->bufferPool.GetCurrentBuffer();
-                    for (unsigned channel = 0; channel != FixedSettings::outputChannels; ++channel)
-                        memcpy(nbuf.data[channel], inputBuffer.data[channel % inputBuffer.numChannels],
-                               nbuf.numSamples * sizeof(float));
+                for (unsigned channel = 0; channel < FixedSettings::outputChannels; ++channel) {
+                    std::memcpy(spatialized.data[channel],
+                                playback.inputScratch.data[channel % playback.inputScratch.numChannels],
+                                sampleCount * sizeof(float));
                 }
             }
 
-            // Calculate distance
-            const float distance = Math::distance(GlobalState::playerCoord.origin, playback.worldPosition);
+            IPLDirectEffectParams directParams{};
+            directParams.flags = FixedSettings::directEffectFlags;
+            directParams.transmissionType = IPL_TRANSMISSIONTYPE_FREQDEPENDENT;
+            directParams.distanceAttenuation = 1.0f;
+            directParams.airAbsorption[0] = 1.0f;
+            directParams.airAbsorption[1] = 1.0f;
+            directParams.airAbsorption[2] = 1.0f;
+            directParams.directivity = 1.0f;
+            directParams.occlusion = 1.0f;
+            directParams.transmission[0] = 1.0f;
+            directParams.transmission[1] = 1.0f;
+            directParams.transmission[2] = 1.0f;
 
-            // Apply direct effect
-            IPLDistanceAttenuationModel distanceAttenuationModel{IPL_DISTANCEATTENUATIONTYPE_DEFAULT};
-            IPLAirAbsorptionModel airAbsorptionModel{IPL_AIRABSORPTIONTYPE_DEFAULT};
-            IPLDirectEffectParams directEffectParams{
-                .flags = FixedSettings::directEffectFlags,
-                .distanceAttenuation =
-                    iplDistanceAttenuationCalculate(GlobalState::phononCtx, playback.worldPosition,
-                                                    GlobalState::playerCoord.origin, &distanceAttenuationModel) *
-                    (playback.rolloffMode != AudioRolloffMode::Logarithmic
-                         ? Math::maxDistanceAttenuation(distance, playback.maxDistance)
-                         : 1.0f)};
+            if (haveSimulationOutput) {
+                directParams.distanceAttenuation = simulationOutputs.direct.distanceAttenuation;
+                std::memcpy(directParams.airAbsorption, simulationOutputs.direct.airAbsorption,
+                            sizeof(directParams.airAbsorption));
+                directParams.directivity = simulationOutputs.direct.directivity;
+                directParams.occlusion = simulationOutputs.direct.occlusion;
+                std::memcpy(directParams.transmission, simulationOutputs.direct.transmission,
+                            sizeof(directParams.transmission));
+            } else {
+                IPLDistanceAttenuationModel distanceModel{};
+                distanceModel.type = IPL_DISTANCEATTENUATIONTYPE_DEFAULT;
+                directParams.distanceAttenuation = iplDistanceAttenuationCalculate(
+                    GlobalState::phononCtx, playback.worldPosition, GlobalState::playerCoord.origin, &distanceModel);
 
-            iplAirAbsorptionCalculate(GlobalState::phononCtx, playback.worldPosition, GlobalState::playerCoord.origin,
-                                      &airAbsorptionModel, directEffectParams.airAbsorption);
+                IPLAirAbsorptionModel absorptionModel{};
+                absorptionModel.type = IPL_AIRABSORPTIONTYPE_DEFAULT;
+                iplAirAbsorptionCalculate(GlobalState::phononCtx, playback.worldPosition,
+                                          GlobalState::playerCoord.origin, &absorptionModel,
+                                          directParams.airAbsorption);
+            }
 
-            iplDirectEffectApply(playback.directEffect, &directEffectParams, &env->bufferPool.GetCurrentBuffer(),
+            // if (playback.rolloffMode != AudioRolloffMode::Logarithmic) {
+            //     const float distance = Math::distance(GlobalState::playerCoord.origin, playback.worldPosition);
+            //     directParams.distanceAttenuation *= Math::maxDistanceAttenuation(distance, playback.maxDistance);
+            // }
+
+            iplDirectEffectApply(playback.directEffect, &directParams, &env->bufferPool.GetCurrentBuffer(),
                                  &env->bufferPool.GetNextBuffer());
             env->bufferPool.SwitchToNextBuffer();
 
-            // Mix into frame buffer
             iplAudioBufferMix(GlobalState::phononCtx, &env->bufferPool.GetCurrentBuffer(), &frameBuffer);
 
-            // Deallocate input buffer
-            iplAudioBufferFree(GlobalState::phononCtx, &inputBuffer);
-
-            // Increment play position
-            playback.playPosition += sampleCount;
-
-            // Wrap position over if looping
-            if (playback.loop && playback.hasReachedEnd())
-                playback.playPosition = playback.playPosition % playback.audioBuffer.numSamples;
+            playback.playPosition += samplesConsumed;
+            if (playback.loop && playback.audioBuffer.numSamples > 0) {
+                playback.playPosition %= playback.audioBuffer.numSamples;
+            }
 
             ++GlobalState::stats.playbacksFinished;
         }
     }
 
+    if (reflectionInputApplied && env->reflectionMixer && env->ambisonicsDecodeEffect) {
+        IPLReflectionEffectParams mixerParams{};
+        mixerParams.type = IPL_REFLECTIONEFFECTTYPE_CONVOLUTION;
+        mixerParams.numChannels = FixedSettings::ambisonicsChannels;
+        mixerParams.irSize = static_cast<IPLint32>(
+            std::ceil(env->audioSettings.samplingRate * FixedSettings::reflectionDurationSeconds));
+
+        IPLAudioBuffer& ambisonics = env->ambisonicsBufferPool.GetCurrentBuffer();
+        clearBuffer(ambisonics);
+
+        iplReflectionMixerApply(env->reflectionMixer, &mixerParams, &ambisonics);
+
+        IPLAmbisonicsDecodeEffectParams decodeParams{};
+        decodeParams.order = FixedSettings::ambisonicsOrder;
+        decodeParams.hrtf = env->hrtf;
+        decodeParams.orientation = GlobalState::playerCoord;
+        decodeParams.binaural = IPL_TRUE;
+
+        IPLAudioBuffer& decoded = env->bufferPool.GetNextBuffer();
+        iplAmbisonicsDecodeEffectApply(env->ambisonicsDecodeEffect, &decodeParams, &ambisonics, &decoded);
+
+        iplAudioBufferMix(GlobalState::phononCtx, &decoded, &frameBuffer);
+    }
+
     iplAudioBufferInterleave(GlobalState::phononCtx, &frameBuffer, pOutput);
-    iplAudioBufferFree(GlobalState::phononCtx, &frameBuffer);
 
     ++GlobalState::stats.framesFinished;
 }

@@ -99,7 +99,10 @@ STEAMAUDIOIMPL_EXPORT void onAudioSourcePlay() {
 
         // Try to handle playback
         auto& playback = playbackQueue.emplace_back(audioSource, audioBuffer, delay, volumeScale, isOneShot);
-        PhononTools::updatePlayback(playback, true);
+        if (!PhononTools::updatePlayback(playback, true)) {
+            playbackQueue.pop_back();
+            return;
+        }
     }
 
     // Prevent unity from playing audio itself
@@ -197,7 +200,7 @@ STEAMAUDIOIMPL_EXPORT void onAudioSourceSetLoop() {
     std::scoped_lock L(playbackMutex);
     for (auto it = playbackQueue.begin(); it != playbackQueue.end(); ++it) {
         if (call<"UnityEngine.Object$$Equals", bool>(audioSource, it->audioSource, nullptr)) {
-            it->volume = newLoop;
+            it->loop = newLoop;
             break;
         }
     }
@@ -254,8 +257,9 @@ STEAMAUDIOIMPL_EXPORT void onAudioSourceSetClip() {
         }
     }
 
-    // Free audio buffer again because it wasn't actually used
-    iplAudioBufferFree(GlobalState::phononCtx, &*audioBuffer);
+    // Free the buffer again if it was created but not consumed.
+    if (audioBuffer.has_value())
+        iplAudioBufferFree(GlobalState::phononCtx, &*audioBuffer);
 }
 
 STEAMAUDIOIMPL_EXPORT void initImports(const FFIInterface::Imports *imports) { ::imports = imports; }
@@ -288,6 +292,9 @@ STEAMAUDIOIMPL_EXPORT void onLoad() {
         ma_device_start(&GlobalState::maDevice);
     }
 
+    if (!PhononPlayback::rayTracer.Initialize())
+        FFI logWarn("Steam Audio ray tracing initialization failed; playback will use the non-raytraced fallback."_cs);
+
     hooks.add<"void UnityEngine_AudioSource__Play (UnityEngine_AudioSource_o* __this, const MethodInfo* method);">(
         "onAudioSourcePlay");
     hooks.add<"void UnityEngine_AudioSource__PlayOneShot (UnityEngine_AudioSource_o* __this, UnityEngine_AudioClip_o* "
@@ -319,6 +326,11 @@ STEAMAUDIOIMPL_EXPORT void onUnload() {
     ma_device_uninit(&GlobalState::maDevice);
 
     FFI logInfo("Unloading Steam Audio..."_cs);
+    {
+        std::scoped_lock lock(PhononPlayback::playbackMutex);
+        PhononPlayback::playbackQueue.clear();
+    }
+    PhononPlayback::rayTracer.Shutdown();
     PhononPlayback::env.reset();
     iplContextRelease(&GlobalState::phononCtx);
 }
@@ -353,11 +365,16 @@ STEAMAUDIOIMPL_EXPORT void onUiUpdate() {
         FFI dropObject(camera);
     }
 
+    // Keep collision geometry synchronized with Unity. This runs outside
+    // the audio queue lock so mesh extraction cannot block the audio callback.
+    rayTracer.UpdateScene();
+
     // Display basic stats
     if (showStats) {
         FFI ImGuiBegin("Steam Audio Stats");
         FFI ImGuiText(FFI toCsString(("Active sources: " + std::to_string(playbackQueue.size())).c_str()));
-        FFI ImGuiText(FFI toCsString(("Frame size: " + std::to_string(env->audioSettings.frameSize)).c_str()));
+        FFI ImGuiText(
+            FFI toCsString(("Frame size: " + std::to_string(env ? env->audioSettings.frameSize : 0)).c_str()));
         FFI ImGuiText(FFI toCsString(("Frames processed: " + std::to_string(GlobalState::stats.framesFinished) + '/' +
                                       std::to_string(GlobalState::stats.framesStarted))
                                          .c_str()));
@@ -368,29 +385,49 @@ STEAMAUDIOIMPL_EXPORT void onUiUpdate() {
     }
 
     // Update playbacks and display stats
-    std::scoped_lock L(playbackMutex);
-    for (auto playback = playbackQueue.begin(); playback != playbackQueue.end(); ++playback) {
-        if (PhononTools::updatePlayback(*playback, false)) {
-            if (showStats) {
-                FFI ImGuiSeparator();
-                FFI ImGuiText(FFI toCsString(("Position: " + std::to_string(playback->playPosition)).c_str()));
-                FFI ImGuiText(FFI toCsString(("Length: " + std::to_string(playback->audioBuffer.numSamples)).c_str()));
-                FFI ImGuiText(FFI toCsString(("Volume: " + std::to_string(playback->volume)).c_str()));
-                FFI ImGuiText(FFI toCsString(("Volume Scale: " + std::to_string(playback->volumeScale)).c_str()));
-                FFI ImGuiText(FFI toCsString(("Spatial blend: " + std::to_string(playback->spatialBlend)).c_str()));
-                FFI ImGuiText(FFI toCsString(("Max distance: " + std::to_string(playback->maxDistance)).c_str()));
-                FFI ImGuiText(FFI toCsString(("Loop: " + std::string(call<"UnityEngine.AudioSource$$get_loop", bool>(
-                                                                         playback->audioSource, nullptr)
-                                                                         ? "yes"
-                                                                         : "no"))
-                                                 .c_str()));
-                FFI ImGuiText(FFI toCsString(("World position: " + Utils::formatPos(playback->worldPosition)).c_str()));
+    {
+        std::scoped_lock L(playbackMutex);
+        for (auto playback = playbackQueue.begin(); playback != playbackQueue.end();) {
+            if (PhononTools::updatePlayback(*playback, false)) {
+                if (showStats) {
+                    FFI ImGuiSeparator();
+                    FFI ImGuiText(FFI toCsString(("Position: " + std::to_string(playback->playPosition)).c_str()));
+                    FFI ImGuiText(
+                        FFI toCsString(("Length: " + std::to_string(playback->audioBuffer.numSamples)).c_str()));
+                    FFI ImGuiText(FFI toCsString(("Volume: " + std::to_string(playback->volume)).c_str()));
+                    FFI ImGuiText(FFI toCsString(("Volume Scale: " + std::to_string(playback->volumeScale)).c_str()));
+                    FFI ImGuiText(FFI toCsString(("Spatial blend: " + std::to_string(playback->spatialBlend)).c_str()));
+                    FFI ImGuiText(FFI toCsString(("Max distance: " + std::to_string(playback->maxDistance)).c_str()));
+                    FFI ImGuiText(FFI toCsString(("Loop: " + std::string(playback->loop ? "yes" : "no")).c_str()));
+                    FFI ImGuiText(
+                        FFI toCsString(("World position: " + Utils::formatPos(playback->worldPosition)).c_str()));
+
+                    if (playback->raySource && rayTracer.IsInitialized()) {
+                        IPLSimulationOutputs outputs{};
+                        iplSourceGetOutputs(playback->raySource,
+                                            static_cast<IPLSimulationFlags>(IPL_SIMULATIONFLAGS_DIRECT |
+                                                                            IPL_SIMULATIONFLAGS_REFLECTIONS),
+                                            &outputs);
+
+                        FFI ImGuiText(FFI toCsString(
+                            ("Distance Atten: " + std::to_string(outputs.direct.distanceAttenuation)).c_str()));
+                        FFI ImGuiText(
+                            FFI toCsString(("Occlusion: " + std::to_string(outputs.direct.occlusion)).c_str()));
+                        FFI ImGuiText(
+                            FFI toCsString(("Transmission: [" + std::to_string(outputs.direct.transmission[0]) + ", " +
+                                            std::to_string(outputs.direct.transmission[1]) + ", " +
+                                            std::to_string(outputs.direct.transmission[2]) + "]")
+                                               .c_str()));
+                    }
+                }
+                ++playback;
+            } else {
+                playback = playbackQueue.erase(playback);
             }
-        } else {
-            playbackQueue.erase(playback);
-            break;
         }
     }
+
+    rayTracer.Simulate(playbackQueue);
 
     if (showStats)
         FFI ImGuiEnd();

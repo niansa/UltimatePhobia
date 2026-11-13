@@ -22,5 +22,6 @@ IPLMatrix4x4 get_localToWorldMatrix(FFIInterface::ObjectHandle transform);
 
 IPLAudioBuffer audioBufferFromAudioClip(FFIInterface::ObjectHandle audioClip);
 IPLStaticMesh staticMeshFromMesh(IPLScene scene, FFIInterface::ObjectHandle mesh);
+IPLStaticMesh staticMeshFromBoxCollider(IPLScene scene, FFIInterface::ObjectHandle boxCollider);
 bool updatePlayback(PhononPlayback::Playback& p, bool initial);
 } // namespace PhononTools

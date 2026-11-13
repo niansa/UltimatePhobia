@@ -35,7 +35,7 @@ const char *errorToMessage(IPLerror error) {
 const char *errorToMessage(ma_result error) { return ma_result_description(error); }
 
 std::string formatPos(IPLVector3 pos) {
-    return '[' + std::to_string(pos.x) + ", " + std::to_string(pos.x) + ", " + std::to_string(pos.x) + ']';
+    return '[' + std::to_string(pos.x) + ", " + std::to_string(pos.y) + ", " + std::to_string(pos.z) + ']';
 }
 std::string formatCoord(IPLCoordinateSpace3 coord) {
     return "{origin: " + formatPos(coord.origin) + ", up: " + formatPos(coord.up) +
