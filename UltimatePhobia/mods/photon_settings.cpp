@@ -26,43 +26,46 @@ std::pair<std::string, uint16_t> endpoint_split_addr(const luxon::enet::EnetEndp
     const std::string_view stun_binding_host = std::string_view{stun_binding_addr}.substr(0, colon_pos);
     uint16_t stun_binding_port = 0;
     if (colon_pos != std::string::npos)
-        std::from_chars(stun_binding_addr.data() + colon_pos + 1, stun_binding_addr.data() + stun_binding_addr.size(), stun_binding_port);
+        std::from_chars(stun_binding_addr.data() + colon_pos + 1, stun_binding_addr.data() + stun_binding_addr.size(),
+                        stun_binding_port);
 
     return {std::string(stun_binding_host), stun_binding_port};
 }
 } // namespace
 
-#define CONVLIST                                                                                                                                               \
-    CONVSTRFIELD(AppIdRealtime);                                                                                                                               \
-    CONVSTRFIELD(AppIdChat);                                                                                                                                   \
-    CONVSTRFIELD(AppIdVoice);                                                                                                                                  \
-    CONVSTRFIELD(AppVersion);                                                                                                                                  \
-    CONVBOOLFIELD(UseNameServer);                                                                                                                              \
-    CONVSTRFIELD(FixedRegion);                                                                                                                                 \
-    CONVSTRFIELD(BestRegionSummaryFromStorage);                                                                                                                \
-    CONVSTRFIELD(Server);                                                                                                                                      \
-    CONVINTFIELD(Port);                                                                                                                                        \
-    CONVSTRFIELD(ProxyServer);                                                                                                                                 \
-    CONVINTFIELD(Protocol);                                                                                                                                    \
-    CONVBOOLFIELD(EnableProtocolFallback);                                                                                                                     \
-    CONVINTFIELD(AuthMode);                                                                                                                                    \
-    CONVBOOLFIELD(EnableLobbyStatistics);                                                                                                                      \
+#define CONVLIST                                                                                                       \
+    CONVSTRFIELD(AppIdRealtime);                                                                                       \
+    CONVSTRFIELD(AppIdChat);                                                                                           \
+    CONVSTRFIELD(AppIdVoice);                                                                                          \
+    CONVSTRFIELD(AppVersion);                                                                                          \
+    CONVBOOLFIELD(UseNameServer);                                                                                      \
+    CONVSTRFIELD(FixedRegion);                                                                                         \
+    CONVSTRFIELD(BestRegionSummaryFromStorage);                                                                        \
+    CONVSTRFIELD(Server);                                                                                              \
+    CONVINTFIELD(Port);                                                                                                \
+    CONVSTRFIELD(ProxyServer);                                                                                         \
+    CONVINTFIELD(Protocol);                                                                                            \
+    CONVBOOLFIELD(EnableProtocolFallback);                                                                             \
+    CONVINTFIELD(AuthMode);                                                                                            \
+    CONVBOOLFIELD(EnableLobbyStatistics);                                                                              \
     CONVINTFIELD(NetworkLogging);
 
 using namespace Il2Cpp::CppInterop;
 
-static bool photonNetwork$$ConnectUsingSettingsFnc(Photon_Realtime_AppSettings_o *appSettings, bool startInOfflineMode, const MethodInfo *method) {
+static bool photonNetwork$$ConnectUsingSettingsFnc(Photon_Realtime_AppSettings_o *appSettings, bool startInOfflineMode,
+                                                   const MethodInfo *method) {
     auto self = photonSettingsInfo.get<PhotonSettings>();
     self->fromIl2CppClass(appSettings->fields);
     self->toIl2CppClass(appSettings->fields);
     GameHookRelease GHR(self->photonNetwork$$ConnectUsingSettingsHook);
-    return self->photonNetwork$$ConnectUsingSettingsHook.getFunction<decltype(photonNetwork$$ConnectUsingSettingsFnc)>()(appSettings, startInOfflineMode,
-                                                                                                                         method);
+    return self->photonNetwork$$ConnectUsingSettingsHook
+        .getFunction<decltype(photonNetwork$$ConnectUsingSettingsFnc)>()(appSettings, startInOfflineMode, method);
 }
 
 PhotonSettings::PhotonSettings()
     : photonNetwork$$ConnectUsingSettingsHook(GameHook::safeCreateOrPanic(
-          photonSettingsInfo, Il2Cpp::Photon::Pun::PhotonNetwork::ConnectUsingSettings_getPtr<Photon_Realtime_AppSettings_o *, bool>(),
+          photonSettingsInfo,
+          Il2Cpp::Photon::Pun::PhotonNetwork::ConnectUsingSettings_getPtr<Photon_Realtime_AppSettings_o *, bool>(),
           reinterpret_cast<void *>(photonNetwork$$ConnectUsingSettingsFnc))) {
     memset(&client_settings, 0, sizeof(client_settings));
     client_settings.override_SendRate = true;
@@ -76,21 +79,21 @@ void PhotonSettings::uiUpdate() {
     Begin("Photon Settings");
 
     BeginDisabled(!!serman);
-#define OVERRIDER(field)                                                                                                                                       \
-    PushID("override_" #field);                                                                                                                                \
-    Checkbox("Override", &client_settings.override_##field);                                                                                                   \
-    PopID();                                                                                                                                                   \
-    SameLine();                                                                                                                                                \
+#define OVERRIDER(field)                                                                                               \
+    PushID("override_" #field);                                                                                        \
+    Checkbox("Override", &client_settings.override_##field);                                                           \
+    PopID();                                                                                                           \
+    SameLine();                                                                                                        \
     BeginDisabled(!client_settings.override_##field);
-#define CONVBOOLFIELD(field)                                                                                                                                   \
-    OVERRIDER(field) Checkbox(#field, &client_settings.field);                                                                                                 \
+#define CONVBOOLFIELD(field)                                                                                           \
+    OVERRIDER(field) Checkbox(#field, &client_settings.field);                                                         \
     EndDisabled()
-#define CONVINTFIELD(field)                                                                                                                                    \
-    OVERRIDER(field) InputInt(#field, &client_settings.field);                                                                                                 \
+#define CONVINTFIELD(field)                                                                                            \
+    OVERRIDER(field) InputInt(#field, &client_settings.field);                                                         \
     EndDisabled()
-#define CONVSTRFIELD(field)                                                                                                                                    \
-    OVERRIDER(field)                                                                                                                                           \
-    InputText(#field, client_settings.field, sizeof(client_settings.field));                                                                                   \
+#define CONVSTRFIELD(field)                                                                                            \
+    OVERRIDER(field)                                                                                                   \
+    InputText(#field, client_settings.field, sizeof(client_settings.field));                                           \
     EndDisabled()
     CONVLIST
 #undef OVERRIDER
@@ -162,13 +165,13 @@ void PhotonSettings::uiUpdate() {
     End();
 }
 
-#define DEFINE_SETTER(field)                                                                                                                                   \
-    void PhotonSettings::set##field(std::string_view value) {                                                                                                  \
-        if (value.size() >= sizeof(client_settings.field))                                                                                                     \
-            value = value.substr(0, sizeof(client_settings.field) - 1);                                                                                        \
-        memcpy(client_settings.field, value.data(), value.size());                                                                                             \
-        client_settings.field[value.size()] = '\0';                                                                                                            \
-        client_settings.override_##field = true;                                                                                                               \
+#define DEFINE_SETTER(field)                                                                                           \
+    void PhotonSettings::set##field(std::string_view value) {                                                          \
+        if (value.size() >= sizeof(client_settings.field))                                                             \
+            value = value.substr(0, sizeof(client_settings.field) - 1);                                                \
+        memcpy(client_settings.field, value.data(), value.size());                                                     \
+        client_settings.field[value.size()] = '\0';                                                                    \
+        client_settings.override_##field = true;                                                                       \
     }
 
 DEFINE_SETTER(Server)
@@ -195,7 +198,7 @@ void PhotonSettings::fromIl2CppClass(const Photon_Realtime_AppSettings_Fields& o
     }
 }
 
-void PhotonSettings::toIl2CppClass(Photon_Realtime_AppSettings_Fields& o){
+void PhotonSettings::toIl2CppClass(Photon_Realtime_AppSettings_Fields& o) {
 #define CONVBOOLFIELD(field) o.field = client_settings.field
 #define CONVINTFIELD(field) o.field = client_settings.field
 #define CONVSTRFIELD(field) o.field = ToCsString(client_settings.field)
@@ -264,8 +267,10 @@ void PhotonSettings::startP2P() {
     ServerManagerConfig config;
     config.max_connections = 4;
     config.max_game_peers = 4;
-    config.servers.emplace_back(ServerConfig{.type = ServerType::NameServer, .port = 5058, .external_address = "127.0.0.1:5058"});
-    config.servers.emplace_back(ServerConfig{.type = ServerType::MasterServer, .port = 5055, .external_address = "127.0.0.1:5055"});
+    config.servers.emplace_back(
+        ServerConfig{.type = ServerType::NameServer, .port = 5058, .external_address = "127.0.0.1:5058"});
+    config.servers.emplace_back(
+        ServerConfig{.type = ServerType::MasterServer, .port = 5055, .external_address = "127.0.0.1:5055"});
     config.servers.emplace_back(ServerConfig{.type = ServerType::GameServer,
                                              .port = 5056,
                                              .allow_unsolicited = true,
@@ -287,11 +292,8 @@ void PhotonSettings::startP2P() {
     }
 
     // Set up hookpoints
-    serman->hookpoints.MasterServer_HandleOperationRequest_CreateGame = [this](MasterServerHandler& handler, const std::string& game_id) -> bool {
-        // Only deal with default lobby
-        if (handler.get_joined_lobby_name() != "")
-            return false;
-
+    serman->hookpoints.MasterServer_HandleOperationRequest_CreateGame = [this](MasterServerHandler& handler,
+                                                                               const std::string& game_id) -> bool {
         // Get all the details we need to publish
         const auto game_id_hash = server::string_hash(game_id);
         const auto [stun_binding_host, stun_binding_port] = endpoint_split_addr(server_stun_binding_ep);
@@ -316,11 +318,8 @@ void PhotonSettings::startP2P() {
         return false;
     };
 
-    serman->hookpoints.MasterServer_HandleOperationRequest_JoinGame = [this](MasterServerHandler& handler, const std::string& game_id, bool or_create) -> bool {
-        // Only deal with default lobby
-        if (handler.get_joined_lobby_name() != "")
-            return false;
-
+    serman->hookpoints.MasterServer_HandleOperationRequest_JoinGame =
+        [this](MasterServerHandler& handler, const std::string& game_id, bool or_create) -> bool {
         // Reset proxy
         client_proxy->reset();
 
@@ -356,7 +355,8 @@ void PhotonSettings::startP2P() {
                 server_signal_ep = *server_signal_ep_opt;
             } else {
                 const ser::OperationResponseMessage resp{.operation_code = luxon::OpCodes::Matchmaking::JoinGame,
-                                                         .return_code = luxon::ErrorCodes::Matchmaking::ServerCheckFailed,
+                                                         .return_code =
+                                                             luxon::ErrorCodes::Matchmaking::ServerCheckFailed,
                                                          .debug_message = "Game not found"};
                 handler.send(handler.get_peer()->protocol->Serialize(resp));
                 return true;
@@ -372,9 +372,10 @@ void PhotonSettings::startP2P() {
         // Turn signaling endpoint into enet endpoint
         const auto server_ep = enet::EnetEndpoint::from(server_signal_ep.ip.c_str(), server_signal_ep.port);
         if (!server_ep) {
-            const ser::OperationResponseMessage resp{.operation_code = luxon::OpCodes::Matchmaking::JoinGame,
-                                                     .return_code = luxon::ErrorCodes::Matchmaking::ServerCheckFailed,
-                                                     .debug_message = std::format("Signaling error: Got invalid IP address: {}", server_signal_ep.ip)};
+            const ser::OperationResponseMessage resp{
+                .operation_code = luxon::OpCodes::Matchmaking::JoinGame,
+                .return_code = luxon::ErrorCodes::Matchmaking::ServerCheckFailed,
+                .debug_message = std::format("Signaling error: Got invalid IP address: {}", server_signal_ep.ip)};
             handler.send(handler.get_peer()->protocol->Serialize(resp));
             return true;
         }
@@ -490,7 +491,8 @@ void PhotonSettings::flushPendingJoinResponse() {
 
     using namespace luxon;
 
-    ser::OperationResponseMessage resp{.operation_code = OpCodes::Matchmaking::JoinGame, .return_code = ErrorCodes::Core::Ok};
+    ser::OperationResponseMessage resp{.operation_code = OpCodes::Matchmaking::JoinGame,
+                                       .return_code = ErrorCodes::Core::Ok};
     resp.parameters[DictKeyCodes::LoadBalancing::Address] = "127.0.0.1:5059";
     resp.parameters[DictKeyCodes::LoadBalancing::Token] = std::monostate{};
     pending_join_handler->send(pending_join_handler->get_peer()->protocol->Serialize(resp));
@@ -633,12 +635,8 @@ void PhotonSettings::GameServerProxy::reset() {
     join_ready.store(false);
 }
 
-ModInfo photonSettingsInfo {
-    "Photon Settings",
-    false,
-    []() { return std::make_unique<PhotonSettings>(); },
-    []() {
-        auto mod = photonSettingsInfo.get<PhotonSettings>();
-        mod->setServer("photon.tuxifan.net");
-    }
-};
+ModInfo photonSettingsInfo{"Photon Settings", false, []() { return std::make_unique<PhotonSettings>(); },
+                           []() {
+                               auto mod = photonSettingsInfo.get<PhotonSettings>();
+                               mod->setServer("photon.tuxifan.net");
+                           }};

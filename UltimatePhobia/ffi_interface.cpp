@@ -883,7 +883,8 @@ WIBool call2(MethodHandle index, int32_t argCount, WIBool returnsStruct) {
             Il2Cpp::API::GcHandle AGH(reinterpret_cast<Il2Cpp::API::Il2CppObject *>(return_value), true);
             // Get pointer/reference into array
             auto *dataDest = reinterpret_cast<System_Byte_array *>(return_value);
-            const size_t& dataLength = dataDest->bounds->length;
+            const size_t dataLength =
+                Il2Cpp::API::il2cpp_array_length(reinterpret_cast<Il2Cpp::API::Il2CppArray *>(dataDest));
             // AnyCall specified function
             const AnyCall::Struct returnData =
                 AnyCall::callStruct(reinterpret_cast<const uintptr_t *>(args.data()), method.getFullAddress(), method.typeSignature);

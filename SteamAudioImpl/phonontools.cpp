@@ -29,7 +29,9 @@ namespace TransformUtils {
 IPLVector3 get_position(FFIInterface::ObjectHandle transform) { return callRetStruct<"UnityEngine.Transform$$get_position", IPLVector3>(transform, nullptr); }
 IPLVector3 get_forward(FFIInterface::ObjectHandle transform) { return callRetStruct<"UnityEngine.Transform$$get_forward", IPLVector3>(transform, nullptr); }
 IPLVector3 get_up(FFIInterface::ObjectHandle transform) { return callRetStruct<"UnityEngine.Transform$$get_up", IPLVector3>(transform, nullptr); }
-IPLVector3 get_right(FFIInterface::ObjectHandle transform) { return callRetStruct<"UnityEngine.Transform$$get_right", IPLVector3>(transform, nullptr); }
+IPLVector3 get_right(FFIInterface::ObjectHandle transform) {
+    return callRetStruct<"UnityEngine.Transform$$get_right", IPLVector3>(transform, nullptr);
+}
 IPLMatrix4x4 get_localToWorldMatrix(FFIInterface::ObjectHandle transform) {
     return callRetStruct<"UnityEngine.Transform$$get_localToWorldMatrix", IPLMatrix4x4>(transform, nullptr);
 }
@@ -45,12 +47,12 @@ IPLAudioBuffer audioBufferFromAudioClip(FFIInterface::ObjectHandle audioClip) {
         audioClip, nullptr);
 
     // Get data
-    static ObjectHandle singleArrayClass = []() {
-        ObjectHandle corlib = FFI getImageCorlib();
-        ObjectHandle single = FFI getClassFromName(corlib, "System", "Single");
-        ObjectHandle singleArray = FFI getArrayFromClass(single, 1);
-        FFI dropObject(corlib);
-        FFI dropObject(single);
+    static ClassHandle singleArrayClass = []() {
+        ImageHandle corlib = FFI getImageCorlib();
+        ClassHandle single = FFI getClassFromName(corlib, "System", "Single");
+        ClassHandle singleArray = FFI getArrayFromClass(single, 1);
+        FFI dropImage(corlib);
+        FFI dropClass(single);
         return singleArray;
     }();
     const size_t csDataLen = fres.numSamples * fres.numChannels;
