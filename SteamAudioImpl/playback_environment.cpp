@@ -13,6 +13,8 @@
 #include <vector>
 #include <ffi_interface.hpp>
 
+#include <shared_mutex>
+#include <system_error>
 using namespace FFIInterface;
 using namespace Helpers;
 
@@ -98,8 +100,10 @@ bool RayTracer::Initialize() {
     const IPLint32 frameSize = GlobalState::maDevice.playback.internalPeriodSizeInFrames > 0
                                    ? static_cast<IPLint32>(GlobalState::maDevice.playback.internalPeriodSizeInFrames)
                                    : 1024;
-    if (samplingRate <= 0)
+    if (samplingRate <= 0) {
+        iplSceneRelease(&scene_);
         return false;
+    }
 
     IPLSimulationSettings simulationSettings{};
     simulationSettings.flags =
@@ -135,10 +139,18 @@ bool RayTracer::Initialize() {
     lastTransformUpdate_ = now;
     lastColliderScan_ = Clock::time_point{};
     lastReflectionUpdate_ = Clock::time_point{};
+
+    if (!StartReflectionWorker()) {
+        Shutdown();
+        return false;
+    }
+
     return true;
 }
 
 void RayTracer::Shutdown() {
+    StopReflectionWorker();
+    std::unique_lock simulationLock(simulationMutex_);
     for (auto& [id, collider] : colliders_) {
         if (collider.instance) {
             if (scene_ && collider.active)
@@ -709,8 +721,6 @@ void RayTracer::CommitScene() {
     iplSimulatorSetScene(simulator_, scene_);
     iplSimulatorCommit(simulator_);
 
-    iplSceneSaveOBJ(scene_, "Z:\\tmp\\steamaudio_scene_dump.obj");
-
     sceneDirty_ = false;
 }
 
@@ -718,6 +728,7 @@ void RayTracer::UpdateScene() {
     if (!IsInitialized() && !Initialize())
         return;
 
+    std::unique_lock simulationLock(simulationMutex_);
     const auto now = Clock::now();
 
     if (secondsSince(now, lastColliderScan_) >= FixedSettings::colliderRescanIntervalSeconds) {
@@ -736,6 +747,8 @@ void RayTracer::UpdateScene() {
 IPLSource RayTracer::CreateSource() {
     if (!IsInitialized())
         return nullptr;
+
+    std::unique_lock simulationLock(simulationMutex_);
 
     IPLSourceSettings sourceSettings{};
     sourceSettings.flags =
@@ -757,10 +770,78 @@ void RayTracer::DestroySource(IPLSource source) {
     if (!source)
         return;
 
+    std::unique_lock simulationLock(simulationMutex_);
+
     if (simulator_)
         iplSourceRemove(source, simulator_);
 
     iplSourceRelease(&source);
+}
+
+bool RayTracer::StartReflectionWorker() {
+    std::scoped_lock lock(reflectionMutex_);
+    if (reflectionThread_.joinable())
+        return true;
+
+    reflectionStop_ = false;
+    reflectionPending_ = false;
+
+    reflectionThread_ = std::thread(&RayTracer::ReflectionWorkerMain, this);
+
+    return true;
+}
+
+void RayTracer::StopReflectionWorker() {
+    {
+        std::scoped_lock lock(reflectionMutex_);
+        reflectionStop_ = true;
+        reflectionPending_ = false;
+    }
+
+    reflectionCv_.notify_all();
+
+    if (reflectionThread_.joinable())
+        reflectionThread_.join();
+
+    {
+        std::scoped_lock lock(reflectionMutex_);
+        reflectionStop_ = false;
+        reflectionPending_ = false;
+    }
+}
+
+void RayTracer::QueueReflectionSimulation() {
+    {
+        std::scoped_lock lock(reflectionMutex_);
+        if (reflectionStop_ || !reflectionThread_.joinable())
+            return;
+
+        reflectionPending_ = true;
+    }
+
+    reflectionCv_.notify_one();
+}
+
+void RayTracer::ReflectionWorkerMain() {
+    for (;;) {
+        {
+            std::unique_lock lock(reflectionMutex_);
+            reflectionCv_.wait(lock, [this] { return reflectionStop_ || reflectionPending_; });
+
+            if (reflectionStop_)
+                return;
+
+            reflectionPending_ = false;
+        }
+
+        {
+            std::shared_lock simulationLock(simulationMutex_);
+            if (simulator_)
+                iplSimulatorRunReflections(simulator_);
+        }
+
+        reflectionsReady_.store(true, std::memory_order_release);
+    }
 }
 
 void RayTracer::Simulate(std::list<Playback>& playbacks) {
@@ -779,55 +860,67 @@ void RayTracer::Simulate(std::list<Playback>& playbacks) {
     sharedInputs.irradianceMinDistance = 1.0f;
 
     const auto allFlags = static_cast<IPLSimulationFlags>(IPL_SIMULATIONFLAGS_DIRECT | IPL_SIMULATIONFLAGS_REFLECTIONS);
-    iplSimulatorSetSharedInputs(simulator_, allFlags, &sharedInputs);
-
     {
-        std::scoped_lock lock(playbackMutex);
-        for (Playback& playback : playbacks) {
-            if (!playback.raySource)
-                continue;
+        std::shared_lock simulationLock(simulationMutex_);
+        iplSimulatorSetSharedInputs(simulator_, allFlags, &sharedInputs);
 
-            IPLSimulationInputs inputs{};
-            inputs.flags = allFlags;
-            inputs.directFlags = static_cast<IPLDirectSimulationFlags>(
-                IPL_DIRECTSIMULATIONFLAGS_DISTANCEATTENUATION | IPL_DIRECTSIMULATIONFLAGS_AIRABSORPTION |
-                IPL_DIRECTSIMULATIONFLAGS_DIRECTIVITY | IPL_DIRECTSIMULATIONFLAGS_OCCLUSION |
-                IPL_DIRECTSIMULATIONFLAGS_TRANSMISSION);
+        {
+            std::scoped_lock lock(playbackMutex);
+            for (Playback& playback : playbacks) {
+                if (!playback.raySource)
+                    continue;
 
-            inputs.source.origin = playback.worldPosition;
-            inputs.source.right = {1.0f, 0.0f, 0.0f};
-            inputs.source.up = {0.0f, 1.0f, 0.0f};
-            inputs.source.ahead = {0.0f, 0.0f, 1.0f};
+                IPLSimulationInputs inputs{};
+                inputs.flags = allFlags;
+                inputs.directFlags = static_cast<IPLDirectSimulationFlags>(
+                    IPL_DIRECTSIMULATIONFLAGS_DISTANCEATTENUATION | IPL_DIRECTSIMULATIONFLAGS_AIRABSORPTION |
+                    IPL_DIRECTSIMULATIONFLAGS_DIRECTIVITY | IPL_DIRECTSIMULATIONFLAGS_OCCLUSION |
+                    IPL_DIRECTSIMULATIONFLAGS_TRANSMISSION);
 
-            inputs.distanceAttenuationModel.type = IPL_DISTANCEATTENUATIONTYPE_DEFAULT;
-            inputs.airAbsorptionModel.type = IPL_AIRABSORPTIONTYPE_DEFAULT;
-            inputs.directivity.dipoleWeight = 0.0f;
-            inputs.directivity.dipolePower = 1.0f;
+                inputs.source.origin = playback.worldPosition;
+                inputs.source.right = {1.0f, 0.0f, 0.0f};
+                inputs.source.up = {0.0f, 1.0f, 0.0f};
+                inputs.source.ahead = {0.0f, 0.0f, 1.0f};
 
-            inputs.occlusionType = IPL_OCCLUSIONTYPE_VOLUMETRIC;
-            inputs.occlusionRadius = 0.25f;
-            inputs.numOcclusionSamples = FixedSettings::maxOcclusionSamples;
-            inputs.numTransmissionRays = FixedSettings::maxTransmissionRays;
-            inputs.baked = IPL_FALSE;
+                inputs.distanceAttenuationModel.type = IPL_DISTANCEATTENUATIONTYPE_DEFAULT;
+                inputs.airAbsorptionModel.type = IPL_AIRABSORPTIONTYPE_DEFAULT;
+                inputs.directivity.dipoleWeight = 0.0f;
+                inputs.directivity.dipolePower = 1.0f;
 
-            inputs.reverbScale[0] = 1.0f;
-            inputs.reverbScale[1] = 1.0f;
-            inputs.reverbScale[2] = 1.0f;
-            inputs.hybridReverbTransitionTime = 1.0f;
-            inputs.hybridReverbOverlapPercent = 0.25f;
+                inputs.occlusionType = IPL_OCCLUSIONTYPE_VOLUMETRIC;
+                inputs.occlusionRadius = 0.25f;
+                inputs.numOcclusionSamples = FixedSettings::maxOcclusionSamples;
+                inputs.numTransmissionRays = FixedSettings::maxTransmissionRays;
+                inputs.baked = IPL_FALSE;
 
-            iplSourceSetInputs(playback.raySource, allFlags, &inputs);
+                inputs.reverbScale[0] = 1.0f;
+                inputs.reverbScale[1] = 1.0f;
+                inputs.reverbScale[2] = 1.0f;
+                inputs.hybridReverbTransitionTime = 1.0f;
+                inputs.hybridReverbOverlapPercent = 0.25f;
+
+                iplSourceSetInputs(playback.raySource, allFlags, &inputs);
+            }
         }
     }
 
-    iplSimulatorCommit(simulator_);
-    iplSimulatorRunDirect(simulator_);
+    {
+        std::unique_lock simulationLock(simulationMutex_, std::try_to_lock);
+        if (simulationLock.owns_lock()) {
+            iplSimulatorCommit(simulator_);
+            iplSceneSaveOBJ(scene_, "Z:\\tmp\\steamaudio_scene_dump.obj");
+        }
+    }
+
+    {
+        std::shared_lock simulationLock(simulationMutex_);
+        iplSimulatorRunDirect(simulator_);
+    }
 
     const auto now = Clock::now();
     if (secondsSince(now, lastReflectionUpdate_) >= FixedSettings::reflectionUpdateIntervalSeconds) {
-        iplSimulatorRunReflections(simulator_);
+        QueueReflectionSimulation();
         lastReflectionUpdate_ = now;
-        reflectionsReady_ = true;
     }
 }
 } // namespace PhononPlayback

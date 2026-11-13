@@ -11,6 +11,11 @@
 #include <phonon.h>
 #include <ffi_interface.hpp>
 
+#include <atomic>
+#include <condition_variable>
+#include <mutex>
+#include <shared_mutex>
+#include <thread>
 namespace PhononPlayback {
 struct Playback;
 
@@ -89,6 +94,10 @@ private:
 
     bool SetColliderActive(Collider& collider, bool active, const IPLMatrix4x4 *transform);
     void CommitScene();
+    bool StartReflectionWorker();
+    void StopReflectionWorker();
+    void QueueReflectionSimulation();
+    void ReflectionWorkerMain();
     static bool MatricesDiffer(const IPLMatrix4x4& a, const IPLMatrix4x4& b);
 
     IPLScene scene_ = nullptr;
@@ -106,7 +115,14 @@ private:
     Clock::time_point lastReflectionUpdate_{};
 
     bool sceneDirty_ = false;
-    bool reflectionsReady_ = false;
+    std::shared_mutex simulationMutex_;
+    std::mutex reflectionMutex_;
+    std::condition_variable reflectionCv_;
+    std::thread reflectionThread_;
+    bool reflectionStop_ = false;
+    bool reflectionPending_ = false;
+
+    std::atomic_bool reflectionsReady_{false};
 };
 
 extern std::optional<Environment> env;

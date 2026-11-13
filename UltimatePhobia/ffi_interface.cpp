@@ -836,8 +836,12 @@ void logBadCall(Il2Cpp::API::MethodInfo *methodInfo) {
     g.logger->warn("FFI interface failed to call function '{}': {}",
                    method ? std::format("{} in {}", method.name(), method.declaring_type().name()) : "<invalid>", call_error);
 }
-void logBadCall(const char *name) { g.logger->warn("FFI interface failed to call function '{}': {}", name, call_error); }
-void logBadCall() { g.logger->warn("FFI interface failed to call unkown function: {}", call_error); }
+void logBadCall(const char *name) {
+    g.logger->warn("FFI interface failed to call function '{}': {}", name, call_error);
+}
+void logBadCall() {
+    g.logger->warn("FFI interface failed to call unkown function: {}", call_error);
+}
 } // namespace
 
 WIBool call2(MethodHandle index, int32_t argCount, WIBool returnsStruct) {
