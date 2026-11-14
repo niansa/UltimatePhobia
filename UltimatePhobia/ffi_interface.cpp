@@ -12,6 +12,7 @@
 
 #include <format>
 #include <map>
+#include <vector>
 #include <exception>
 #include <limits>
 #include <imgui.h>
@@ -23,13 +24,34 @@ int32_t getFtableItemCount() { return getLocalFtableItemCount(); }
 
 namespace {
 template <std::integral HandleT, typename PtrT> class HandleCollection {
+#ifdef FFI_INTERFACE_FAST
+    std::vector<PtrT *> objects{nullptr};
+    std::vector<HandleT> freeHandles;
+#else
     HandleT last_id = 0;
     std::map<HandleT, PtrT *> objects;
+#endif
 
 public:
     HandleT add(PtrT *ptr) {
         if (ptr == nullptr)
             return 0;
+#ifdef FFI_INTERFACE_FAST
+        if (!freeHandles.empty()) {
+            const HandleT fres = freeHandles.back();
+            freeHandles.pop_back();
+            objects[static_cast<size_t>(fres)] = ptr;
+            return fres;
+        }
+        if (objects.size() >= static_cast<size_t>(std::numeric_limits<HandleT>::max() - 1)) {
+            g.logger->warn("Ran out of object handles! Please consider dropping "
+                           "some handles.");
+            return static_cast<HandleT>(-1);
+        }
+        const HandleT fres = static_cast<HandleT>(objects.size());
+        objects.push_back(ptr);
+        return fres;
+#else
         // Find empty handle ID
         HandleT fres = ++last_id;
         while (objects.find(fres) != objects.end())
@@ -41,24 +63,44 @@ public:
         }
         objects[fres] = ptr;
         return fres;
+#endif
     }
     PtrT *get(HandleT id) const {
         if (id == 0)
             return nullptr;
+#ifdef FFI_INTERFACE_FAST
+        return objects[static_cast<size_t>(id)];
+#else
         auto res = objects.find(id);
         if (res == objects.end())
             return nullptr;
         return res->second;
+#endif
     }
 
     void drop(HandleT id) {
+#ifdef FFI_INTERFACE_FAST
+        if (id > 0) {
+            objects[static_cast<size_t>(id)] = nullptr;
+            freeHandles.push_back(id);
+        }
+#else
         if (id > 0)
             objects.erase(id);
         if (id == last_id)
             --last_id;
+#endif
     }
 
-    WIBool isValid(HandleT id) const { return id == 0 || objects.find(id) != objects.end(); }
+    WIBool isValid(HandleT id) const {
+#ifdef FFI_INTERFACE_FAST
+        return id == 0 ||
+               (id > 0 && static_cast<size_t>(id) < objects.size() &&
+                objects[static_cast<size_t>(id)] != nullptr);
+#else
+        return id == 0 || objects.find(id) != objects.end();
+#endif
+    }
     int64_t getAddress(HandleT id) const { return reinterpret_cast<uintptr_t>(get(id)); }
     static inline HandleT getNull() { return 0; }
 };
@@ -83,9 +125,11 @@ std::string call_error;
 void *getValue(int32_t index) {
     if (index < 0)
         return return_value;
-    if (index > call_args.size())
+#ifndef FFI_INTERFACE_FAST
+    if (static_cast<size_t>(index) >= call_args.size())
         return nullptr;
-    return call_args[index];
+#endif
+    return call_args[static_cast<size_t>(index)];
 }
 } // namespace
 
@@ -342,12 +386,14 @@ MethodInfoHandle classGetMethodFromNameAndTypes(ClassHandle klass, const char *n
     if (argCount == unknownArgCount)
         argCount = call_args.size();
 
+#ifndef FFI_INTERFACE_FAST
     // Make sure argCount matches argument count
     else if (argCount != call_args.size()) {
         call_error = std::format("Mismatched added ({}) vs. passed ({}) arg count", call_args.size(), argCount);
         g.logger->warn("FFI interface failed to find function '{}': {}", name, call_error);
         return -1;
     }
+#endif
 
     // Build vector
     std::vector<Il2Cpp::API::Class> argClasses;
@@ -356,11 +402,13 @@ MethodInfoHandle classGetMethodFromNameAndTypes(ClassHandle klass, const char *n
 
     // Get class pointer
     Il2Cpp::API::Class il2cppKlass{classHandles.get(klass)};
+#ifndef FFI_INTERFACE_FAST
     if (!il2cppKlass) {
-        call_error = std::format("null passed as parent class, don't know where to look", call_args.size(), argCount);
+        call_error = "null passed as parent class, don't know where to look";
         g.logger->warn("FFI interface failed to find function '{}': {}", name, call_error);
         return -1;
     }
+#endif
 
     // Reuse existing code from C++ wrapper
     auto fres = il2cppKlass.get_method(name, argClasses).ptr;
@@ -797,12 +845,14 @@ void addArgClass(ClassHandle v) { call_args.push_back(classHandles.get(v)); }
 void addArgNull() { call_args.push_back(nullptr); }
 void clearArgs() { call_args.clear(); }
 
-int32_t getArgCount() { return call_args.size(); }
+int32_t getArgCount() { return static_cast<int32_t>(call_args.size()); }
 WIBool moveArg(int32_t index) {
-    if (call_args.empty() || static_cast<int>(call_args.size()) < index)
+#ifndef FFI_INTERFACE_FAST
+    if (call_args.empty() || (index >= 0 && static_cast<size_t>(index) >= call_args.size()))
         return false;
+#endif
     if (index >= 0) {
-        call_args[index] = call_args.back();
+        call_args[static_cast<size_t>(index)] = call_args.back();
     } else {
         return_value = call_args.back();
     }
@@ -849,15 +899,18 @@ WIBool call2(MethodHandle index, int32_t argCount, WIBool returnsStruct) {
     if (argCount == unknownArgCount)
         argCount = call_args.size();
 
+#ifndef FFI_INTERFACE_FAST
     // Make sure argCount matches argument count
     else if (argCount != call_args.size()) {
         call_error = std::format("Mismatched added ({}) vs. passed ({}) arg count", call_args.size(), argCount);
         logBadCall(index);
         return false;
     }
+#endif
 
     // Get method
     const auto method = Dynamic::getMethod(index);
+#ifndef FFI_INTERFACE_FAST
     if (!method.isValid()) {
         call_error = std::format("Bad method index ({})", index);
         logBadCall(index);
@@ -871,6 +924,7 @@ WIBool call2(MethodHandle index, int32_t argCount, WIBool returnsStruct) {
         logBadCall(index);
         return false;
     }
+#endif
 
     // Back up current mod in case called function triggers hook from another mod
     ModInfo *currentModBackup = FFILoader::FFIMod::getCurrent();
@@ -920,10 +974,11 @@ WIBool call(MethodHandle index, int32_t argCount) { return call2(index, argCount
 ObjectHandle call3(MethodInfoHandle handle, int32_t argCount) {
     // Handle unknown argument count
     if (argCount == unknownArgCount)
-        argCount = call_args.size();
+        argCount = call_args.empty() ? 0 : static_cast<int32_t>(call_args.size() - 1);
 
     // Get method
     const auto method = methodInfoHandles.get(handle);
+#ifndef FFI_INTERFACE_FAST
     if (!method) {
         call_error = std::format("Bad method handle ({})", handle);
         logBadCall();
@@ -931,15 +986,9 @@ ObjectHandle call3(MethodInfoHandle handle, int32_t argCount) {
     }
 
     // Make sure argCount matches argument count
-    else if (argCount != call_args.size() - 1) {
-        call_error = std::format("Mismatched added ({}) vs. passed ({}) arg count", call_args.size(), argCount);
-        logBadCall(method);
-        return -1;
-    }
-
-    // Make sure object instance is passed
-    if (call_args.empty()) {
-        call_error = std::format("Missing object instance", call_args.size(), argCount);
+    if (call_args.empty() || static_cast<size_t>(argCount) != call_args.size() - 1) {
+        call_error = std::format("Mismatched added ({}) vs. passed ({}) arg count",
+                                 call_args.empty() ? 0 : call_args.size() - 1, argCount);
         logBadCall(method);
         return -1;
     }
@@ -951,6 +1000,7 @@ ObjectHandle call3(MethodInfoHandle handle, int32_t argCount) {
         logBadCall(method);
         return -1;
     }
+#endif
 
     // Back up current mod in case called function triggers hook from another mod
     ModInfo *currentModBackup = FFILoader::FFIMod::getCurrent();
@@ -987,21 +1037,26 @@ MethodHandle currentHookMethod;
 void *ffiHook(void *a, void *b, void *c, void *d, void *e, void *f) noexcept {
     // Get method
     const auto method = Dynamic::getMethod(GameHook::getTrampolineCaller());
+#ifndef FFI_INTERFACE_FAST
     if (!method.isValid()) {
         g.logger->error("FFI GameHook interface encountered an invalid hook!");
         return nullptr;
     }
+#endif
     currentHookMethod = method.index;
 
     // Get hook
     auto res = hooks.find(currentHookMethod);
+#ifndef FFI_INTERFACE_FAST
     if (res == hooks.end()) {
         g.logger->error("FFI GameHook interface encountered an unknown hook!");
         return nullptr;
     }
+#endif
     FFIGameHookInfo& hookInfo = res->second;
     auto hook = hookInfo.hook; // Prevents UB when hook is erased in callback
 
+#ifndef FFI_INTERFACE_FAST
     // Make sure mod is still loaded
     if (!hookInfo.modInfo->isLoaded()) {
         g.logger->error("FFI GameHook interface attempted to handle hook for "
@@ -1009,6 +1064,7 @@ void *ffiHook(void *a, void *b, void *c, void *d, void *e, void *f) noexcept {
         hooks.erase(method.index);
         return nullptr;
     }
+#endif
 
     // Set up argument list
     call_args = {a, b, c, d, e, f};
@@ -1016,7 +1072,7 @@ void *ffiHook(void *a, void *b, void *c, void *d, void *e, void *f) noexcept {
 
     // Call hook callback
     try {
-        GameHookRelease GHR(*hooks.at(currentHookMethod).hook);
+        GameHookRelease GHR(*hook);
         hookInfo.modInfo->get<FFILoader::FFIMod>()->simpleCall(hookInfo.callback.c_str());
         return return_value;
     } catch (const std::exception& e) {

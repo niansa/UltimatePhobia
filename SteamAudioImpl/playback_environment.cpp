@@ -502,7 +502,7 @@ void RayTracer::RescanColliders() {
 
             seen.reserve(seen.size() + static_cast<std::size_t>(std::max(count, int32_t{0})));
 
-            for (int32_t index = 0; index < count; ++index) {
+            for (int64_t index = 0; index < count; ++index) {
                 ObjectHandle collider =
                     call<"Il2CppObject* System_Array__GetValue (System_Array_o* __this, int64_t index, "
                          "const MethodInfo* method);",
